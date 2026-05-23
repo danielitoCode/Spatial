@@ -35,4 +35,6 @@ dependencies {
     implementation(project(":spatial-math"))
     implementation(project(":spatial-material"))
     implementation(project(":spatial-light"))
+    // Renderer implementa contratos definidos en core.
+    implementation(project(":spatial-core"))
 }
