@@ -30,4 +30,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
+    // Renderer solo depende de bloques de bajo nivel (math/material/light), nunca de core/scene/compose.
+    implementation(project(":spatial-math"))
+    implementation(project(":spatial-material"))
+    implementation(project(":spatial-light"))
 }

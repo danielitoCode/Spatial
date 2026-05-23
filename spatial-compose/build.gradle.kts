@@ -30,4 +30,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
+    // Compose consume únicamente contratos de core para evitar acoplar UI a backends de bajo nivel.
+    implementation(project(":spatial-core"))
 }

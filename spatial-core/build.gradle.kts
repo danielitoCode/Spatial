@@ -30,4 +30,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
+    // Core expone contratos de alto nivel y por eso agrega tipos geométricos/unidades compartidas.
+    implementation(project(":spatial-geometry"))
+    implementation(project(":spatial-units"))
+    // Core orquesta el pipeline de render por contrato, sin subir dependencias a Compose.
+    implementation(project(":spatial-renderer"))
 }
