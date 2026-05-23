@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
@@ -9,10 +10,18 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/spatial-camera" />
             <option value="$PROJECT_DIR$/spatial-compose" />
             <option value="$PROJECT_DIR$/spatial-core" />
+            <option value="$PROJECT_DIR$/spatial-geometry" />
+            <option value="$PROJECT_DIR$/spatial-gesture" />
+            <option value="$PROJECT_DIR$/spatial-light" />
+            <option value="$PROJECT_DIR$/spatial-material" />
             <option value="$PROJECT_DIR$/spatial-math" />
+            <option value="$PROJECT_DIR$/spatial-motion" />
             <option value="$PROJECT_DIR$/spatial-renderer" />
+            <option value="$PROJECT_DIR$/spatial-scene" />
+            <option value="$PROJECT_DIR$/spatial-units" />
           </set>
         </option>
       </GradleProjectSettings>
