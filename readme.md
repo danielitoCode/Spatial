@@ -4,6 +4,8 @@
 
 ![Spatial Logo](https://img.shields.io/badge/Spatial-Declarative%203D-blueviolet?style=for-the-badge)
 
+<img src="banner.png" alt="Spatial Banner" width="100%" />
+
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.x-orange?style=flat-square&logo=kotlin)
 ![Android](https://img.shields.io/badge/Android-OpenGL%20ES%203.0-green?style=flat-square&logo=android)
 ![Compose](https://img.shields.io/badge/Jetpack-Compose-blue?style=flat-square)
