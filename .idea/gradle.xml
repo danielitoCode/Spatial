@@ -9,8 +9,10 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/spatial-compose" />
             <option value="$PROJECT_DIR$/spatial-core" />
             <option value="$PROJECT_DIR$/spatial-math" />
+            <option value="$PROJECT_DIR$/spatial-renderer" />
           </set>
         </option>
       </GradleProjectSettings>

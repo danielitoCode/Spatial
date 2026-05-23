@@ -25,4 +25,6 @@ dependencyResolutionManagement {
 rootProject.name = "Spatial"
 include(":app")
 include(":spatial-core")
+include(":spatial-compose")
 include(":spatial-math")
+include(":spatial-renderer")

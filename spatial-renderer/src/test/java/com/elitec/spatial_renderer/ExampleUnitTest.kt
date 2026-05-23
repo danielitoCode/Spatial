@@ -1,4 +1,4 @@
-package com.elitec.spatial_math
+package com.elitec.spatial_renderer
 
 import org.junit.Test
 
