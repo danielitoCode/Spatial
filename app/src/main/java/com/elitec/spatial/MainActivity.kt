@@ -11,7 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.viewinterop.AndroidView
 import com.elitec.spatial.ui.theme.SpatialTheme
+import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,10 +22,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SpatialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    SpatialRendererHost(modifier = Modifier.fillMaxSize().padding(innerPadding))
                 }
             }
         }
@@ -31,17 +30,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
+private fun SpatialRendererHost(modifier: Modifier = Modifier) {
+    AndroidView(
+        modifier = modifier,
+        factory = { context -> SpatialGlSurfaceView(context) }
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SpatialTheme {
-        Greeting("Android")
-    }
 }
