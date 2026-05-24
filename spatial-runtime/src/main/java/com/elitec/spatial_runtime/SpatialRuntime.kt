@@ -6,7 +6,7 @@ import com.elitec.spatial_gesture.OrbitGestureDelta
 import com.elitec.spatial_gesture.PinchZoomDelta
 import com.elitec.spatial_renderer.render.FrameScheduler
 import com.elitec.spatial_renderer.render.RenderBackend
-import com.elitec.spatial_renderer.render.RenderFram
+import com.elitec.spatial_renderer.render.RenderFrame
 
 class SpatialRuntime(
     private val renderBackend: RenderBackend,
@@ -14,15 +14,25 @@ class SpatialRuntime(
     private val cameraRuntime: CameraRuntimeContract,
 ) : SpatialRenderLoopContract {
 
-    override fun onInitialize() = Unit
+    private var initialized = false
+
+    override fun onInitialize() {
+        initialized = true
+    }
 
     override fun onFrame(frameTimeNanos: Long) {
+        if (!initialized) return
+
         renderBackend.render(
             RenderFrame(
                 frameTimeNanos = frameTimeNanos,
                 cameraState = cameraRuntime.snapshot(),
             )
         )
+    }
+
+    override fun onShutdown() {
+        initialized = false
     }
 
     fun onOrbitGesture(delta: OrbitGestureDelta) {
@@ -32,10 +42,4 @@ class SpatialRuntime(
     fun onPinchGesture(delta: PinchZoomDelta) {
         cameraRuntime.updateZoom(delta.scaleDelta)
     }
-
-    fun requestRenderFrame() {
-        frameScheduler.requestFrame { onFrame(it.frameTimeNanos) }
-    }
-
-    override fun onShutdown() = Unit
 }
