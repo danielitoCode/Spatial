@@ -20,6 +20,7 @@
             <option value="$PROJECT_DIR$/spatial-math" />
             <option value="$PROJECT_DIR$/spatial-motion" />
             <option value="$PROJECT_DIR$/spatial-renderer" />
+            <option value="$PROJECT_DIR$/spatial-runtime" />
             <option value="$PROJECT_DIR$/spatial-scene" />
             <option value="$PROJECT_DIR$/spatial-units" />
           </set>

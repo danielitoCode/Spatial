@@ -51,6 +51,9 @@ dependencies {
 
     implementation(project(":spatial-core"))
     implementation(project(":spatial-renderer"))
+    implementation(project(":spatial-runtime"))
+    implementation(project(":spatial-gesture"))
+    implementation(project(":spatial-camera"))
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
