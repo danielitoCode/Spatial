@@ -25,6 +25,8 @@ android {
 
 dependencies {
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.runtime.annotation)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
     testImplementation(libs.junit)
@@ -34,4 +36,5 @@ dependencies {
     // Compose consume únicamente contratos de core para evitar acoplar UI a backends de bajo nivel.
     implementation(project(":spatial-core"))
     implementation(project(":spatial-gesture"))
+    implementation(project(":spatial-units"))
 }

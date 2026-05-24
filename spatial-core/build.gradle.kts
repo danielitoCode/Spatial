@@ -1,36 +1,23 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("java-library")
+    alias(libs.plugins.jetbrains.kotlin.jvm)
+}
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
-android {
-    namespace = "com.elitec.spatial_core"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+}
 
-    defaultConfig {
-        minSdk = 24
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 
 }
-
 dependencies {
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
-
     // Core expone contratos de alto nivel y por eso agrega tipos geométricos/unidades compartidas.
     implementation(project(":spatial-geometry"))
     implementation(project(":spatial-units"))
