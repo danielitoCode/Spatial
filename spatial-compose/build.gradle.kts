@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -21,6 +22,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
+    buildFeatures {
+        compose = true
+    }
+
 }
 
 dependencies {
@@ -33,7 +38,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 
-    // Compose consume únicamente contratos de core para evitar acoplar UI a backends de bajo nivel.
+    // Compose consume únicamente contratos de core para evitar acoplar UI a backends de bajo nivel
     implementation(project(":spatial-core"))
     implementation(project(":spatial-gesture"))
     implementation(project(":spatial-units"))

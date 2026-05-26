@@ -53,6 +53,8 @@ dependencies {
     implementation(project(":spatial-renderer"))
     implementation(project(":spatial-runtime"))
     implementation(project(":spatial-gesture"))
+    implementation(project(":spatial-units"))
+    implementation(project(":spatial-compose"))
     implementation(project(":spatial-camera"))
 
     testImplementation(libs.junit)

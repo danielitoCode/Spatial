@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,13 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInteropFilter
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.elitec.spatial.ui.theme.SpatialTheme
-import com.elitec.spatial.wiring.RenderWiring
-import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
+import com.elitec.spatial_compose.Modifier3D
+import com.elitec.spatial_compose.rememberSceneGraph
+import com.elitec.spatial_units.meters
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,23 +40,18 @@ class MainActivity : ComponentActivity() {
 private fun SpatialRendererHost(modifier: Modifier = Modifier) {
     var cameraText by remember { mutableStateOf("yaw=0.00 pitch=0.00 zoom=1.00") }
 
-    Column(modifier = modifier) {
-        Text("Demo gesto -> cámara -> render", modifier = Modifier.padding(12.dp))
-        Text(cameraText, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
-        AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInteropFilter { motionEvent ->
-                    val x = motionEvent.x / 1000f
-                    val y = motionEvent.y / 1000f
-                    RenderWiring.gestureDispatcher.publishOrbit(OrbitGestureDelta(deltaYaw = x, deltaPitch = y))
-                    RenderWiring.gestureDispatcher.publishPinch(PinchZoomDelta(scaleDelta = 1.001f))
-                    RenderWiring.runtime.requestRenderFrame()
-                    val camera = RenderWiring.cameraSnapshot()
-                    cameraText = "yaw=${"%.2f".format(camera.yaw)} pitch=${"%.2f".format(camera.pitch)} zoom=${"%.2f".format(camera.zoom)}"
-                    true
-                },
-            factory = { context -> SpatialGlSurfaceView(context) }
-        )
+    val sceneNodes = rememberSceneGraph {
+        cube(Modifier3D.Default.position(0f.meters, 0f.meters, (-4f).meters).size(1.4f.meters))
+        sphere(Modifier3D.Default.position(2f.meters, 0f.meters, (-6f).meters).size(1f.meters))
+        plane(Modifier3D.Default.position(0f.meters, (-1.2f).meters, (-5f).meters).size(8f.meters, 0.1f.meters, 8f.meters))
+    }
+
+    Column(
+        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("Playground básico: triángulo GL + estado de cámara")
+        Text(cameraText)
+        Text("Scene DSL activa: ${sceneNodes.joinToString { it.shape.name }}")
     }
 }
