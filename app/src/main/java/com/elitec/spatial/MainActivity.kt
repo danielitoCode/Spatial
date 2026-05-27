@@ -18,7 +18,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.elitec.spatial.ui.theme.SpatialTheme
+import com.elitec.spatial_compose.Element
+import com.elitec.spatial_compose.Gestures
 import com.elitec.spatial_compose.Modifier3D
+import com.elitec.spatial_compose.Scene
+import com.elitec.spatial_compose.Shapes3D
+import com.elitec.spatial_compose.rememberCameraState
 import com.elitec.spatial_compose.rememberSceneGraph
 import com.elitec.spatial_units.meters
 
@@ -40,10 +45,35 @@ class MainActivity : ComponentActivity() {
 private fun SpatialRendererHost(modifier: Modifier = Modifier) {
     var cameraText by remember { mutableStateOf("yaw=0.00 pitch=0.00 zoom=1.00") }
 
-    val sceneNodes = rememberSceneGraph {
-        cube(Modifier3D.Default.position(0f.meters, 0f.meters, (-4f).meters).size(1.4f.meters))
-        sphere(Modifier3D.Default.position(2f.meters, 0f.meters, (-6f).meters).size(1f.meters))
-        plane(Modifier3D.Default.position(0f.meters, (-1.2f).meters, (-5f).meters).size(8f.meters, 0.1f.meters, 8f.meters))
+    val cameraState = rememberCameraState()
+
+    val sceneNodes = Scene {
+        // Forma genérica
+        Element(
+            shape = Shapes3D.Cube,
+            modifier = Modifier3D.Default
+                .size(1.4f.meters)
+                .position(0f.meters, 0f.meters, (-4f).meters),
+        )
+
+        Element(
+            shape = Shapes3D.Sphere,
+            modifier = Modifier3D.Default
+                .size(1f.meters)
+                .position(2f.meters, 0f.meters, (-6f).meters),
+        )
+
+        Element(
+            shape = Shapes3D.Plane,
+            modifier = Modifier3D.Default
+                .size(8f.meters, 0.1f.meters, 8f.meters)
+                .position(0f.meters, (-1.2f).meters, (-5f).meters),
+        )
+
+        // O también azúcar sintáctico:
+        // Element.Cube(modifier = Modifier3D.Default.size(1.4f.meters).position(0f, 0f, -4f))
+        // Element.Sphere(modifier = Modifier3D.Default.size(1f.meters).position(2f, 0f, -6f))
+        // Element.Plane(modifier = Modifier3D.Default.size(8f.meters, 0.1f.meters, 8f.meters).position(0f, -1.2f, -5f))
     }
 
     Column(

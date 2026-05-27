@@ -18,7 +18,10 @@ kotlin {
 
 }
 dependencies {
-    // Core expone contratos de alto nivel y por eso agrega tipos geométricos/unidades compartidas.
-    implementation(project(":spatial-geometry"))
+    // Core expone contratos puros. Solo depende de tipos matemáticos y unidades.
+    implementation(project(":spatial-math"))
     implementation(project(":spatial-units"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.junit)
 }

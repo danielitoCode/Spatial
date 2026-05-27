@@ -1,6 +1,7 @@
 package com.elitec.spatial_runtime
 
 import com.elitec.spatial_camera.CameraRuntimeContract
+import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
 import com.elitec.spatial_gesture.OrbitGestureDelta
 import com.elitec.spatial_gesture.PinchZoomDelta
@@ -20,12 +21,12 @@ class SpatialRuntime(
         initialized = true
     }
 
-    override fun onFrame(frameTimeNanos: Long) {
+    override fun onFrame(snapshot: FrameSnapshot) {
         if (!initialized) return
 
         renderBackend.render(
             RenderFrame(
-                frameTimeNanos = frameTimeNanos,
+                frameTimeNanos = snapshot.frameTimeNanos,
                 cameraState = cameraRuntime.snapshot(),
             )
         )
