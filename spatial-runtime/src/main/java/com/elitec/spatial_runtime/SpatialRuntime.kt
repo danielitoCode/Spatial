@@ -1,6 +1,8 @@
 package com.elitec.spatial_runtime
 
 import com.elitec.spatial_camera.CameraRuntimeContract
+import com.elitec.spatial_camera.CameraDelta
+import com.elitec.spatial_camera.CameraUpdateSource
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
 import com.elitec.spatial_gesture.OrbitGestureDelta
@@ -37,10 +39,16 @@ class SpatialRuntime(
     }
 
     fun onOrbitGesture(delta: OrbitGestureDelta) {
-        cameraRuntime.updateOrbit(delta.deltaYaw, delta.deltaPitch)
+        cameraRuntime.applyDelta(
+            delta = CameraDelta(deltaYaw = delta.deltaYaw, deltaPitch = delta.deltaPitch),
+            source = CameraUpdateSource.Gesture
+        )
     }
 
     fun onPinchGesture(delta: PinchZoomDelta) {
-        cameraRuntime.updateZoom(delta.scaleDelta)
+        cameraRuntime.applyDelta(
+            delta = CameraDelta(zoomScaleDelta = delta.scaleDelta),
+            source = CameraUpdateSource.Gesture
+        )
     }
 }

@@ -9,9 +9,19 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : GLSurfaceView(context, attrs) {
 
+    private val spatialRenderer = SpatialGlRenderer()
+
     init {
         setEGLContextClientVersion(3)
-        setRenderer(SpatialGlRenderer())
+        setRenderer(spatialRenderer)
         renderMode = RENDERMODE_CONTINUOUSLY
+    }
+
+    fun updateScene(nodes: List<com.elitec.spatial_core.scene.RenderableNode>) {
+        spatialRenderer.updateNodes(nodes)
+    }
+
+    fun updateCamera(cameraSnapshot: com.elitec.spatial_camera.CameraSnapshot) {
+        spatialRenderer.updateCamera(cameraSnapshot)
     }
 }

@@ -1,6 +1,6 @@
 package com.elitec.spatial_renderer.render
 
-import com.elitec.spatial_camera.CameraState
+import com.elitec.spatial_camera.CameraSnapshot
 
 /** Contrato mínimo para disparar render de un frame. */
 interface RenderBackend {
@@ -21,5 +21,5 @@ interface GpuResourceHandle {
 data class RenderFrame(
     val frameTimeNanos: Long,
     val resources: List<GpuResourceHandle> = emptyList(),
-    val cameraState: CameraState = CameraState(),
+    val cameraState: CameraSnapshot = CameraSnapshot(),
 )

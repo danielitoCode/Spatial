@@ -5,12 +5,24 @@ import android.opengl.GLSurfaceView
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import android.opengl.Matrix
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import com.elitec.spatial_core.scene.RenderableNode
 
 class SpatialGlRenderer : GLSurfaceView.Renderer {
     private var vertexBuffer: FloatBuffer? = null
     private var programId: Int = 0
+    private var nodes: List<RenderableNode> = emptyList()
+    private var cameraSnapshot: com.elitec.spatial_camera.CameraSnapshot = com.elitec.spatial_camera.CameraSnapshot()
+
+    fun updateNodes(newNodes: List<RenderableNode>) {
+        nodes = newNodes
+    }
+
+    fun updateCamera(snapshot: com.elitec.spatial_camera.CameraSnapshot) {
+        cameraSnapshot = snapshot
+    }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES30.glClearColor(0.08f, 0.12f, 0.18f, 1.0f)
@@ -30,12 +42,42 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
+        
+        if (nodes.isEmpty()) return
+
         GLES30.glUseProgram(programId)
+
+        val viewMatrix = FloatArray(16)
+        val projectionMatrix = FloatArray(16)
+        
+        // Configuración de cámara básica (Orbit)
+        val eyeX = (cameraSnapshot.zoom * 10f * Math.sin(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
+        val eyeY = (cameraSnapshot.zoom * 10f * Math.sin(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
+        val eyeZ = (cameraSnapshot.zoom * 10f * Math.cos(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
+
+        Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, 0f, 0f, 0f, 0f, 1f, 0f)
+        
+        val uViewLoc = GLES30.glGetUniformLocation(programId, "uViewMatrix")
+        val uProjLoc = GLES30.glGetUniformLocation(programId, "uProjectionMatrix")
+        val uModelLoc = GLES30.glGetUniformLocation(programId, "uModelMatrix")
+        val uColorLoc = GLES30.glGetUniformLocation(programId, "uColor")
+
+        GLES30.glUniformMatrix4fv(uViewLoc, 1, false, viewMatrix, 0)
+        
+        // Proyección básica
+        Matrix.perspectiveM(projectionMatrix, 0, 45f, 1f, 0.1f, 100f)
+        GLES30.glUniformMatrix4fv(uProjLoc, 1, false, projectionMatrix, 0)
 
         val buffer = checkNotNull(vertexBuffer)
         GLES30.glEnableVertexAttribArray(0)
         GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 3 * Float.SIZE_BYTES, buffer)
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        
+        nodes.forEach { node ->
+            GLES30.glUniformMatrix4fv(uModelLoc, 1, false, node.modelMatrix, 0)
+            GLES30.glUniform4f(uColorLoc, node.material.r, node.material.g, node.material.b, node.material.a)
+            GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        }
+
         GLES30.glDisableVertexAttribArray(0)
     }
 
@@ -77,22 +119,22 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     private companion object {
-        private const val VERTEX_SHADER = """
-            #version 300 es
-            layout (location = 0) in vec4 aPosition;
-            void main() {
-              gl_Position = aPosition;
-            }
-        """
+        private const val VERTEX_SHADER = "#version 300 es\n" +
+            "layout (location = 0) in vec4 aPosition;\n" +
+            "uniform mat4 uModelMatrix;\n" +
+            "uniform mat4 uViewMatrix;\n" +
+            "uniform mat4 uProjectionMatrix;\n" +
+            "void main() {\n" +
+            "  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aPosition;\n" +
+            "}"
 
-        private const val FRAGMENT_SHADER = """
-            #version 300 es
-            precision mediump float;
-            out vec4 fragColor;
-            void main() {
-              fragColor = vec4(0.95, 0.35, 0.20, 1.0);
-            }
-        """
+        private const val FRAGMENT_SHADER = "#version 300 es\n" +
+            "precision mediump float;\n" +
+            "out vec4 fragColor;\n" +
+            "uniform vec4 uColor;\n" +
+            "void main() {\n" +
+            "  fragColor = uColor;\n" +
+            "}"
 
         private val TRIANGLE_VERTICES = floatArrayOf(
             0.0f, 0.55f, 0.0f,

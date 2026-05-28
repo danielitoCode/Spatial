@@ -9,7 +9,7 @@ import com.elitec.spatial_core.render.Color4
 fun Color.toColor4(): Color4 = Color4(this.red, this.green, this.blue, this.alpha)
 
 /** Convierte un [Color4] de core a [Color] de Compose para interoperar con UI. */
-fun Color4.toComposeColor(): Color = Color(red =this.r, green = g, blue = b, alpha = a)
+fun Color4.toComposeColor(): Color = Color(red = r, green = g, blue = b, alpha = a)
 
 /**
  * Color de clear recomendado para render basado en el `background` del Material Theme activo.

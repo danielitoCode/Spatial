@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +20,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
+import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_core.scene.MaterialData
+import android.view.MotionEvent
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.pointer.pointerInteropFilter
+import com.elitec.spatial.wiring.RenderWiring
 import com.elitec.spatial.ui.theme.SpatialTheme
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures
@@ -26,6 +38,7 @@ import com.elitec.spatial_compose.Shapes3D
 import com.elitec.spatial_compose.rememberCameraState
 import com.elitec.spatial_compose.rememberSceneGraph
 import com.elitec.spatial_units.meters
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,12 +56,20 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun SpatialRendererHost(modifier: Modifier = Modifier) {
-    var cameraText by remember { mutableStateOf("yaw=0.00 pitch=0.00 zoom=1.00") }
+    val cameraStateSnapshot = remember { mutableStateOf(RenderWiring.cameraSnapshot()) }
+    
+    // Simular un loop de actualización para la UI (en una app real esto vendría del runtime)
+    LaunchedEffect(Unit) {
+        while(true) {
+            cameraStateSnapshot.value = RenderWiring.cameraSnapshot()
+            delay(16)
+        }
+    }
 
-    val cameraState = rememberCameraState()
+    val cameraSnapshot = cameraStateSnapshot.value
+    val cameraText = "yaw=${"%.2f".format(cameraSnapshot.yaw)} pitch=${"%.2f".format(cameraSnapshot.pitch)} zoom=${"%.2f".format(cameraSnapshot.zoom)}"
 
     val sceneNodes = Scene {
-        // Forma genérica
         Element(
             shape = Shapes3D.Cube,
             modifier = Modifier3D.Default
@@ -69,19 +90,63 @@ private fun SpatialRendererHost(modifier: Modifier = Modifier) {
                 .size(8f.meters, 0.1f.meters, 8f.meters)
                 .position(0f.meters, (-1.2f).meters, (-5f).meters),
         )
-
-        // O también azúcar sintáctico:
-        // Element.Cube(modifier = Modifier3D.Default.size(1.4f.meters).position(0f, 0f, -4f))
-        // Element.Sphere(modifier = Modifier3D.Default.size(1f.meters).position(2f, 0f, -6f))
-        // Element.Plane(modifier = Modifier3D.Default.size(8f.meters, 0.1f.meters, 8f.meters).position(0f, -1.2f, -5f))
     }
 
-    Column(
-        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text("Playground básico: triángulo GL + estado de cámara")
-        Text(cameraText)
-        Text("Scene DSL activa: ${sceneNodes.joinToString { it.shape.name }}")
+    // Puente de conversión de SceneNode a RenderableNode
+    val renderableNodes = remember(sceneNodes) {
+        sceneNodes.map { node ->
+            RenderableNode(
+                meshId = node.shape.name,
+                material = MaterialData(0.95f, 0.35f, 0.20f)
+            )
+        }
+    }
+
+    Column(modifier = modifier) {
+        // Vista 3D Real
+        AndroidView(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+                .pointerInteropFilter { event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_MOVE -> {
+                            RenderWiring.gestureDispatcher.publishOrbit(
+                                com.elitec.spatial_gesture.OrbitGestureDelta(1f, 0f)
+                            )
+                            true
+                        }
+                        else -> true
+                    }
+                },
+            factory = { context ->
+                SpatialGlSurfaceView(context).apply {
+                    updateScene(renderableNodes)
+                }
+            },
+            update = { view ->
+                view.updateScene(renderableNodes)
+                view.updateCamera(RenderWiring.cameraSnapshot())
+            }
+        )
+
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Playground 3D Activo", modifier = Modifier.weight(1f))
+                Button(onClick = {
+                    RenderWiring.runtime.onOrbitGesture(com.elitec.spatial_gesture.OrbitGestureDelta(45f, 0f))
+                }) {
+                    Text("Animar")
+                }
+            }
+            Text(cameraText)
+            Text("Nodos en escena: ${sceneNodes.size}")
+        }
     }
 }

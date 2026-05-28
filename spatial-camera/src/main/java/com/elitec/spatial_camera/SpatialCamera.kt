@@ -34,6 +34,7 @@ interface CameraRuntimeContract {
     fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun applyDelta(delta: CameraDelta, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun zoomTo(zoom: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
+    fun animateTo(yaw: Float, pitch: Float, zoom: Float, durationMs: Long = 300L)
     fun snapshot(): CameraSnapshot
 }
 
@@ -65,6 +66,12 @@ class SpatialCamera(
         writeAtomic(source) {
             copy(zoom = zoom.coerceIn(0.3f, 4f))
         }
+    }
+
+    override fun animateTo(yaw: Float, pitch: Float, zoom: Float, durationMs: Long) {
+        // Implementación básica de animación.
+        orbitTo(yaw, pitch, source = CameraUpdateSource.Animation)
+        zoomTo(zoom, source = CameraUpdateSource.Animation)
     }
 
     override fun snapshot(): CameraSnapshot = state
