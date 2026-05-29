@@ -1,14 +1,32 @@
 package com.elitec.spatial_compose
 
+import android.view.MotionEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.lerp
+import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.viewinterop.AndroidView
+import com.elitec.spatial_camera.CameraSnapshot
+import com.elitec.spatial_camera.CameraUpdateSource
+import com.elitec.spatial_core.scene.MaterialData
+import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
 import com.elitec.spatial_units.Angle
 import com.elitec.spatial_units.Distance
+import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
+import kotlin.math.PI
 
 @Immutable
 data class Vec3Distance(
@@ -51,26 +69,135 @@ data class Modifier3D(
     }
 }
 
-@Immutable
-data class CameraState(
-    val yaw: Angle? = null,
-    val pitch: Angle? = null,
-    val zoom: Float = 1f,
-)
+/**
+ * Compose-owned camera state for Scene.
+ *
+ * The renderer only receives immutable [CameraSnapshot] values. Gesture and animation writes go
+ * through this state holder so camera control follows the same state-hoisting model as Compose.
+ */
+@Stable
+class CameraState internal constructor(
+    yaw: Angle,
+    pitch: Angle,
+    zoom: Float,
+) {
+    var yaw: Angle by mutableStateOf(yaw)
+        private set
+    var pitch: Angle by mutableStateOf(pitch)
+        private set
+    var zoom: Float by mutableFloatStateOf(zoom.coerceIn(MinZoom, MaxZoom))
+        private set
+    var version: Long by mutableLongStateOf(0L)
+        private set
+    var source: CameraUpdateSource by mutableStateOf(CameraUpdateSource.Gesture)
+        private set
+
+    fun orbitTo(
+        yaw: Angle = this.yaw,
+        pitch: Angle = this.pitch,
+        source: CameraUpdateSource = CameraUpdateSource.Remote,
+    ) {
+        write(source) {
+            this.yaw = yaw
+            this.pitch = pitch.coercePitch()
+        }
+    }
+
+    fun orbitBy(
+        deltaYawDegrees: Float,
+        deltaPitchDegrees: Float,
+        source: CameraUpdateSource = CameraUpdateSource.Gesture,
+    ) {
+        orbitTo(
+            yaw = (yaw.toDegrees() + deltaYawDegrees).deg,
+            pitch = (pitch.toDegrees() + deltaPitchDegrees).deg,
+            source = source,
+        )
+    }
+
+    fun zoomTo(zoom: Float, source: CameraUpdateSource = CameraUpdateSource.Remote) {
+        write(source) {
+            this.zoom = zoom.coerceIn(MinZoom, MaxZoom)
+        }
+    }
+
+    fun zoomBy(scaleDelta: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture) {
+        val safeScale = if (scaleDelta <= 0f) 1f else scaleDelta
+        zoomTo(zoom * safeScale, source)
+    }
+
+    suspend fun animateTo(
+        yaw: Angle = this.yaw,
+        pitch: Angle = this.pitch,
+        zoom: Float = this.zoom,
+        durationMillis: Long = DefaultAnimationDurationMillis,
+    ) {
+        val startYaw = this.yaw.toDegrees()
+        val startPitch = this.pitch.toDegrees()
+        val startZoom = this.zoom
+        val targetYaw = yaw.toDegrees()
+        val targetPitch = pitch.coercePitch().toDegrees()
+        val targetZoom = zoom.coerceIn(MinZoom, MaxZoom)
+        val durationNanos = durationMillis.coerceAtLeast(1L) * 1_000_000L
+        val startTime = withFrameNanos { it }
+
+        while (true) {
+            val frameTime = withFrameNanos { it }
+            val linearProgress = ((frameTime - startTime).toFloat() / durationNanos).coerceIn(0f, 1f)
+            val easedProgress = smoothStep(linearProgress)
+            write(CameraUpdateSource.Animation) {
+                this.yaw = lerp(startYaw, targetYaw, easedProgress).deg
+                this.pitch = lerp(startPitch, targetPitch, easedProgress).deg.coercePitch()
+                this.zoom = lerp(startZoom, targetZoom, easedProgress).coerceIn(MinZoom, MaxZoom)
+            }
+            if (linearProgress >= 1f) break
+        }
+    }
+
+    fun snapshot(): CameraSnapshot = CameraSnapshot(
+        yaw = yaw.toDegrees(),
+        pitch = pitch.toDegrees(),
+        zoom = zoom,
+        version = version,
+        source = source,
+    )
+
+    private fun write(updateSource: CameraUpdateSource, block: CameraState.() -> Unit) {
+        block()
+        source = updateSource
+        version += 1L
+    }
+
+    private fun Angle.coercePitch(): Angle = toDegrees().coerceIn(MinPitchDegrees, MaxPitchDegrees).deg
+
+    private companion object {
+        const val MinPitchDegrees = -89f
+        const val MaxPitchDegrees = 89f
+        const val MinZoom = 0.3f
+        const val MaxZoom = 4f
+        const val DefaultAnimationDurationMillis = 450L
+    }
+}
 
 @Composable
-fun rememberCameraState(): CameraState = remember { CameraState() }
+fun rememberCameraState(
+    yaw: Angle = 0f.deg,
+    pitch: Angle = 0f.deg,
+    zoom: Float = 1f,
+): CameraState = remember { CameraState(yaw, pitch, zoom) }
 
 @Immutable
 data class SceneGestures internal constructor(
     val mode: Mode,
 ) {
     enum class Mode {
+        None,
         Orbit,
     }
 }
 
 object Gestures {
+    fun none(): SceneGestures = SceneGestures(SceneGestures.Mode.None)
     fun orbit(): SceneGestures = SceneGestures(SceneGestures.Mode.Orbit)
 }
 
@@ -170,9 +297,100 @@ fun rememberSceneGraph(content: @Composable SceneContentScope.() -> Unit): List<
     return scope.build()
 }
 
+/**
+ * Compose-first 3D scene host.
+ *
+ * Like Canvas, callers describe content in a scoped DSL. Unlike Canvas, Scene owns a real Android
+ * rendering surface internally and continuously syncs the resolved scene graph and camera state to
+ * the OpenGL renderer.
+ */
 @Composable
 fun Scene(
+    modifier: Modifier = Modifier,
+    cameraState: CameraState = rememberCameraState(),
+    gestures: SceneGestures = Gestures.orbit(),
     content: @Composable SceneContentScope.() -> Unit,
-): List<SceneNode> {
-    return rememberSceneGraph(content)
+) {
+    val sceneNodes = rememberSceneGraph(content)
+    val renderableNodes = sceneNodes.map(SceneNode::toRenderableNode)
+    val cameraSnapshot = cameraState.snapshot()
+
+    AndroidView(
+        modifier = modifier.sceneGestureInput(cameraState, gestures),
+        factory = { context ->
+            SpatialGlSurfaceView(context).apply {
+                updateScene(renderableNodes)
+                updateCamera(cameraSnapshot)
+            }
+        },
+        update = { view ->
+            view.updateScene(renderableNodes)
+            view.updateCamera(cameraSnapshot)
+        },
+    )
 }
+
+private fun Modifier.sceneGestureInput(
+    cameraState: CameraState,
+    gestures: SceneGestures,
+): Modifier {
+    if (gestures.mode == SceneGestures.Mode.None) return this
+
+    var lastX = 0f
+    var lastY = 0f
+    return pointerInteropFilter { event ->
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                lastX = event.x
+                lastY = event.y
+                true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (gestures.mode == SceneGestures.Mode.Orbit) {
+                    val dx = event.x - lastX
+                    val dy = event.y - lastY
+                    cameraState.orbitBy(dx * OrbitDegreesPerPixel, dy * OrbitDegreesPerPixel)
+                    lastX = event.x
+                    lastY = event.y
+                }
+                true
+            }
+            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> true
+            else -> true
+        }
+    }
+}
+
+private fun SceneNode.toRenderableNode(): RenderableNode = RenderableNode(
+    meshId = shape.name,
+    modelMatrix = modifier.toModelMatrix(),
+    material = shape.defaultMaterial(),
+)
+
+private fun Modifier3D.toModelMatrix(): FloatArray {
+    val resolvedSize = size ?: scale
+    val matrix = identityMatrix()
+    matrix[0] = resolvedSize.x.meters
+    matrix[5] = resolvedSize.y.meters
+    matrix[10] = resolvedSize.z.meters
+    matrix[12] = position.x.meters
+    matrix[13] = position.y.meters
+    matrix[14] = position.z.meters
+    return matrix
+}
+
+private fun PrimitiveShape.defaultMaterial(): MaterialData = when (this) {
+    PrimitiveShape.Cube -> MaterialData(0.95f, 0.35f, 0.20f)
+    PrimitiveShape.Sphere -> MaterialData(0.25f, 0.65f, 1.0f)
+    PrimitiveShape.Plane -> MaterialData(0.35f, 0.42f, 0.48f)
+}
+
+private fun identityMatrix(): FloatArray = FloatArray(16) { index -> if (index % 5 == 0) 1f else 0f }
+
+private fun Angle.toDegrees(): Float = (radians * 180f / PI.toFloat())
+
+private fun lerp(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
+
+private fun smoothStep(value: Float): Float = value * value * (3f - 2f * value)
+
+private const val OrbitDegreesPerPixel = 0.25f

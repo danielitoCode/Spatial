@@ -14,14 +14,20 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
     init {
         setEGLContextClientVersion(3)
         setRenderer(spatialRenderer)
-        renderMode = RENDERMODE_CONTINUOUSLY
+        renderMode = RENDERMODE_WHEN_DIRTY
     }
 
     fun updateScene(nodes: List<com.elitec.spatial_core.scene.RenderableNode>) {
-        spatialRenderer.updateNodes(nodes)
+        queueEvent {
+            spatialRenderer.updateNodes(nodes)
+            requestRender()
+        }
     }
 
     fun updateCamera(cameraSnapshot: com.elitec.spatial_camera.CameraSnapshot) {
-        spatialRenderer.updateCamera(cameraSnapshot)
+        queueEvent {
+            spatialRenderer.updateCamera(cameraSnapshot)
+            requestRender()
+        }
     }
 }

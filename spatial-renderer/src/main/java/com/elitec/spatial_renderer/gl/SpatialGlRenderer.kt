@@ -6,6 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import android.opengl.Matrix
+import com.elitec.spatial_camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.scene.RenderableNode
@@ -14,7 +15,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     private var vertexBuffer: FloatBuffer? = null
     private var programId: Int = 0
     private var nodes: List<RenderableNode> = emptyList()
-    private var cameraSnapshot: com.elitec.spatial_camera.CameraSnapshot = com.elitec.spatial_camera.CameraSnapshot()
+    private var cameraSnapshot: CameraSnapshot = CameraSnapshot()
+    private var aspectRatio: Float = 1f
 
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
@@ -26,6 +28,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES30.glClearColor(0.08f, 0.12f, 0.18f, 1.0f)
+        GLES30.glEnable(GLES30.GL_DEPTH_TEST)
+
         programId = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
 
         val bb = ByteBuffer.allocateDirect(TRIANGLE_VERTICES.size * Float.SIZE_BYTES)
@@ -38,6 +42,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES30.glViewport(0, 0, width, height)
+        aspectRatio = if (height == 0) 1f else width.toFloat() / height.toFloat()
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -65,7 +70,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         GLES30.glUniformMatrix4fv(uViewLoc, 1, false, viewMatrix, 0)
         
         // Proyección básica
-        Matrix.perspectiveM(projectionMatrix, 0, 45f, 1f, 0.1f, 100f)
+        Matrix.perspectiveM(projectionMatrix, 0, 45f, aspectRatio, 0.1f, 100f)
         GLES30.glUniformMatrix4fv(uProjLoc, 1, false, projectionMatrix, 0)
 
         val buffer = checkNotNull(vertexBuffer)

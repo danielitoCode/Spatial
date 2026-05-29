@@ -27,6 +27,7 @@ import com.elitec.spatial_core.scene.MaterialData
 import android.view.MotionEvent
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import com.elitec.spatial.wiring.RenderWiring
 import com.elitec.spatial.ui.theme.SpatialTheme
@@ -37,8 +38,10 @@ import com.elitec.spatial_compose.Scene
 import com.elitec.spatial_compose.Shapes3D
 import com.elitec.spatial_compose.rememberCameraState
 import com.elitec.spatial_compose.rememberSceneGraph
+import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,97 +59,62 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun SpatialRendererHost(modifier: Modifier = Modifier) {
-    val cameraStateSnapshot = remember { mutableStateOf(RenderWiring.cameraSnapshot()) }
-    
-    // Simular un loop de actualización para la UI (en una app real esto vendría del runtime)
-    LaunchedEffect(Unit) {
-        while(true) {
-            cameraStateSnapshot.value = RenderWiring.cameraSnapshot()
-            delay(16)
-        }
-    }
-
-    val cameraSnapshot = cameraStateSnapshot.value
-    val cameraText = "yaw=${"%.2f".format(cameraSnapshot.yaw)} pitch=${"%.2f".format(cameraSnapshot.pitch)} zoom=${"%.2f".format(cameraSnapshot.zoom)}"
-
-    val sceneNodes = Scene {
-        Element(
-            shape = Shapes3D.Cube,
-            modifier = Modifier3D.Default
-                .size(1.4f.meters)
-                .position(0f.meters, 0f.meters, (-4f).meters),
-        )
-
-        Element(
-            shape = Shapes3D.Sphere,
-            modifier = Modifier3D.Default
-                .size(1f.meters)
-                .position(2f.meters, 0f.meters, (-6f).meters),
-        )
-
-        Element(
-            shape = Shapes3D.Plane,
-            modifier = Modifier3D.Default
-                .size(8f.meters, 0.1f.meters, 8f.meters)
-                .position(0f.meters, (-1.2f).meters, (-5f).meters),
-        )
-    }
-
-    // Puente de conversión de SceneNode a RenderableNode
-    val renderableNodes = remember(sceneNodes) {
-        sceneNodes.map { node ->
-            RenderableNode(
-                meshId = node.shape.name,
-                material = MaterialData(0.95f, 0.35f, 0.20f)
-            )
-        }
-    }
-
+    val cameraState = rememberCameraState(yaw = 20f.deg, pitch = (-12f).deg, zoom = 1.25f)
+    val scope = rememberCoroutineScope()
+    val cameraSnapshot = cameraState.snapshot()
+    val cameraText = "yaw=${"%.2f".format(cameraSnapshot.yaw)} " +
+            "pitch=${"%.2f".format(cameraSnapshot.pitch)} " +
+            "zoom=${"%.2f".format(cameraSnapshot.zoom)}"
     Column(modifier = modifier) {
-        // Vista 3D Real
-        AndroidView(
+        Scene(
             modifier = Modifier
                 .fillMaxSize()
-                .weight(1f)
-                .pointerInteropFilter { event ->
-                    when (event.action) {
-                        MotionEvent.ACTION_MOVE -> {
-                            RenderWiring.gestureDispatcher.publishOrbit(
-                                com.elitec.spatial_gesture.OrbitGestureDelta(1f, 0f)
-                            )
-                            true
-                        }
-                        else -> true
-                    }
-                },
-            factory = { context ->
-                SpatialGlSurfaceView(context).apply {
-                    updateScene(renderableNodes)
-                }
-            },
-            update = { view ->
-                view.updateScene(renderableNodes)
-                view.updateCamera(RenderWiring.cameraSnapshot())
-            }
-        )
-
+                .weight(1f),
+            cameraState = cameraState,
+            gestures = Gestures.orbit(),
+        ) {
+            Element.Cube(
+                modifier = Modifier3D.Default
+                    .size(1.4f.meters)
+                    .position(0f.meters, 0f.meters, (-4f).meters),
+            )
+            Element.Sphere(
+                modifier = Modifier3D.Default
+                    .size(1f.meters)
+                    .position(2f.meters, 0f.meters, (-6f).meters),
+            )
+            Element.Plane(
+                modifier = Modifier3D.Default
+                    .size(8f.meters, 0.1f.meters, 8f.meters)
+                    .position(0f.meters, (-1.2f).meters, (-5f).meters),
+            )
+        }
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Playground 3D Activo", modifier = Modifier.weight(1f))
-                Button(onClick = {
-                    RenderWiring.runtime.onOrbitGesture(com.elitec.spatial_gesture.OrbitGestureDelta(45f, 0f))
-                }) {
-                    Text("Animar")
+                Text("Playground 3D Compose-first", modifier = Modifier.weight(1f))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            cameraState.animateTo(
+                                yaw = (cameraSnapshot.yaw + 90f).deg,
+                                pitch = (-18f).deg,
+                                zoom = 0.9f,
+                            )
+                        }
+                    },
+                ) {
+                    Text("Animar cámara")
                 }
             }
             Text(cameraText)
-            Text("Nodos en escena: ${sceneNodes.size}")
+            Text("Scene envuelve AndroidView y resuelve el grafo internamente")
         }
     }
+
 }
