@@ -16,6 +16,8 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
 import com.elitec.spatial_camera.CameraSnapshot
 import com.elitec.spatial_camera.CameraUpdateSource
@@ -27,6 +29,9 @@ import com.elitec.spatial_units.Distance
 import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sqrt
 
 @Immutable
 data class Vec3Distance(
@@ -179,6 +184,23 @@ class CameraState internal constructor(
     }
 }
 
+@Immutable
+sealed interface GestureSensitivity {
+    /**
+     * Keeps orbiting smooth by scaling drag sensitivity with camera zoom, scene bounds, and the
+     * available input viewport when Compose can report it.
+     */
+    @Immutable
+    data object Adaptive : GestureSensitivity
+
+    /**
+     * Uses the supplied angular delta for each input pixel. This intentionally preserves the old,
+     * direct orbit behavior for callers that prefer a sharper/manual response.
+     */
+    @Immutable
+    data class Fixed(val degreesPerPixel: Float) : GestureSensitivity
+}
+
 @Composable
 fun rememberCameraState(
     yaw: Angle = 0f.deg,
@@ -189,6 +211,7 @@ fun rememberCameraState(
 @Immutable
 data class SceneGestures internal constructor(
     val mode: Mode,
+    val orbitSensitivity: GestureSensitivity = GestureSensitivity.Adaptive,
 ) {
     enum class Mode {
         None,
@@ -198,7 +221,12 @@ data class SceneGestures internal constructor(
 
 object Gestures {
     fun none(): SceneGestures = SceneGestures(SceneGestures.Mode.None)
-    fun orbit(): SceneGestures = SceneGestures(SceneGestures.Mode.Orbit)
+    /**
+     * Enables one-finger orbit gestures. The default is [GestureSensitivity.Adaptive], matching the
+     * current public API while smoothing the effective per-pixel angular delta.
+     */
+    fun orbit(sensitivity: GestureSensitivity = GestureSensitivity.Adaptive): SceneGestures =
+        SceneGestures(SceneGestures.Mode.Orbit, sensitivity)
 }
 
 @Immutable
@@ -315,8 +343,12 @@ fun Scene(
     val renderableNodes = sceneNodes.map(SceneNode::toRenderableNode)
     val cameraSnapshot = cameraState.snapshot()
 
+    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
+
     AndroidView(
-        modifier = modifier.sceneGestureInput(cameraState, gestures),
+        modifier = modifier
+            .onSizeChanged { viewportSize = it }
+            .sceneGestureInput(cameraState, gestures, sceneNodes, viewportSize),
         factory = { context ->
             SpatialGlSurfaceView(context).apply {
                 updateScene(renderableNodes)
@@ -333,6 +365,8 @@ fun Scene(
 private fun Modifier.sceneGestureInput(
     cameraState: CameraState,
     gestures: SceneGestures,
+    sceneNodes: List<SceneNode>,
+    viewportSize: IntSize,
 ): Modifier {
     if (gestures.mode == SceneGestures.Mode.None) return this
 
@@ -349,7 +383,15 @@ private fun Modifier.sceneGestureInput(
                 if (gestures.mode == SceneGestures.Mode.Orbit) {
                     val dx = event.x - lastX
                     val dy = event.y - lastY
-                    cameraState.orbitBy(dx * OrbitDegreesPerPixel, dy * OrbitDegreesPerPixel)
+                    val delta = resolveOrbitGestureDelta(
+                        dx = dx,
+                        dy = dy,
+                        cameraZoom = cameraState.zoom,
+                        sceneNodes = sceneNodes,
+                        viewportSize = viewportSize,
+                        sensitivity = gestures.orbitSensitivity,
+                    )
+                    cameraState.orbitBy(delta.yawDegrees, delta.pitchDegrees)
                     lastX = event.x
                     lastY = event.y
                 }
@@ -360,6 +402,66 @@ private fun Modifier.sceneGestureInput(
         }
     }
 }
+
+internal data class OrbitGestureDeltaDegrees(
+    val yawDegrees: Float,
+    val pitchDegrees: Float,
+)
+
+internal fun resolveOrbitGestureDelta(
+    dx: Float,
+    dy: Float,
+    cameraZoom: Float,
+    sceneNodes: List<SceneNode>,
+    viewportSize: IntSize = IntSize.Zero,
+    sensitivity: GestureSensitivity = GestureSensitivity.Adaptive,
+): OrbitGestureDeltaDegrees {
+    val degreesPerPixel = when (sensitivity) {
+        GestureSensitivity.Adaptive -> adaptiveOrbitDegreesPerPixel(cameraZoom, sceneNodes, viewportSize)
+        is GestureSensitivity.Fixed -> sensitivity.degreesPerPixel.takeIf { it.isFinite() && it > 0f }
+            ?: DefaultOrbitDegreesPerPixel
+    }
+    return OrbitGestureDeltaDegrees(
+        yawDegrees = (dx * degreesPerPixel).coerceIn(-MaxOrbitDegreesPerStep, MaxOrbitDegreesPerStep),
+        pitchDegrees = (dy * degreesPerPixel).coerceIn(-MaxOrbitDegreesPerStep, MaxOrbitDegreesPerStep),
+    )
+}
+
+internal fun adaptiveOrbitDegreesPerPixel(
+    cameraZoom: Float,
+    sceneNodes: List<SceneNode>,
+    viewportSize: IntSize = IntSize.Zero,
+): Float {
+    val safeZoom = cameraZoom.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val sceneDiameter = approximateSceneDiameterMeters(sceneNodes)
+    val sceneFactor = sqrt(sceneDiameter / ReferenceSceneDiameterMeters)
+        .coerceIn(MinAdaptiveSceneFactor, MaxAdaptiveSceneFactor)
+    val viewportFactor = viewportSize.maxDimension
+        .takeIf { it > 0 }
+        ?.let { sqrt(ReferenceViewportPixels / it.toFloat()).coerceIn(MinViewportFactor, MaxViewportFactor) }
+        ?: 1f
+
+    return (DefaultOrbitDegreesPerPixel * sceneFactor * viewportFactor / safeZoom)
+        .coerceIn(MinAdaptiveDegreesPerPixel, DefaultOrbitDegreesPerPixel)
+}
+
+internal fun approximateSceneDiameterMeters(sceneNodes: List<SceneNode>): Float {
+    if (sceneNodes.isEmpty()) return ReferenceSceneDiameterMeters
+
+    var maxExtent = 0f
+    sceneNodes.forEach { node ->
+        val size = node.modifier.size ?: node.modifier.scale
+        val halfX = abs(size.x.meters).coerceAtLeast(MinNodeDimensionMeters) / 2f
+        val halfY = abs(size.y.meters).coerceAtLeast(MinNodeDimensionMeters) / 2f
+        val halfZ = abs(size.z.meters).coerceAtLeast(MinNodeDimensionMeters) / 2f
+        maxExtent = max(maxExtent, abs(node.modifier.position.x.meters) + halfX)
+        maxExtent = max(maxExtent, abs(node.modifier.position.y.meters) + halfY)
+        maxExtent = max(maxExtent, abs(node.modifier.position.z.meters) + halfZ)
+    }
+    return (maxExtent * 2f).coerceAtLeast(MinSceneDiameterMeters)
+}
+
+private val IntSize.maxDimension: Int get() = max(width, height)
 
 private fun SceneNode.toRenderableNode(): RenderableNode = RenderableNode(
     meshId = shape.name,
@@ -393,4 +495,14 @@ private fun lerp(start: Float, stop: Float, fraction: Float): Float = start + (s
 
 private fun smoothStep(value: Float): Float = value * value * (3f - 2f * value)
 
-private const val OrbitDegreesPerPixel = 0.25f
+private const val DefaultOrbitDegreesPerPixel = 0.25f
+private const val MaxOrbitDegreesPerStep = 32f
+private const val ReferenceSceneDiameterMeters = 2f
+private const val MinSceneDiameterMeters = 0.05f
+private const val MinNodeDimensionMeters = 0.01f
+private const val MinAdaptiveSceneFactor = 0.2f
+private const val MaxAdaptiveSceneFactor = 1.5f
+private const val ReferenceViewportPixels = 1080f
+private const val MinViewportFactor = 0.75f
+private const val MaxViewportFactor = 1.25f
+private const val MinAdaptiveDegreesPerPixel = 0.015f

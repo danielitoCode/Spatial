@@ -65,6 +65,8 @@ private fun SpatialRendererHost(modifier: Modifier = Modifier) {
     val cameraText = "yaw=${"%.2f".format(cameraSnapshot.yaw)} " +
             "pitch=${"%.2f".format(cameraSnapshot.pitch)} " +
             "zoom=${"%.2f".format(cameraSnapshot.zoom)}"
+
+
     Column(modifier = modifier) {
         Scene(
             modifier = Modifier
