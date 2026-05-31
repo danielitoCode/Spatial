@@ -1,9 +1,51 @@
 package com.elitec.spatial_camera
 
+/**
+ * Identifies who requested a camera update.
+ *
+ * [Gesture] updates are normalized by default through [GestureMotionPolicy.Adaptive]
+ * when they are produced by the gesture dispatcher or consumed by [SpatialCamera.applyDelta].
+ * Use [CameraDelta.motionPolicy] with [GestureMotionPolicy.Raw] only when a caller
+ * explicitly wants abrupt/manual camera steps while still keeping the camera inside
+ * hard safety bounds.
+ */
 enum class CameraUpdateSource {
     Gesture,
     Remote,
     Animation,
+}
+
+/**
+ * Public motion policy used to normalize gesture camera deltas.
+ *
+ * The default [Adaptive] mode clamps per-event yaw, pitch and zoom-scale changes
+ * to smooth noisy gesture streams. [Raw] is intended for advanced callers that
+ * intentionally request abrupt steps; [SpatialCamera] still applies hard safety
+ * limits so invalid or extreme deltas cannot destabilize the camera.
+ */
+data class GestureMotionPolicy(
+    val mode: Mode = Mode.Adaptive,
+    val maxYawDeltaPerStep: Float = DEFAULT_MAX_YAW_DELTA_PER_STEP,
+    val maxPitchDeltaPerStep: Float = DEFAULT_MAX_PITCH_DELTA_PER_STEP,
+    val maxZoomScaleDeltaPerStep: Float = DEFAULT_MAX_ZOOM_SCALE_DELTA_PER_STEP,
+) {
+    enum class Mode {
+        Adaptive,
+        Raw,
+    }
+
+    companion object {
+        const val DEFAULT_MAX_YAW_DELTA_PER_STEP = 12f
+        const val DEFAULT_MAX_PITCH_DELTA_PER_STEP = 8f
+        const val DEFAULT_MAX_ZOOM_SCALE_DELTA_PER_STEP = 0.25f
+
+        const val HARD_MAX_YAW_DELTA_PER_STEP = 90f
+        const val HARD_MAX_PITCH_DELTA_PER_STEP = 45f
+        const val HARD_MAX_ZOOM_SCALE_DELTA_PER_STEP = 1f
+
+        val Adaptive = GestureMotionPolicy()
+        val Raw = GestureMotionPolicy(mode = Mode.Raw)
+    }
 }
 
 data class CameraSnapshot(
@@ -18,6 +60,7 @@ data class CameraDelta(
     val deltaYaw: Float = 0f,
     val deltaPitch: Float = 0f,
     val zoomScaleDelta: Float = 1f,
+    val motionPolicy: GestureMotionPolicy = GestureMotionPolicy.Adaptive,
 )
 
 /**
@@ -40,6 +83,7 @@ interface CameraRuntimeContract {
 
 class SpatialCamera(
     initialState: CameraSnapshot = CameraSnapshot(),
+    private val defaultGestureMotionPolicy: GestureMotionPolicy = GestureMotionPolicy.Adaptive,
 ) : CameraRuntimeContract {
     private var state: CameraSnapshot = normalize(initialState)
 
@@ -53,11 +97,12 @@ class SpatialCamera(
     }
 
     override fun applyDelta(delta: CameraDelta, source: CameraUpdateSource) {
+        val safeDelta = normalizeDelta(delta, source)
         writeAtomic(source) {
             copy(
-                yaw = yaw + delta.deltaYaw,
-                pitch = (pitch + delta.deltaPitch).coerceIn(-89f, 89f),
-                zoom = (zoom * sanitizeScale(delta.zoomScaleDelta)).coerceIn(0.3f, 4f),
+                yaw = yaw + safeDelta.deltaYaw,
+                pitch = (pitch + safeDelta.deltaPitch).coerceIn(-89f, 89f),
+                zoom = (zoom * safeDelta.zoomScaleDelta).coerceIn(0.3f, 4f),
             )
         }
     }
@@ -106,7 +151,54 @@ class SpatialCamera(
         CameraUpdateSource.Animation -> 1
     }
 
-    private fun sanitizeScale(scale: Float): Float = if (scale <= 0f) 1f else scale
+    private fun normalizeDelta(delta: CameraDelta, source: CameraUpdateSource): CameraDelta {
+        val policy = if (source == CameraUpdateSource.Gesture) delta.motionPolicy else defaultGestureMotionPolicy
+        val yawLimit = deltaLimit(
+            requestedLimit = policy.maxYawDeltaPerStep,
+            adaptiveLimit = GestureMotionPolicy.DEFAULT_MAX_YAW_DELTA_PER_STEP,
+            hardLimit = GestureMotionPolicy.HARD_MAX_YAW_DELTA_PER_STEP,
+            raw = policy.mode == GestureMotionPolicy.Mode.Raw,
+        )
+        val pitchLimit = deltaLimit(
+            requestedLimit = policy.maxPitchDeltaPerStep,
+            adaptiveLimit = GestureMotionPolicy.DEFAULT_MAX_PITCH_DELTA_PER_STEP,
+            hardLimit = GestureMotionPolicy.HARD_MAX_PITCH_DELTA_PER_STEP,
+            raw = policy.mode == GestureMotionPolicy.Mode.Raw,
+        )
+        val zoomLimit = deltaLimit(
+            requestedLimit = policy.maxZoomScaleDeltaPerStep,
+            adaptiveLimit = GestureMotionPolicy.DEFAULT_MAX_ZOOM_SCALE_DELTA_PER_STEP,
+            hardLimit = GestureMotionPolicy.HARD_MAX_ZOOM_SCALE_DELTA_PER_STEP,
+            raw = policy.mode == GestureMotionPolicy.Mode.Raw,
+        )
+
+        return delta.copy(
+            deltaYaw = sanitizeFinite(delta.deltaYaw).coerceIn(-yawLimit, yawLimit),
+            deltaPitch = sanitizeFinite(delta.deltaPitch).coerceIn(-pitchLimit, pitchLimit),
+            zoomScaleDelta = normalizeScaleDelta(delta.zoomScaleDelta, zoomLimit),
+        )
+    }
+
+    private fun deltaLimit(
+        requestedLimit: Float,
+        adaptiveLimit: Float,
+        hardLimit: Float,
+        raw: Boolean,
+    ): Float {
+        val sanitized = if (requestedLimit.isFinite() && requestedLimit > 0f) requestedLimit else adaptiveLimit
+        val requested = if (raw) hardLimit else sanitized
+        return requested.coerceIn(0f, hardLimit)
+    }
+
+    private fun normalizeScaleDelta(scale: Float, maxZoomScaleDeltaPerStep: Float): Float {
+        val sanitized = if (scale.isFinite() && scale > 0f) scale else 1f
+        return sanitized.coerceIn(
+            minimumValue = 1f - maxZoomScaleDeltaPerStep,
+            maximumValue = 1f + maxZoomScaleDeltaPerStep,
+        )
+    }
+
+    private fun sanitizeFinite(value: Float): Float = if (value.isFinite()) value else 0f
 
     private fun normalize(snapshot: CameraSnapshot): CameraSnapshot = snapshot.copy(
         pitch = snapshot.pitch.coerceIn(-89f, 89f),
