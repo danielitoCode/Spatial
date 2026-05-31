@@ -13,9 +13,9 @@ data class MaterialData(
 )
 
 /**
- * Datos de luz como contrato puro.
- * El módulo spatial-light implementa la lógica;
- * este tipo es lo que fluye por el pipeline de render.
+ * Core #1 mantiene este tipo como metadata compartida para módulos de escena/luz
+ * y futuros renderers; no implica transporte por frame ni evaluación activa de
+ * iluminación en el renderer actual.
  */
 data class LightData(
     val dirX: Float = 0f,

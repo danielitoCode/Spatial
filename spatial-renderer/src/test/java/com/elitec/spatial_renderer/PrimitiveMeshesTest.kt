@@ -4,6 +4,7 @@ import com.elitec.spatial_renderer.gl.MeshData
 import com.elitec.spatial_renderer.gl.MeshDrawMode
 import com.elitec.spatial_renderer.gl.PrimitiveMeshIds
 import com.elitec.spatial_renderer.gl.PrimitiveMeshRegistry
+import com.elitec.spatial_renderer.gl.UnknownPrimitiveMeshException
 import com.elitec.spatial_renderer.gl.createCube
 import com.elitec.spatial_renderer.gl.createPlane
 import com.elitec.spatial_renderer.gl.createSphere
@@ -67,5 +68,22 @@ class PrimitiveMeshesTest {
         assertEquals(8, registry.resolve(PrimitiveMeshIds.Cube).vertexCount)
         assertEquals(4, registry.resolve(PrimitiveMeshIds.Plane).vertexCount)
         assertEquals(registry.resolve(PrimitiveMeshIds.Cube), registry.resolve("Unknown"))
+    }
+
+    @Test
+    fun registryThrowsControlledErrorForUnknownMesh() {
+        val registry = PrimitiveMeshRegistry()
+
+        assertThrows(UnknownPrimitiveMeshException::class.java) {
+            registry.resolve("Unknown")
+        }
+    }
+
+    @Test
+    fun registryResolveOrNullMakesUnknownMeshPolicyExplicit() {
+        val registry = PrimitiveMeshRegistry()
+
+        assertEquals(registry.resolve(PrimitiveMeshIds.Cube), registry.resolveOrNull(PrimitiveMeshIds.Cube))
+        assertEquals(null, registry.resolveOrNull("Unknown"))
     }
 }

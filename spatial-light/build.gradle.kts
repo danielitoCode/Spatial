@@ -11,3 +11,10 @@ kotlin {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
+
+dependencies {
+    implementation(project(":spatial-core"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.junit)
+}

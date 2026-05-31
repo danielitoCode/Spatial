@@ -53,6 +53,7 @@ Core #1 focuses on building the foundation for a premium 3D experience:
 - Declarative scene API
 - Basic camera/transform motion system
 - Gesture system
+- Flat-color material rendering (no active lighting/shading in Core #1)
 - Material abstraction
 - Units system
 - GPU abstraction layer
@@ -64,12 +65,20 @@ Core #1 focuses on building the foundation for a premium 3D experience:
 - ECS
 - PBR
 - Shadows
+- Real lighting and shaded light evaluation
 - Vulkan
 - Skeletal animation
 - Post-processing
-- - Advanced animation timelines and clip sequencing
+- Advanced animation timelines and clip sequencing
 - Multiplayer systems
 - Editor tooling
+
+---
+## Core #1 Lighting Decision
+
+Core #1 keeps lighting as contracts only. `LightData` exists so scene, light, and future renderer modules can agree on shape, direction, color, and intensity metadata, but Core #1 does **not** transport lights through the render frame and does **not** evaluate real lighting in shaders.
+
+The active Core #1 renderer supports flat-color materials: the material color is passed directly to the shader without directional, ambient, point, or physically based light contribution.
 
 ---
 
@@ -330,11 +339,11 @@ Kotlin Library
 Material abstraction layer.
 
 ## Responsibilities
-- Color materials
-- Texture materials
-- Shader metadata
+- Flat-color materials for Core #1
+- Texture materials (future)
+- Shader metadata (future)
 - Material bindings
-- Lighting properties
+- Lighting properties as metadata only; active light evaluation is outside Core #1
 
 ---
 
@@ -366,10 +375,15 @@ Kotlin Library
 Lighting models.
 
 ## Responsibilities
-- Ambient light
-- Directional light
-- Light intensity
-- Light direction
+- Light contracts and helper factories
+- Directional light metadata
+- Light intensity metadata
+- Light direction metadata
+
+## Out of scope for Core #1
+- Active lighting in shaders
+- Shaded material evaluation
+- Shadows
 
 ---
 
@@ -693,6 +707,7 @@ Potential future expansions:
 
 - glTF loading
 - PBR
+- Real lighting and shaded light evaluation
 - Shadows
 - Vulkan backend
 - Compose Multiplatform
