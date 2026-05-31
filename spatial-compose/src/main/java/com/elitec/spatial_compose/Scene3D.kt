@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
@@ -309,9 +308,16 @@ data class SceneGestures internal constructor(
     val mode: Mode,
     val orbitSensitivity: GestureSensitivity = GestureSensitivity.Adaptive,
 ) {
-    enum class Mode {
-        None,
-        Orbit,
+    val orbitEnabled: Boolean get() = mode.orbitEnabled
+    val zoomEnabled: Boolean get() = mode.zoomEnabled
+
+    enum class Mode(
+        internal val orbitEnabled: Boolean,
+        internal val zoomEnabled: Boolean,
+    ) {
+        None(orbitEnabled = false, zoomEnabled = false),
+        Orbit(orbitEnabled = true, zoomEnabled = false),
+        OrbitAndZoom(orbitEnabled = true, zoomEnabled = true),
     }
 }
 
@@ -323,6 +329,12 @@ object Gestures {
      */
     fun orbit(sensitivity: GestureSensitivity = GestureSensitivity.Adaptive): SceneGestures =
         SceneGestures(SceneGestures.Mode.Orbit, sensitivity)
+
+    /**
+     * Enables one-finger orbit and two-finger pinch zoom gestures at the same time.
+     */
+    fun orbitAndZoom(sensitivity: GestureSensitivity = GestureSensitivity.Adaptive): SceneGestures =
+        SceneGestures(SceneGestures.Mode.OrbitAndZoom, sensitivity)
 }
 
 @Immutable
@@ -466,37 +478,193 @@ private fun Modifier.sceneGestureInput(
 ): Modifier {
     if (gestures.mode == SceneGestures.Mode.None) return this
 
-    var lastX = 0f
-    var lastY = 0f
+    val gestureState = SceneGestureInputState()
     return pointerInteropFilter { event ->
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                lastX = event.x
-                lastY = event.y
+                gestureState.onDown(event.x, event.y)
                 true
             }
             MotionEvent.ACTION_MOVE -> {
-                if (gestures.mode == SceneGestures.Mode.Orbit) {
-                    val dx = event.x - lastX
-                    val dy = event.y - lastY
+                val rawDelta = gestureState.onMove(
+                    pointers = event.pointerPositions(),
+                    orbitEnabled = gestures.orbitEnabled,
+                    zoomEnabled = gestures.zoomEnabled,
+                )
+                rawDelta.scaleDelta?.let(cameraState::zoomBy)
+                rawDelta.orbitDeltaPixels?.let { orbitDelta ->
                     val delta = resolveOrbitGestureDelta(
-                        dx = dx,
-                        dy = dy,
+                        dx = orbitDelta.dx,
+                        dy = orbitDelta.dy,
                         cameraZoom = cameraState.zoom,
                         sceneNodes = sceneNodes,
                         viewportSize = viewportSize,
                         sensitivity = gestures.orbitSensitivity,
                     )
                     cameraState.orbitBy(delta.yawDegrees, delta.pitchDegrees)
-                    lastX = event.x
-                    lastY = event.y
                 }
                 true
             }
-            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> true
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                gestureState.onPointerDown(
+                    pointers = event.pointerPositions(),
+                    zoomEnabled = gestures.zoomEnabled,
+                )
+                true
+            }
+            MotionEvent.ACTION_POINTER_UP -> {
+                gestureState.onPointerUp(
+                    pointers = event.pointerPositions(),
+                    actionIndex = event.actionIndex,
+                    zoomEnabled = gestures.zoomEnabled,
+                )
+                true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                gestureState.reset()
+                true
+            }
             else -> true
         }
     }
+}
+
+internal data class PointerPosition(
+    val x: Float,
+    val y: Float,
+)
+
+internal data class OrbitGestureDeltaPixels(
+    val dx: Float,
+    val dy: Float,
+)
+
+internal data class RawSceneGestureDelta(
+    val orbitDeltaPixels: OrbitGestureDeltaPixels? = null,
+    val scaleDelta: Float? = null,
+)
+
+internal class SceneGestureInputState {
+    private var lastX = 0f
+    private var lastY = 0f
+    private var lastPointerCount = 0
+    private var lastPinchDistance = 0f
+
+    fun onDown(x: Float, y: Float) {
+        resetSinglePointer(x, y)
+    }
+
+    fun onMove(
+        pointers: List<PointerPosition>,
+        orbitEnabled: Boolean,
+        zoomEnabled: Boolean,
+    ): RawSceneGestureDelta {
+        return when {
+            pointers.size >= 2 && zoomEnabled -> {
+                val distance = pointers.pinchDistance()
+                val scaleDelta = if (lastPointerCount >= 2 && lastPinchDistance > 0f) {
+                    resolvePinchZoomScaleDelta(
+                        currentDistance = distance,
+                        previousDistance = lastPinchDistance,
+                    )
+                } else {
+                    null
+                }
+                lastPinchDistance = distance
+                lastPointerCount = pointers.size
+                RawSceneGestureDelta(scaleDelta = scaleDelta)
+            }
+            pointers.size == 1 && orbitEnabled -> {
+                val pointer = pointers.first()
+                val orbitDelta = if (lastPointerCount == 1) {
+                    OrbitGestureDeltaPixels(
+                        dx = pointer.x - lastX,
+                        dy = pointer.y - lastY,
+                    )
+                } else {
+                    null
+                }
+                resetSinglePointer(pointer.x, pointer.y)
+                RawSceneGestureDelta(orbitDeltaPixels = orbitDelta)
+            }
+            else -> RawSceneGestureDelta()
+        }
+    }
+
+    fun onPointerDown(
+        pointers: List<PointerPosition>,
+        zoomEnabled: Boolean,
+    ) {
+        lastPointerCount = pointers.size
+        lastPinchDistance = if (pointers.size >= 2 && zoomEnabled) pointers.pinchDistance() else 0f
+    }
+
+    fun onPointerUp(
+        pointers: List<PointerPosition>,
+        actionIndex: Int,
+        zoomEnabled: Boolean,
+    ) {
+        val remainingPointers = pointers.filterIndexed { index, _ -> index != actionIndex }
+        when {
+            remainingPointers.size == 1 -> {
+                val remainingPointer = remainingPointers.first()
+                resetSinglePointer(remainingPointer.x, remainingPointer.y)
+            }
+            remainingPointers.size >= 2 && zoomEnabled -> {
+                lastPointerCount = remainingPointers.size
+                lastPinchDistance = remainingPointers.pinchDistance()
+            }
+            else -> reset()
+        }
+    }
+
+    fun reset() {
+        lastPointerCount = 0
+        lastPinchDistance = 0f
+    }
+
+    private fun resetSinglePointer(x: Float, y: Float) {
+        lastX = x
+        lastY = y
+        lastPointerCount = 1
+        lastPinchDistance = 0f
+    }
+}
+
+private fun MotionEvent.pointerPositions(): List<PointerPosition> = List(pointerCount) { index ->
+    PointerPosition(getX(index), getY(index))
+}
+
+
+private fun List<PointerPosition>.pinchDistance(): Float {
+    if (size < 2) return 0f
+    return pointerDistance(
+        firstX = this[0].x,
+        firstY = this[0].y,
+        secondX = this[1].x,
+        secondY = this[1].y,
+    )
+}
+
+internal fun pointerDistance(
+    firstX: Float,
+    firstY: Float,
+    secondX: Float,
+    secondY: Float,
+): Float {
+    val dx = secondX - firstX
+    val dy = secondY - firstY
+    return sqrt(dx * dx + dy * dy)
+}
+
+internal fun resolvePinchZoomScaleDelta(
+    currentDistance: Float,
+    previousDistance: Float,
+): Float {
+    if (!currentDistance.isFinite() || !previousDistance.isFinite()) return 1f
+    if (currentDistance <= 0f || previousDistance <= 0f) return 1f
+
+    return (currentDistance / previousDistance).coerceIn(MinPinchScaleDeltaPerEvent, MaxPinchScaleDeltaPerEvent)
 }
 
 internal data class OrbitGestureDeltaDegrees(
@@ -692,3 +860,5 @@ private const val ReferenceViewportPixels = 1080f
 private const val MinViewportFactor = 0.75f
 private const val MaxViewportFactor = 1.25f
 private const val MinAdaptiveDegreesPerPixel = 0.015f
+private const val MinPinchScaleDeltaPerEvent = 0.92f
+private const val MaxPinchScaleDeltaPerEvent = 1.08f
