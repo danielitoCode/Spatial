@@ -10,9 +10,11 @@ import com.elitec.spatial_camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.scene.RenderableNode
+import java.nio.IntBuffer
 
 class SpatialGlRenderer : GLSurfaceView.Renderer {
-    private var vertexBuffer: FloatBuffer? = null
+    private val meshRegistry = PrimitiveMeshRegistry()
+    private var meshBuffers: Map<String, GlMeshBuffers> = emptyMap()
     private var programId: Int = 0
     private var nodes: List<RenderableNode> = emptyList()
     private var cameraSnapshot: CameraSnapshot = CameraSnapshot()
@@ -32,11 +34,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
         programId = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
 
-        val bb = ByteBuffer.allocateDirect(TRIANGLE_VERTICES.size * Float.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-        vertexBuffer = bb.asFloatBuffer().apply {
-            put(TRIANGLE_VERTICES)
-            position(0)
+        meshBuffers = PrimitiveMeshRegistry.defaultMeshes().mapValues { (_, meshData) ->
+            meshData.toGlMeshBuffers()
         }
     }
 
@@ -73,14 +72,30 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         Matrix.perspectiveM(projectionMatrix, 0, 45f, aspectRatio, 0.1f, 100f)
         GLES30.glUniformMatrix4fv(uProjLoc, 1, false, projectionMatrix, 0)
 
-        val buffer = checkNotNull(vertexBuffer)
         GLES30.glEnableVertexAttribArray(0)
-        GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 3 * Float.SIZE_BYTES, buffer)
-        
+
         nodes.forEach { node ->
+            val meshData = meshRegistry.resolve(node.meshId)
+            val mesh = meshBuffers[node.meshId] ?: meshBuffers[PrimitiveMeshIds.Cube] ?: meshData.toGlMeshBuffers()
+            mesh.vertexBuffer.position(0)
+            GLES30.glVertexAttribPointer(
+                0,
+                MeshData.CoordinatesPerVertex,
+                GLES30.GL_FLOAT,
+                false,
+                MeshData.CoordinatesPerVertex * Float.SIZE_BYTES,
+                mesh.vertexBuffer,
+            )
+
             GLES30.glUniformMatrix4fv(uModelLoc, 1, false, node.modelMatrix, 0)
             GLES30.glUniform4f(uColorLoc, node.material.r, node.material.g, node.material.b, node.material.a)
-            GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+
+            if (mesh.indexBuffer != null) {
+                mesh.indexBuffer.position(0)
+                GLES30.glDrawElements(mesh.drawMode.toGlDrawMode(), mesh.indexCount, GLES30.GL_UNSIGNED_INT, mesh.indexBuffer)
+            } else {
+                GLES30.glDrawArrays(mesh.drawMode.toGlDrawMode(), 0, mesh.vertexCount)
+            }
         }
 
         GLES30.glDisableVertexAttribArray(0)
@@ -108,6 +123,39 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         return program
     }
 
+    private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
+        val vertexByteBuffer = ByteBuffer.allocateDirect(vertices.size * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder())
+        val vertexBuffer = vertexByteBuffer.asFloatBuffer().apply {
+            put(vertices)
+            position(0)
+        }
+
+        val indexBuffer = if (hasIndices) {
+            ByteBuffer.allocateDirect(indices.size * Int.SIZE_BYTES)
+                .order(ByteOrder.nativeOrder())
+                .asIntBuffer()
+                .apply {
+                    put(indices)
+                    position(0)
+                }
+        } else {
+            null
+        }
+
+        return GlMeshBuffers(
+            vertexBuffer = vertexBuffer,
+            indexBuffer = indexBuffer,
+            vertexCount = vertexCount,
+            indexCount = indexCount,
+            drawMode = drawMode,
+        )
+    }
+
+    private fun MeshDrawMode.toGlDrawMode(): Int = when (this) {
+        MeshDrawMode.Triangles -> GLES30.GL_TRIANGLES
+    }
+
     private fun compileShader(type: Int, source: String): Int {
         val shader = GLES30.glCreateShader(type)
         GLES30.glShaderSource(shader, source)
@@ -122,6 +170,14 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         }
         return shader
     }
+
+    private data class GlMeshBuffers(
+        val vertexBuffer: FloatBuffer,
+        val indexBuffer: IntBuffer?,
+        val vertexCount: Int,
+        val indexCount: Int,
+        val drawMode: MeshDrawMode,
+    )
 
     private companion object {
         private const val VERTEX_SHADER = "#version 300 es\n" +
@@ -141,10 +197,5 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             "  fragColor = uColor;\n" +
             "}"
 
-        private val TRIANGLE_VERTICES = floatArrayOf(
-            0.0f, 0.55f, 0.0f,
-            -0.55f, -0.45f, 0.0f,
-            0.55f, -0.45f, 0.0f
-        )
     }
 }
