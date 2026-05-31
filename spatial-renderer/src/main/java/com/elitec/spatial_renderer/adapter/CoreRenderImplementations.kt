@@ -5,10 +5,21 @@ import com.elitec.spatial_renderer.render.GpuResourceHandle
 import com.elitec.spatial_renderer.render.RenderBackend
 import com.elitec.spatial_renderer.render.RenderFrame
 
-class DefaultRenderBackend : RenderBackend {
+/**
+ * Explicit bridge from the Core render backend contract to a concrete frame sink.
+ *
+ * The backend is intentionally sink-backed instead of silently dropping frames: callers must provide
+ * the real renderer, fake renderer, or recorder that owns frame consumption.
+ */
+class DefaultRenderBackend (
+    private val frameSink: RenderFrameSink,
+) : RenderBackend {
     override fun render(frame: RenderFrame) {
-        // Punto de integración real con pipeline gráfico.
-        frame.resources.forEach { _ -> }
+        frameSink.render(frame)
+    }
+
+    fun interface RenderFrameSink {
+        fun render(frame: RenderFrame)
     }
 }
 

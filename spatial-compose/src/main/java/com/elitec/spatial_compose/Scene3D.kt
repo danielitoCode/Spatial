@@ -1,5 +1,7 @@
 package com.elitec.spatial_compose
+import android.content.Context
 import android.view.MotionEvent
+import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -25,7 +27,10 @@ import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.scene.MaterialData
 import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_renderer.adapter.ChoreographerFrameScheduler
+import com.elitec.spatial_renderer.gl.SpatialGlRenderTarget
 import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
+import com.elitec.spatial_runtime.SpatialRuntime
 import com.elitec.spatial_units.Angle
 import com.elitec.spatial_units.Distance
 import com.elitec.spatial_units.deg
@@ -75,6 +80,67 @@ data class Modifier3D(
     companion object {
         val Default = Modifier3D()
     }
+}
+
+interface SceneRenderHost {
+    val view: View
+    fun updateScene(nodes: List<RenderableNode>)
+    fun updateCamera(cameraSnapshot: CameraSnapshot)
+    fun requestFrame()
+}
+
+fun interface SceneRenderHostFactory {
+    fun create(context: Context): SceneRenderHost
+}
+
+private object DefaultSceneRenderHostFactory : SceneRenderHostFactory {
+    override fun create(context: Context): SceneRenderHost = SpatialRuntimeSceneRenderHost(context)
+}
+
+private class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
+    private val renderTarget = SpatialGlRenderTarget(context)
+    private val runtimeCamera = SpatialCamera()
+    private val runtime = SpatialRuntime(
+        renderBackend = renderTarget,
+        frameScheduler = ChoreographerFrameScheduler(),
+        cameraRuntime = runtimeCamera,
+    )
+    private var pendingNodes: List<RenderableNode> = emptyList()
+    private var pendingCameraSnapshot: CameraSnapshot = runtimeCamera.snapshot()
+
+    override val view: View get() = renderTarget.view
+
+    init {
+        runtime.onInitialize()
+    }
+
+    override fun updateScene(nodes: List<RenderableNode>) {
+        pendingNodes = nodes
+    }
+
+    override fun updateCamera(cameraSnapshot: CameraSnapshot) {
+        pendingCameraSnapshot = cameraSnapshot
+    }
+
+    override fun requestFrame() {
+        runtime.requestFrame(
+            nodes = pendingNodes,
+            cameraSnapshot = pendingCameraSnapshot,
+        )
+    }
+}
+
+internal fun SceneRenderHost.renderSceneFrame(
+    nodes: List<RenderableNode>,
+    cameraSnapshot: CameraSnapshot,
+) {
+    updateScene(nodes)
+    updateCamera(cameraSnapshot)
+    requestFrame()
+}
+
+private class SceneRenderHostHolder {
+    var host: SceneRenderHost? = null
 }
 
 /**
@@ -502,11 +568,13 @@ fun Scene(
     modifier: Modifier = Modifier,
     cameraState: CameraState = rememberCameraState(),
     gestures: SceneGestures = Gestures.orbit(),
+    renderHostFactory: SceneRenderHostFactory = DefaultSceneRenderHostFactory,
     content: @Composable SceneContentScope.() -> Unit,
 ) {
     val sceneNodes = rememberSceneGraph(content)
     val renderableNodes = sceneNodes.map(SceneNode::toRenderableNode)
     val cameraSnapshot = cameraState.snapshot()
+    val renderHostHolder = remember { SceneRenderHostHolder() }
 
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -515,14 +583,13 @@ fun Scene(
             .onSizeChanged { viewportSize = it }
             .sceneGestureInput(cameraState, gestures, sceneNodes, viewportSize),
         factory = { context ->
-            SpatialGlSurfaceView(context).apply {
-                updateScene(renderableNodes)
-                updateCamera(cameraSnapshot)
-            }
+            renderHostFactory.create(context).also { host ->
+                renderHostHolder.host = host
+                host.renderSceneFrame(renderableNodes, cameraSnapshot)
+            }.view
         },
-        update = { view ->
-            view.updateScene(renderableNodes)
-            view.updateCamera(cameraSnapshot)
+        update = {
+            renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot)
         },
     )
 }

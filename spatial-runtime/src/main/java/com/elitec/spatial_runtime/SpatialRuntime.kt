@@ -6,6 +6,7 @@ import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
+import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_gesture.OrbitGestureDelta
 import com.elitec.spatial_gesture.PinchZoomDelta
 import com.elitec.spatial_renderer.render.FrameScheduler
@@ -25,14 +26,53 @@ class SpatialRuntime(
     }
 
     override fun onFrame(snapshot: FrameSnapshot) {
+        onFrame(
+            snapshot = snapshot,
+            nodes = emptyList(),
+            cameraSnapshot = cameraRuntime.snapshot(),
+        )
+    }
+
+    fun onFrame(
+        snapshot: FrameSnapshot,
+        nodes: List<RenderableNode>,
+        cameraSnapshot: CameraSnapshot,
+    ) {
         if (!initialized) return
 
+        syncCameraSnapshot(cameraSnapshot)
         renderBackend.render(
             RenderFrame(
                 frameTimeNanos = snapshot.frameTimeNanos,
+                nodes = nodes,
                 cameraState = cameraRuntime.snapshot(),
             )
         )
+    }
+
+    fun renderFrame(
+        frameTimeNanos: Long,
+        nodes: List<RenderableNode>,
+        cameraSnapshot: CameraSnapshot,
+    ) {
+        onFrame(
+            snapshot = FrameSnapshot(frameTimeNanos = frameTimeNanos),
+            nodes = nodes,
+            cameraSnapshot = cameraSnapshot,
+        )
+    }
+
+    fun requestFrame(
+        nodes: List<RenderableNode>,
+        cameraSnapshot: CameraSnapshot,
+    ) {
+        frameScheduler.requestFrame { scheduledFrame ->
+            renderFrame(
+                frameTimeNanos = scheduledFrame.frameTimeNanos,
+                nodes = nodes,
+                cameraSnapshot = cameraSnapshot,
+            )
+        }
     }
 
     override fun onShutdown() {

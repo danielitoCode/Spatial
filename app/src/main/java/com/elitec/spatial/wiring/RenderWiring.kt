@@ -9,11 +9,6 @@ import com.elitec.spatial_runtime.SpatialRuntime
 /** Composición concreta app-level para respetar inversión de dependencias. */
 object RenderWiring {
     private val camera = SpatialCamera()
-    val runtime = SpatialRuntime(
-        renderBackend = DefaultRenderBackend(),
-        frameScheduler = ChoreographerFrameScheduler(),
-        cameraRuntime = camera,
-    )
     val gestureDispatcher = SpatialGestureDispatcher(camera)
     fun cameraSnapshot() = camera.snapshot()
 }
