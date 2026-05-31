@@ -2,6 +2,7 @@ package com.elitec.spatial_runtime
 
 import com.elitec.spatial_camera.CameraRuntimeContract
 import com.elitec.spatial_camera.CameraDelta
+import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
@@ -39,16 +40,29 @@ class SpatialRuntime(
     }
 
     fun onOrbitGesture(delta: OrbitGestureDelta) {
-        cameraRuntime.applyDelta(
+        applyCameraDelta(
             delta = CameraDelta(deltaYaw = delta.deltaYaw, deltaPitch = delta.deltaPitch),
-            source = CameraUpdateSource.Gesture
+            source = CameraUpdateSource.Gesture,
         )
     }
 
     fun onPinchGesture(delta: PinchZoomDelta) {
-        cameraRuntime.applyDelta(
+        applyCameraDelta(
             delta = CameraDelta(zoomScaleDelta = delta.scaleDelta),
-            source = CameraUpdateSource.Gesture
+            source = CameraUpdateSource.Gesture,
         )
+    }
+
+    /** Synchronizes the runtime camera from the official Core #1 snapshot contract. */
+    fun syncCameraSnapshot(snapshot: CameraSnapshot) {
+        cameraRuntime.syncSnapshot(snapshot)
+    }
+
+    /** Applies a Compose- or runtime-produced camera delta through the shared camera contract. */
+    fun applyCameraDelta(
+        delta: CameraDelta,
+        source: CameraUpdateSource = CameraUpdateSource.Gesture,
+    ) {
+        cameraRuntime.applyDelta(delta = delta, source = source)
     }
 }

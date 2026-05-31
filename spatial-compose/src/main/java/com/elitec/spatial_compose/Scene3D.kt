@@ -17,6 +17,10 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
+import com.elitec.spatial_camera.CameraDelta
+import com.elitec.spatial_camera.CameraRuntimeContract
+import com.elitec.spatial_camera.GestureMotionPolicy
+import com.elitec.spatial_camera.SpatialCamera
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.scene.MaterialData
@@ -74,16 +78,27 @@ data class Modifier3D(
 }
 
 /**
- * Compose-owned camera state for Scene.
+ * Compose-owned camera adapter for Scene.
  *
- * The renderer only receives immutable [CameraSnapshot] values. Gesture and animation writes go
- * through this state holder so camera control follows the same state-hoisting model as Compose.
+ * [CameraSnapshot] is the single Core #1 camera contract. This state holder exposes Compose-friendly
+ * observable fields while delegating normalization and atomic mutations to [CameraRuntimeContract]
+ * (the default engine is [SpatialCamera]). The renderer only receives immutable snapshots.
+ *
+ * Public API guidance: Compose callers should use [CameraState] and [CameraState.animateTo]; runtime
+ * callers should use [SpatialCamera]. Both APIs synchronize through [CameraSnapshot].
  */
 @Stable
 class CameraState internal constructor(
     yaw: Angle,
     pitch: Angle,
     zoom: Float,
+    private val cameraRuntime: CameraRuntimeContract = SpatialCamera(
+        CameraSnapshot(
+            yaw = yaw.toDegrees(),
+            pitch = pitch.toDegrees(),
+            zoom = zoom,
+        )
+    ),
 ) {
     var yaw: Angle by mutableStateOf(yaw)
         private set
@@ -96,15 +111,21 @@ class CameraState internal constructor(
     var source: CameraUpdateSource by mutableStateOf(CameraUpdateSource.Gesture)
         private set
 
+    init {
+        syncFromRuntime()
+    }
+
     fun orbitTo(
         yaw: Angle = this.yaw,
         pitch: Angle = this.pitch,
         source: CameraUpdateSource = CameraUpdateSource.Remote,
     ) {
-        write(source) {
-            this.yaw = yaw
-            this.pitch = pitch.coercePitch()
-        }
+        cameraRuntime.orbitTo(
+            yaw = yaw.toDegrees(),
+            pitch = pitch.toDegrees(),
+            source = source,
+        )
+        syncFromRuntime()
     }
 
     fun orbitBy(
@@ -112,22 +133,51 @@ class CameraState internal constructor(
         deltaPitchDegrees: Float,
         source: CameraUpdateSource = CameraUpdateSource.Gesture,
     ) {
-        orbitTo(
-            yaw = (yaw.toDegrees() + deltaYawDegrees).deg,
-            pitch = (pitch.toDegrees() + deltaPitchDegrees).deg,
+        cameraRuntime.applyDelta(
+            delta = CameraDelta(
+                deltaYaw = deltaYawDegrees,
+                deltaPitch = deltaPitchDegrees,
+                motionPolicy = GestureMotionPolicy.Raw,
+            ),
             source = source,
         )
+        syncFromRuntime()
     }
 
     fun zoomTo(zoom: Float, source: CameraUpdateSource = CameraUpdateSource.Remote) {
-        write(source) {
-            this.zoom = zoom.coerceIn(MinZoom, MaxZoom)
-        }
+        cameraRuntime.zoomTo(zoom = zoom, source = source)
+        syncFromRuntime()
     }
 
     fun zoomBy(scaleDelta: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture) {
-        val safeScale = if (scaleDelta <= 0f) 1f else scaleDelta
-        zoomTo(zoom * safeScale, source)
+        cameraRuntime.applyDelta(
+            delta = CameraDelta(
+                zoomScaleDelta = scaleDelta,
+                motionPolicy = GestureMotionPolicy.Raw,
+            ),
+            source = source,
+        )
+        syncFromRuntime()
+    }
+
+    fun jumpTo(
+        yaw: Angle = this.yaw,
+        pitch: Angle = this.pitch,
+        zoom: Float = this.zoom,
+        source: CameraUpdateSource = CameraUpdateSource.Remote,
+    ) {
+        cameraRuntime.jumpTo(
+            yaw = yaw.toDegrees(),
+            pitch = pitch.toDegrees(),
+            zoom = zoom,
+            source = source,
+        )
+        syncFromRuntime()
+    }
+
+    fun syncSnapshot(snapshot: CameraSnapshot) {
+        cameraRuntime.syncSnapshot(snapshot)
+        syncFromRuntime()
     }
 
     suspend fun animateTo(
@@ -149,11 +199,13 @@ class CameraState internal constructor(
         )
 
         if (plan.durationMillis <= 0L || motion.instant) {
-            write(CameraUpdateSource.Animation) {
-                this.yaw = plan.targetYawDegrees.deg
-                this.pitch = plan.targetPitchDegrees.deg.coercePitch()
-                this.zoom = plan.targetZoom.coerceIn(MinZoom, MaxZoom)
-            }
+            cameraRuntime.animateTo(
+                yaw = plan.targetYawDegrees,
+                pitch = plan.targetPitchDegrees,
+                zoom = plan.targetZoom,
+                motion = com.elitec.spatial_camera.MotionSpec.Instant,
+            )
+            syncFromRuntime()
             return
         }
 
@@ -167,22 +219,27 @@ class CameraState internal constructor(
             val frameTime = withFrameNanos { it }
             val linearProgress = ((frameTime - startTime).toFloat() / durationNanos).coerceIn(0f, 1f)
             val easedProgress = plan.easing.transform(linearProgress).coerceIn(0f, 1f)
-            write(CameraUpdateSource.Animation) {
-                this.yaw = lerp(startYaw, plan.targetYawDegrees, easedProgress).deg
-                this.pitch = lerp(startPitch, plan.targetPitchDegrees, easedProgress).deg.coercePitch()
-                this.zoom = lerp(startZoom, plan.targetZoom, easedProgress).coerceIn(MinZoom, MaxZoom)
-            }
+            cameraRuntime.jumpTo(
+                yaw = lerp(startYaw, plan.targetYawDegrees, easedProgress),
+                pitch = lerp(startPitch, plan.targetPitchDegrees, easedProgress),
+                zoom = lerp(startZoom, plan.targetZoom, easedProgress),
+                source = CameraUpdateSource.Animation,
+            )
+            syncFromRuntime()
             if (linearProgress >= 1f) break
         }
     }
 
-    fun snapshot(): CameraSnapshot = CameraSnapshot(
-        yaw = yaw.toDegrees(),
-        pitch = pitch.toDegrees(),
-        zoom = zoom,
-        version = version,
-        source = source,
-    )
+    fun snapshot(): CameraSnapshot = cameraRuntime.snapshot()
+
+    private fun syncFromRuntime() {
+        val snapshot = cameraRuntime.snapshot()
+        yaw = snapshot.yaw.deg
+        pitch = snapshot.pitch.deg
+        zoom = snapshot.zoom
+        version = snapshot.version
+        source = snapshot.source
+    }
 
     private fun write(updateSource: CameraUpdateSource, block: CameraState.() -> Unit) {
         block()

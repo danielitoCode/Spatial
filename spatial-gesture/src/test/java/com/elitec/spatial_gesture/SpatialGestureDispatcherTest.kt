@@ -60,6 +60,8 @@ class SpatialGestureDispatcherTest {
     private class RecordingCameraRuntime : CameraRuntimeContract {
         lateinit var lastDelta: CameraDelta
 
+        override fun syncSnapshot(snapshot: CameraSnapshot) = Unit
+
         override fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource) = Unit
 
         override fun applyDelta(delta: CameraDelta, source: CameraUpdateSource) {

@@ -54,6 +54,13 @@ data class CameraDelta(
  * Gesture > Remote > Animation.
  */
 interface CameraRuntimeContract {
+    /**
+     * Synchronizes the runtime camera with an immutable snapshot produced by another owner.
+     *
+     * [CameraSnapshot] is the official Core #1 camera contract. Implementations should normalize
+     * safety limits, then make subsequent [snapshot] reads reflect the received value.
+     */
+    fun syncSnapshot(snapshot: CameraSnapshot)
     fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun applyDelta(delta: CameraDelta, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun zoomTo(zoom: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
@@ -77,12 +84,23 @@ interface CameraRuntimeContract {
     fun snapshot(): CameraSnapshot
 }
 
+/**
+ * Core #1 camera engine.
+ *
+ * The single source of truth exchanged between Compose, runtime, and renderer is [CameraSnapshot].
+ * [SpatialCamera] owns normalization and atomic mutations for the runtime route; UI state holders
+ * such as Compose `CameraState` are adapters that synchronize snapshots to and from this contract.
+ */
 class SpatialCamera(
     initialState: CameraSnapshot = CameraSnapshot(),
     private val animationScheduler: CameraAnimationScheduler = FixedStepCameraAnimationScheduler(),
     private val defaultGestureMotionPolicy: GestureMotionPolicy = GestureMotionPolicy.Adaptive,
 ) : CameraRuntimeContract {
     private var state: CameraSnapshot = normalize(initialState)
+
+    override fun syncSnapshot(snapshot: CameraSnapshot) {
+        state = normalize(snapshot)
+    }
 
     override fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource) {
         writeAtomic(source) {
@@ -191,12 +209,6 @@ class SpatialCamera(
 
     private fun lerp(start: Float, end: Float, progress: Float): Float =
         start + (end - start) * progress
-
-    override fun animateTo(yaw: Float, pitch: Float, zoom: Float, durationMs: Long) {
-        // Implementación básica de animación.
-        orbitTo(yaw, pitch, source = CameraUpdateSource.Animation)
-        zoomTo(zoom, source = CameraUpdateSource.Animation)
-    }
 
     override fun snapshot(): CameraSnapshot = state
 
