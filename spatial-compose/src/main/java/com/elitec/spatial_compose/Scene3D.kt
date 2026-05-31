@@ -1,4 +1,5 @@
 package com.elitec.spatial_compose
+
 import android.content.Context
 import android.view.MotionEvent
 import android.view.View
@@ -19,6 +20,7 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
+import com.elitec.spatial_camera.CameraAnimationScheduler
 import com.elitec.spatial_camera.CameraDelta
 import com.elitec.spatial_camera.CameraRuntimeContract
 import com.elitec.spatial_camera.GestureMotionPolicy
@@ -36,7 +38,6 @@ import com.elitec.spatial_core.scene.MaterialData
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_renderer.adapter.ChoreographerFrameScheduler
 import com.elitec.spatial_renderer.gl.SpatialGlRenderTarget
-import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
 import com.elitec.spatial_runtime.SpatialRuntime
 import com.elitec.spatial_units.Angle
 import com.elitec.spatial_units.Distance
@@ -167,14 +168,15 @@ class CameraState internal constructor(
     yaw: Angle,
     pitch: Angle,
     zoom: Float,
-    private val cameraRuntime: CameraRuntimeContract = SpatialCamera(
-        CameraSnapshot(
+    cameraRuntime: CameraRuntimeContract? = null,
+) {
+    private val cameraRuntime: CameraRuntimeContract = cameraRuntime ?: SpatialCamera(
+        initialState = CameraSnapshot(
             yaw = yaw.toDegrees(),
             pitch = pitch.toDegrees(),
-            zoom = zoom,
-        )
-    ),
-) {
+            zoom = zoom,),
+        animationScheduler = ComposeFrameCameraAnimationScheduler(onFrameApplied = { syncFromRuntime() }),
+    )
     var yaw: Angle by mutableStateOf(yaw)
         private set
     var pitch: Angle by mutableStateOf(pitch)
@@ -281,37 +283,22 @@ class CameraState internal constructor(
             minZoom = MinZoom,
             maxZoom = MaxZoom,
         )
-
-        if (plan.durationMillis <= 0L || motion.instant) {
-            cameraRuntime.animateTo(
-                yaw = plan.targetYawDegrees,
-                pitch = plan.targetPitchDegrees,
-                zoom = plan.targetZoom,
-                motion = com.elitec.spatial_camera.MotionSpec.Instant,
+        val runtimeMotion: RuntimeMotionSpec = if (plan.durationMillis <= 0L || motion.instant) {
+            RuntimeMotionSpec.Instant
+        } else {
+            RuntimeMotionSpec.Tween(
+                durationMs = plan.durationMillis,
+                easing = plan.easing,
             )
-            syncFromRuntime()
-            return
         }
 
-        val startYaw = this.yaw.toDegrees()
-        val startPitch = this.pitch.toDegrees()
-        val startZoom = this.zoom
-        val durationNanos = plan.durationMillis.coerceAtLeast(1L) * 1_000_000L
-        val startTime = withFrameNanos { it }
-
-        while (true) {
-            val frameTime = withFrameNanos { it }
-            val linearProgress = ((frameTime - startTime).toFloat() / durationNanos).coerceIn(0f, 1f)
-            val easedProgress = plan.easing.transform(linearProgress).coerceIn(0f, 1f)
-            cameraRuntime.jumpTo(
-                yaw = lerp(startYaw, plan.targetYawDegrees, easedProgress),
-                pitch = lerp(startPitch, plan.targetPitchDegrees, easedProgress),
-                zoom = lerp(startZoom, plan.targetZoom, easedProgress),
-                source = CameraUpdateSource.Animation,
-            )
-            syncFromRuntime()
-            if (linearProgress >= 1f) break
-        }
+        cameraRuntime.animateTo(
+            yaw = plan.targetYawDegrees,
+            pitch = plan.targetPitchDegrees,
+            zoom = plan.targetZoom,
+            motion = runtimeMotion,
+        )
+        syncFromRuntime()
     }
 
     fun snapshot(): CameraSnapshot = cameraRuntime.snapshot()
@@ -338,6 +325,37 @@ class CameraState internal constructor(
         const val MaxPitchDegrees = CameraSnapshot.MAX_PITCH_DEGREES
         const val MinZoom = CameraSnapshot.MIN_ZOOM
         const val MaxZoom = CameraSnapshot.MAX_ZOOM
+    }
+}
+
+private class ComposeFrameCameraAnimationScheduler(
+    private val onFrameApplied: () -> Unit,
+) : CameraAnimationScheduler {
+    override suspend fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit) {
+        val safeDurationMillis = durationMs.coerceAtLeast(0L)
+        if (safeDurationMillis == 0L) {
+            onFrame(0L)
+            onFrameApplied()
+            return
+        }
+
+        val durationNanos = safeDurationMillis * NanosPerMillisecond
+        val startTimeNanos = withFrameNanos { it }
+        onFrame(0L)
+        onFrameApplied()
+
+        while (true) {
+            val frameTimeNanos = withFrameNanos { it }
+            val elapsedNanos = (frameTimeNanos - startTimeNanos).coerceAtLeast(0L)
+            val elapsedMillis = (elapsedNanos / NanosPerMillisecond).coerceAtMost(safeDurationMillis)
+            onFrame(elapsedMillis)
+            onFrameApplied()
+            if (elapsedNanos >= durationNanos) break
+        }
+    }
+
+    private companion object {
+        const val NanosPerMillisecond = 1_000_000L
     }
 }
 

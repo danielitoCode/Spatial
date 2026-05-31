@@ -74,7 +74,7 @@ interface CameraRuntimeContract {
         source: CameraUpdateSource = CameraUpdateSource.Remote,
     )
 
-    fun animateTo(
+    suspend fun animateTo(
         yaw: Float,
         pitch: Float,
         zoom: Float,
@@ -83,7 +83,7 @@ interface CameraRuntimeContract {
         animateTo(yaw = yaw, pitch = pitch, zoom = zoom, motion = MotionSpec.Tween(durationMs = durationMs))
     }
 
-    fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec)
+    suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec)
     fun snapshot(): CameraSnapshot
 }
 
@@ -146,7 +146,7 @@ class SpatialCamera(
         }
     }
 
-    override fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec) {
+    override suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec) {
         when (motion) {
             MotionSpec.Instant -> jumpTo(
                 yaw = yaw,
@@ -165,7 +165,7 @@ class SpatialCamera(
         }
     }
 
-    private fun animateTween(
+    private suspend fun animateTween(
         yaw: Float,
         pitch: Float,
         zoom: Float,
@@ -323,13 +323,13 @@ sealed class MotionSpec {
 }
 
 fun interface CameraAnimationScheduler {
-    fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit)
+    suspend fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit)
 }
 
 class FixedStepCameraAnimationScheduler(
     private val frameStepMs: Long = DEFAULT_FRAME_STEP_MS,
 ) : CameraAnimationScheduler {
-    override fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit) {
+    override suspend fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit) {
         val safeDuration = durationMs.coerceAtLeast(0L)
         val safeFrameStep = frameStepMs.takeIf { it > 0L } ?: DEFAULT_FRAME_STEP_MS
 
