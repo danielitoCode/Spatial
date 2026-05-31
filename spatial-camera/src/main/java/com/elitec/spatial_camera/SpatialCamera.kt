@@ -77,12 +77,29 @@ interface CameraRuntimeContract {
     fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun applyDelta(delta: CameraDelta, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun zoomTo(zoom: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
-    fun animateTo(yaw: Float, pitch: Float, zoom: Float, durationMs: Long = 300L)
+    fun jumpTo(
+        yaw: Float,
+        pitch: Float,
+        zoom: Float,
+        source: CameraUpdateSource = CameraUpdateSource.Remote,
+    )
+
+    fun animateTo(
+        yaw: Float,
+        pitch: Float,
+        zoom: Float,
+        durationMs: Long = MotionSpec.DEFAULT_DURATION_MS,
+    ) {
+        animateTo(yaw = yaw, pitch = pitch, zoom = zoom, motion = MotionSpec.Tween(durationMs = durationMs))
+    }
+
+    fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec)
     fun snapshot(): CameraSnapshot
 }
 
 class SpatialCamera(
     initialState: CameraSnapshot = CameraSnapshot(),
+    private val animationScheduler: CameraAnimationScheduler = FixedStepCameraAnimationScheduler(),
     private val defaultGestureMotionPolicy: GestureMotionPolicy = GestureMotionPolicy.Adaptive,
 ) : CameraRuntimeContract {
     private var state: CameraSnapshot = normalize(initialState)
@@ -113,6 +130,88 @@ class SpatialCamera(
         }
     }
 
+    override fun jumpTo(
+        yaw: Float,
+        pitch: Float,
+        zoom: Float,
+        source: CameraUpdateSource,
+    ) {
+        writeAtomic(source) {
+            copy(
+                yaw = yaw,
+                pitch = pitch.coerceIn(-89f, 89f),
+                zoom = zoom.coerceIn(0.3f, 4f),
+            )
+        }
+    }
+
+    override fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec) {
+        when (motion) {
+            MotionSpec.Instant -> jumpTo(
+                yaw = yaw,
+                pitch = pitch,
+                zoom = zoom,
+                source = CameraUpdateSource.Animation,
+            )
+
+            is MotionSpec.Tween -> animateTween(
+                yaw = yaw,
+                pitch = pitch,
+                zoom = zoom,
+                durationMs = motion.durationMs,
+                easing = motion.easing,
+            )
+        }
+    }
+
+    private fun animateTween(
+        yaw: Float,
+        pitch: Float,
+        zoom: Float,
+        durationMs: Long,
+        easing: CameraEasing,
+    ) {
+        val start = snapshot()
+        val target = normalize(
+            start.copy(
+                yaw = yaw,
+                pitch = pitch,
+                zoom = zoom,
+            )
+        )
+        val safeDuration = durationMs.coerceAtLeast(0L)
+
+        animationScheduler.schedule(safeDuration) { elapsedMs ->
+            val linearProgress = if (safeDuration == 0L) {
+                1f
+            } else {
+                (elapsedMs.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
+            }
+            val easedProgress = easing.transform(linearProgress).coerceIn(0f, 1f)
+
+            writeAtomic(CameraUpdateSource.Animation) {
+                copy(
+                    yaw = lerp(start.yaw, target.yaw, easedProgress),
+                    pitch = lerp(start.pitch, target.pitch, easedProgress),
+                    zoom = lerp(start.zoom, target.zoom, easedProgress),
+                )
+            }
+        }
+
+        val current = snapshot()
+        if (current.yaw != target.yaw || current.pitch != target.pitch || current.zoom != target.zoom) {
+            jumpTo(
+                yaw = target.yaw,
+                pitch = target.pitch,
+                zoom = target.zoom,
+                source = CameraUpdateSource.Animation,
+            )
+        }
+    }
+
+    private fun lerp(start: Float, end: Float, progress: Float): Float =
+        start + (end - start) * progress
+
     override fun animateTo(yaw: Float, pitch: Float, zoom: Float, durationMs: Long) {
         // Implementación básica de animación.
         orbitTo(yaw, pitch, source = CameraUpdateSource.Animation)
@@ -136,12 +235,12 @@ class SpatialCamera(
         incoming: CameraSnapshot,
         source: CameraUpdateSource,
     ): CameraSnapshot {
-        val currentPrecedence = precedence(current.source)
-        val incomingPrecedence = precedence(source)
-        return if (incomingPrecedence >= currentPrecedence) {
+        return if (incoming.version == current.version) {
             incoming.copy(source = source)
         } else {
-            current
+            val currentPrecedence = precedence(current.source)
+            val incomingPrecedence = precedence(source)
+            if (incomingPrecedence >= currentPrecedence) incoming.copy(source = source) else current
         }
     }
 
@@ -204,4 +303,57 @@ class SpatialCamera(
         pitch = snapshot.pitch.coerceIn(-89f, 89f),
         zoom = snapshot.zoom.coerceIn(0.3f, 4f),
     )
+}
+
+fun interface CameraEasing {
+    fun transform(progress: Float): Float
+
+    companion object {
+        val SmoothStep = CameraEasing { progress ->
+            val t = progress.coerceIn(0f, 1f)
+            t * t * (3f - 2f * t)
+        }
+    }
+}
+
+sealed class MotionSpec {
+    data object Instant : MotionSpec()
+
+    data class Tween(
+        val durationMs: Long = DEFAULT_DURATION_MS,
+        val easing: CameraEasing = CameraEasing.SmoothStep,
+    ) : MotionSpec()
+
+    companion object {
+        const val DEFAULT_DURATION_MS = 300L
+    }
+}
+
+fun interface CameraAnimationScheduler {
+    fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit)
+}
+
+class FixedStepCameraAnimationScheduler(
+    private val frameStepMs: Long = DEFAULT_FRAME_STEP_MS,
+) : CameraAnimationScheduler {
+    override fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit) {
+        val safeDuration = durationMs.coerceAtLeast(0L)
+        val safeFrameStep = frameStepMs.takeIf { it > 0L } ?: DEFAULT_FRAME_STEP_MS
+
+        if (safeDuration == 0L) {
+            onFrame(0L)
+            return
+        }
+
+        var elapsedMs = 0L
+        while (elapsedMs < safeDuration) {
+            onFrame(elapsedMs)
+            elapsedMs += safeFrameStep
+        }
+        onFrame(safeDuration)
+    }
+
+    private companion object {
+        const val DEFAULT_FRAME_STEP_MS = 16L
+    }
 }
