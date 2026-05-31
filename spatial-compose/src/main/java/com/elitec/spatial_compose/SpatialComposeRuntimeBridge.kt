@@ -1,6 +1,6 @@
 package com.elitec.spatial_compose
 
-import com.elitec.spatial_camera.CameraUpdateSource
+import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_gesture.OrbitGestureDelta
 import com.elitec.spatial_gesture.PinchZoomDelta
 

@@ -1,6 +1,6 @@
 package com.elitec.spatial_renderer.render
 
-import com.elitec.spatial_camera.CameraSnapshot
+import com.elitec.spatial_core.camera.CameraSnapshot
 
 /** Contrato mínimo para disparar render de un frame. */
 interface RenderBackend {

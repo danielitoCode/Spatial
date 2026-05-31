@@ -2,7 +2,7 @@ package com.elitec.spatial_runtime
 
 import com.elitec.spatial_camera.CameraRuntimeContract
 import com.elitec.spatial_camera.CameraDelta
-import com.elitec.spatial_camera.CameraUpdateSource
+import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
 import com.elitec.spatial_gesture.OrbitGestureDelta

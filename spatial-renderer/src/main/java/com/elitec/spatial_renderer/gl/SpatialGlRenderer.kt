@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import android.opengl.Matrix
-import com.elitec.spatial_camera.CameraSnapshot
+import com.elitec.spatial_core.camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.scene.RenderableNode
@@ -24,7 +24,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         nodes = newNodes
     }
 
-    fun updateCamera(snapshot: com.elitec.spatial_camera.CameraSnapshot) {
+    fun updateCamera(snapshot: CameraSnapshot) {
         cameraSnapshot = snapshot
     }
 

@@ -14,7 +14,7 @@ kotlin {
 
 dependencies {
     // Camera define comportamiento de vista sobre contratos de escena/core, no sobre renderer directo.
-    implementation(project(":spatial-core"))
+    api(project(":spatial-core"))
     implementation(project(":spatial-scene"))
     implementation(project(":spatial-math"))
 

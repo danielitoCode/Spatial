@@ -17,8 +17,8 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
-import com.elitec.spatial_camera.CameraSnapshot
-import com.elitec.spatial_camera.CameraUpdateSource
+import com.elitec.spatial_core.camera.CameraSnapshot
+import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.scene.MaterialData
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_renderer.gl.SpatialGlSurfaceView
@@ -193,10 +193,10 @@ class CameraState internal constructor(
     private fun Angle.coercePitch(): Angle = toDegrees().coerceIn(MinPitchDegrees, MaxPitchDegrees).deg
 
     private companion object {
-        const val MinPitchDegrees = -89f
-        const val MaxPitchDegrees = 89f
-        const val MinZoom = 0.3f
-        const val MaxZoom = 4f
+        const val MinPitchDegrees = CameraSnapshot.MIN_PITCH_DEGREES
+        const val MaxPitchDegrees = CameraSnapshot.MAX_PITCH_DEGREES
+        const val MinZoom = CameraSnapshot.MIN_ZOOM
+        const val MaxZoom = CameraSnapshot.MAX_ZOOM
     }
 }
 

@@ -24,6 +24,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":spatial-core"))
     implementation(project(":spatial-camera"))
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)

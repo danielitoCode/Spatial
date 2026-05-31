@@ -1,19 +1,7 @@
 package com.elitec.spatial_camera
 
-/**
- * Identifies who requested a camera update.
- *
- * [Gesture] updates are normalized by default through [GestureMotionPolicy.Adaptive]
- * when they are produced by the gesture dispatcher or consumed by [SpatialCamera.applyDelta].
- * Use [CameraDelta.motionPolicy] with [GestureMotionPolicy.Raw] only when a caller
- * explicitly wants abrupt/manual camera steps while still keeping the camera inside
- * hard safety bounds.
- */
-enum class CameraUpdateSource {
-    Gesture,
-    Remote,
-    Animation,
-}
+import com.elitec.spatial_core.camera.CameraSnapshot
+import com.elitec.spatial_core.camera.CameraUpdateSource
 
 /**
  * Public motion policy used to normalize gesture camera deltas.
@@ -47,14 +35,6 @@ data class GestureMotionPolicy(
         val Raw = GestureMotionPolicy(mode = Mode.Raw)
     }
 }
-
-data class CameraSnapshot(
-    val yaw: Float = 0f,
-    val pitch: Float = 0f,
-    val zoom: Float = 1f,
-    val version: Long = 0L,
-    val source: CameraUpdateSource = CameraUpdateSource.Gesture,
-)
 
 data class CameraDelta(
     val deltaYaw: Float = 0f,
@@ -108,7 +88,7 @@ class SpatialCamera(
         writeAtomic(source) {
             copy(
                 yaw = yaw,
-                pitch = pitch.coerceIn(-89f, 89f),
+                pitch = pitch.coerceIn(CameraSnapshot.MIN_PITCH_DEGREES, CameraSnapshot.MAX_PITCH_DEGREES),
             )
         }
     }
@@ -118,15 +98,15 @@ class SpatialCamera(
         writeAtomic(source) {
             copy(
                 yaw = yaw + safeDelta.deltaYaw,
-                pitch = (pitch + safeDelta.deltaPitch).coerceIn(-89f, 89f),
-                zoom = (zoom * safeDelta.zoomScaleDelta).coerceIn(0.3f, 4f),
+                pitch = (pitch + safeDelta.deltaPitch).coerceIn(CameraSnapshot.MIN_PITCH_DEGREES, CameraSnapshot.MAX_PITCH_DEGREES),
+                zoom = (zoom * safeDelta.zoomScaleDelta).coerceIn(CameraSnapshot.MIN_ZOOM, CameraSnapshot.MAX_ZOOM),
             )
         }
     }
 
     override fun zoomTo(zoom: Float, source: CameraUpdateSource) {
         writeAtomic(source) {
-            copy(zoom = zoom.coerceIn(0.3f, 4f))
+            copy(zoom = zoom.coerceIn(CameraSnapshot.MIN_ZOOM, CameraSnapshot.MAX_ZOOM))
         }
     }
 
@@ -139,8 +119,8 @@ class SpatialCamera(
         writeAtomic(source) {
             copy(
                 yaw = yaw,
-                pitch = pitch.coerceIn(-89f, 89f),
-                zoom = zoom.coerceIn(0.3f, 4f),
+                pitch = pitch.coerceIn(CameraSnapshot.MIN_PITCH_DEGREES, CameraSnapshot.MAX_PITCH_DEGREES),
+                zoom = zoom.coerceIn(CameraSnapshot.MIN_ZOOM, CameraSnapshot.MAX_ZOOM),
             )
         }
     }
@@ -300,8 +280,8 @@ class SpatialCamera(
     private fun sanitizeFinite(value: Float): Float = if (value.isFinite()) value else 0f
 
     private fun normalize(snapshot: CameraSnapshot): CameraSnapshot = snapshot.copy(
-        pitch = snapshot.pitch.coerceIn(-89f, 89f),
-        zoom = snapshot.zoom.coerceIn(0.3f, 4f),
+        pitch = snapshot.pitch.coerceIn(CameraSnapshot.MIN_PITCH_DEGREES, CameraSnapshot.MAX_PITCH_DEGREES),
+        zoom = snapshot.zoom.coerceIn(CameraSnapshot.MIN_ZOOM, CameraSnapshot.MAX_ZOOM),
     )
 }
 

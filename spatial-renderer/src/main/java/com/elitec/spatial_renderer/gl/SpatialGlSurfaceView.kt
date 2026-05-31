@@ -3,6 +3,7 @@ package com.elitec.spatial_renderer.gl
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
+import com.elitec.spatial_core.camera.CameraSnapshot
 
 class SpatialGlSurfaceView @JvmOverloads constructor(
     context: Context,
@@ -24,7 +25,7 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         }
     }
 
-    fun updateCamera(cameraSnapshot: com.elitec.spatial_camera.CameraSnapshot) {
+    fun updateCamera(cameraSnapshot: CameraSnapshot) {
         queueEvent {
             spatialRenderer.updateCamera(cameraSnapshot)
             requestRender()
