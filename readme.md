@@ -51,7 +51,7 @@ Core #1 focuses on building the foundation for a premium 3D experience:
 - Smooth zoom
 - Inertia and damping
 - Declarative scene API
-- Motion system
+- Basic camera/transform motion system
 - Gesture system
 - Material abstraction
 - Units system
@@ -67,6 +67,7 @@ Core #1 focuses on building the foundation for a premium 3D experience:
 - Vulkan
 - Skeletal animation
 - Post-processing
+- - Advanced animation timelines and clip sequencing
 - Multiplayer systems
 - Editor tooling
 
@@ -208,17 +209,18 @@ Used for:
 Android Library
 
 ## Purpose
-GPU abstraction layer and rendering backend.
+Shared Core #1 motion primitives for basic camera and transform animation.
 
 ## Responsibilities
-- OpenGL ES abstraction
-- Render loop
-- Shader management
-- GPU buffers
-- Frame submission
-- Texture binding
-- Frame pacing
-- EGL lifecycle
+- Basic camera/transform interpolation
+- Shared easing curves
+- Shared camera animation duration planning
+- Runtime/Compose motion parity helpers
+
+## Out of scope for Core #1
+- Skeletal animation
+- Advanced keyframe timelines
+- Clip blending and sequencer-style orchestration
 
 ## Internal Features
 
@@ -646,10 +648,12 @@ Compose DSL:
 ---
 
 # Phase 8
-Motion system:
-- animateTo
+Basic motion system:
+- animateTo for camera/transform changes
 - interpolation
-- transitions
+- - shared easing/duration planning
+
+Advanced timelines, skeletal animation, and clip sequencing are intentionally outside Core #1.
 
 ---
 

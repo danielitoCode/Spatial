@@ -25,6 +25,13 @@ import com.elitec.spatial_camera.GestureMotionPolicy
 import com.elitec.spatial_camera.SpatialCamera
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
+import com.elitec.spatial_motion.CameraMotionProfile
+import com.elitec.spatial_motion.DefaultAdaptiveAnimationMaxDurationMillis
+import com.elitec.spatial_motion.DefaultAdaptiveAnimationMinDurationMillis
+import com.elitec.spatial_motion.DefaultTargetAngularVelocityDegreesPerSecond
+import com.elitec.spatial_motion.DefaultTargetZoomVelocityPerSecond
+import com.elitec.spatial_motion.MotionEasing
+import com.elitec.spatial_motion.resolveCameraMotionPlan
 import com.elitec.spatial_core.scene.MaterialData
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_renderer.adapter.ChoreographerFrameScheduler
@@ -266,8 +273,13 @@ class CameraState internal constructor(
             targetYawDegrees = yaw.toDegrees(),
             targetPitchDegrees = pitch.coercePitch().toDegrees(),
             targetZoom = zoom.coerceIn(MinZoom, MaxZoom),
-            motion = motion,
+            profile = motion.toCameraMotionProfile(),
             explicitDurationMillis = durationMillis,
+            instant = motion.instant,
+            minPitchDegrees = MinPitchDegrees,
+            maxPitchDegrees = MaxPitchDegrees,
+            minZoom = MinZoom,
+            maxZoom = MaxZoom,
         )
 
         if (plan.durationMillis <= 0L || motion.instant) {
@@ -329,20 +341,11 @@ class CameraState internal constructor(
     }
 }
 
-/** Maps linear animation progress to visual progress. */
-@Stable
-fun interface MotionEasing {
-    fun transform(fraction: Float): Float
-
-    companion object {
-        val Linear = MotionEasing { it }
-        val SmoothStep = MotionEasing { smoothStep(it) }
-    }
-}
-
 /**
  * Describes how camera animations choose their duration and interpolation curve.
  *
+ * Compose keeps this [MotionSpec] as an adapter over the shared spatial-motion planner so the UI
+ * API can expose adaptive policies without duplicating easing or duration math from runtime.
  * [Adaptive] derives duration from yaw, pitch, and relative zoom distance. [Instant] is the
  * explicit opt-in path for visual jumps. Use [custom] to tune the adaptive velocity and bounds.
  */
@@ -407,6 +410,14 @@ sealed class MotionSpec(
         )
     }
 }
+
+private fun MotionSpec.toCameraMotionProfile(): CameraMotionProfile = CameraMotionProfile(
+    minDurationMillis = minDurationMillis,
+    maxDurationMillis = maxDurationMillis,
+    targetAngularVelocityDegreesPerSecond = targetAngularVelocityDegreesPerSecond,
+    targetZoomVelocityPerSecond = targetZoomVelocityPerSecond,
+    easing = easing,
+)
 
 @Immutable
 sealed interface GestureSensitivity {
@@ -949,101 +960,8 @@ private fun FloatArray.multiply(other: FloatArray): FloatArray {
 }
 
 private fun Angle.toDegrees(): Float = (radians * 180f / PI.toFloat())
-
-internal data class CameraMotionPlan(
-    val durationMillis: Long,
-    val targetYawDegrees: Float,
-    val targetPitchDegrees: Float,
-    val targetZoom: Float,
-    val easing: MotionEasing,
-)
-
-internal fun resolveCameraMotionPlan(
-    startYawDegrees: Float,
-    startPitchDegrees: Float,
-    startZoom: Float,
-    targetYawDegrees: Float,
-    targetPitchDegrees: Float,
-    targetZoom: Float,
-    motion: MotionSpec = MotionSpec.Adaptive,
-    explicitDurationMillis: Long? = null,
-): CameraMotionPlan {
-    val safeStartYaw = startYawDegrees.finiteOrZero()
-    val safeStartPitch = startPitchDegrees.finiteOrZero()
-    val safeStartZoom = startZoom.finiteOr(DefaultCameraZoom).coerceAtLeast(MinCameraZoomForMotion)
-    val safeTargetPitch = targetPitchDegrees.finiteOr(safeStartPitch)
-    val safeTargetZoom = targetZoom.finiteOr(safeStartZoom).coerceAtLeast(MinCameraZoomForMotion)
-    val yawDelta = shortestAngleDeltaDegrees(safeStartYaw, targetYawDegrees.finiteOr(safeStartYaw))
-    val resolvedTargetYaw = safeStartYaw + yawDelta
-    val pitchDelta = safeTargetPitch - safeStartPitch
-    val zoomRelativeDelta = abs(ln(safeTargetZoom / safeStartZoom))
-
-    val durationMillis = when {
-        motion.instant -> 0L
-        explicitDurationMillis != null -> explicitDurationMillis.coerceAtLeast(0L)
-        else -> adaptiveCameraMotionDurationMillis(
-            yawDeltaDegrees = yawDelta,
-            pitchDeltaDegrees = pitchDelta,
-            zoomRelativeDelta = zoomRelativeDelta,
-            motion = motion,
-        )
-    }
-
-    return CameraMotionPlan(
-        durationMillis = durationMillis,
-        targetYawDegrees = resolvedTargetYaw,
-        targetPitchDegrees = safeTargetPitch,
-        targetZoom = safeTargetZoom,
-        easing = motion.easing,
-    )
-}
-
-private fun adaptiveCameraMotionDurationMillis(
-    yawDeltaDegrees: Float,
-    pitchDeltaDegrees: Float,
-    zoomRelativeDelta: Float,
-    motion: MotionSpec,
-): Long {
-    val minDurationMillis = motion.minDurationMillis.coerceAtLeast(0L)
-    val maxDurationMillis = motion.maxDurationMillis.coerceAtLeast(minDurationMillis)
-    val angularVelocity = motion.targetAngularVelocityDegreesPerSecond
-        .takeIf { it.isFinite() && it > 0f }
-        ?: return DefaultAnimationDurationMillis.coerceIn(minDurationMillis, maxDurationMillis)
-    val zoomVelocity = motion.targetZoomVelocityPerSecond
-        .takeIf { it.isFinite() && it > 0f }
-        ?: return DefaultAnimationDurationMillis.coerceIn(minDurationMillis, maxDurationMillis)
-
-    val angularDistanceDegrees = sqrt(yawDeltaDegrees * yawDeltaDegrees + pitchDeltaDegrees * pitchDeltaDegrees)
-    val angularDurationMillis = angularDistanceDegrees / angularVelocity * 1_000f
-    val zoomDurationMillis = zoomRelativeDelta / zoomVelocity * 1_000f
-    val resolvedDuration = max(angularDurationMillis, zoomDurationMillis)
-        .takeIf { it.isFinite() }
-        ?.toLong()
-        ?: DefaultAnimationDurationMillis
-
-    return resolvedDuration.coerceIn(minDurationMillis, maxDurationMillis)
-}
-
-private fun shortestAngleDeltaDegrees(startDegrees: Float, targetDegrees: Float): Float {
-    val rawDelta = targetDegrees - startDegrees
-    return (((rawDelta % 360f) + 540f) % 360f) - 180f
-}
-
-private fun Float.finiteOr(defaultValue: Float): Float = if (isFinite()) this else defaultValue
-
-private fun Float.finiteOrZero(): Float = finiteOr(0f)
-
 private fun lerp(start: Float, stop: Float, fraction: Float): Float = start + (stop - start) * fraction
 
-private fun smoothStep(value: Float): Float = value * value * (3f - 2f * value)
-
-private const val DefaultAnimationDurationMillis = 450L
-private const val DefaultAdaptiveAnimationMinDurationMillis = 120L
-private const val DefaultAdaptiveAnimationMaxDurationMillis = 1_200L
-private const val DefaultTargetAngularVelocityDegreesPerSecond = 180f
-private const val DefaultTargetZoomVelocityPerSecond = 1.75f
-private const val DefaultCameraZoom = 1f
-private const val MinCameraZoomForMotion = 0.0001f
 private const val DefaultOrbitDegreesPerPixel = 0.25f
 private const val MaxOrbitDegreesPerStep = 32f
 private const val ReferenceSceneDiameterMeters = 2f

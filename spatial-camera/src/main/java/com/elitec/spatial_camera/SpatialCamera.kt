@@ -2,6 +2,9 @@ package com.elitec.spatial_camera
 
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
+import com.elitec.spatial_motion.CameraMotionProfile
+import com.elitec.spatial_motion.MotionEasing
+import com.elitec.spatial_motion.resolveCameraMotionPlan
 
 /**
  * Public motion policy used to normalize gesture camera deltas.
@@ -170,14 +173,21 @@ class SpatialCamera(
         easing: CameraEasing,
     ) {
         val start = snapshot()
-        val target = normalize(
-            start.copy(
-                yaw = yaw,
-                pitch = pitch,
-                zoom = zoom,
-            )
+        val plan = resolveCameraMotionPlan(
+            startYawDegrees = start.yaw,
+            startPitchDegrees = start.pitch,
+            startZoom = start.zoom,
+            targetYawDegrees = yaw,
+            targetPitchDegrees = pitch,
+            targetZoom = zoom,
+            profile = CameraMotionProfile(easing = easing),
+            explicitDurationMillis = durationMs,
+            minPitchDegrees = CameraSnapshot.MIN_PITCH_DEGREES,
+            maxPitchDegrees = CameraSnapshot.MAX_PITCH_DEGREES,
+            minZoom = CameraSnapshot.MIN_ZOOM,
+            maxZoom = CameraSnapshot.MAX_ZOOM,
         )
-        val safeDuration = durationMs.coerceAtLeast(0L)
+        val safeDuration = plan.durationMillis
 
         animationScheduler.schedule(safeDuration) { elapsedMs ->
             val linearProgress = if (safeDuration == 0L) {
@@ -185,23 +195,23 @@ class SpatialCamera(
             } else {
                 (elapsedMs.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
             }
-            val easedProgress = easing.transform(linearProgress).coerceIn(0f, 1f)
+            val easedProgress = plan.easing.transform(linearProgress).coerceIn(0f, 1f)
 
             writeAtomic(CameraUpdateSource.Animation) {
                 copy(
-                    yaw = lerp(start.yaw, target.yaw, easedProgress),
-                    pitch = lerp(start.pitch, target.pitch, easedProgress),
-                    zoom = lerp(start.zoom, target.zoom, easedProgress),
+                    yaw = lerp(start.yaw, plan.targetYawDegrees, easedProgress),
+                    pitch = lerp(start.pitch, plan.targetPitchDegrees, easedProgress),
+                    zoom = lerp(start.zoom, plan.targetZoom, easedProgress),
                 )
             }
         }
 
         val current = snapshot()
-        if (current.yaw != target.yaw || current.pitch != target.pitch || current.zoom != target.zoom) {
+        if (current.yaw != plan.targetYawDegrees || current.pitch != plan.targetPitchDegrees || current.zoom != plan.targetZoom) {
             jumpTo(
-                yaw = target.yaw,
-                pitch = target.pitch,
-                zoom = target.zoom,
+                yaw = plan.targetYawDegrees,
+                pitch = plan.targetPitchDegrees,
+                zoom = plan.targetZoom,
                 source = CameraUpdateSource.Animation,
             )
         }
@@ -297,23 +307,14 @@ class SpatialCamera(
     )
 }
 
-fun interface CameraEasing {
-    fun transform(progress: Float): Float
-
-    companion object {
-        val SmoothStep = CameraEasing { progress ->
-            val t = progress.coerceIn(0f, 1f)
-            t * t * (3f - 2f * t)
-        }
-    }
-}
+typealias CameraEasing = MotionEasing
 
 sealed class MotionSpec {
     data object Instant : MotionSpec()
 
     data class Tween(
         val durationMs: Long = DEFAULT_DURATION_MS,
-        val easing: CameraEasing = CameraEasing.SmoothStep,
+        val easing: CameraEasing = MotionEasing.SmoothStep,
     ) : MotionSpec()
 
     companion object {

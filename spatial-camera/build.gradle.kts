@@ -18,5 +18,7 @@ dependencies {
     implementation(project(":spatial-scene"))
     implementation(project(":spatial-math"))
 
+    implementation(project(":spatial-motion"))
+
     testImplementation(libs.junit)
 }
