@@ -61,6 +61,8 @@ private fun SpatialRendererHost(modifier: Modifier = Modifier) {
         ) {
             Element.Cube(
                 modifier = Modifier3D.Default
+                    .rotateY(35f.deg)
+                    .rotateZ(18f.deg)
                     .size(1.4f.meters)
                     .position(0f.meters, 0f.meters, (-4f).meters),
             )
