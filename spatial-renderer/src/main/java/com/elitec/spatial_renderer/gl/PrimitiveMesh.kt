@@ -11,11 +11,19 @@ object PrimitiveMeshIds {
     const val Plane = "Plane"
 }
 
-/** Small registry resolving scene mesh ids to built-in primitive mesh data. */
+/**
+ * Small registry resolving scene mesh ids to built-in primitive mesh data.
+ *
+ * Unknown mesh ids are intentionally not mapped to a primitive fallback. Callers must
+ * handle [UnknownPrimitiveMeshException] or use [resolveOrNull] to apply an explicit
+ * policy such as logging and skipping the node.
+ */
 class PrimitiveMeshRegistry(
     private val meshes: Map<String, MeshData> = defaultMeshes(),
 ) {
-    fun resolve(meshId: String): MeshData = meshes[meshId] ?: fallbackMesh
+    fun resolve(meshId: String): MeshData = resolveOrNull(meshId) ?: throw UnknownPrimitiveMeshException(meshId)
+
+    fun resolveOrNull(meshId: String): MeshData? = meshes[meshId]
 
     fun contains(meshId: String): Boolean = meshes.containsKey(meshId)
 
@@ -29,6 +37,9 @@ class PrimitiveMeshRegistry(
         )
     }
 }
+class UnknownPrimitiveMeshException(meshId: String) :
+    IllegalArgumentException("Unknown primitive mesh id: $meshId")
+
 
 fun createCube(): MeshData = MeshData(
     vertices = floatArrayOf(

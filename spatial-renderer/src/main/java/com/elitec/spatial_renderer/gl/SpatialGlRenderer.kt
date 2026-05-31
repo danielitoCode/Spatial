@@ -4,13 +4,12 @@ import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.FloatBuffer
 import android.opengl.Matrix
+import android.util.Log
 import com.elitec.spatial_core.camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.scene.RenderableNode
-import java.nio.IntBuffer
 
 class SpatialGlRenderer : GLSurfaceView.Renderer {
     private val meshRegistry = PrimitiveMeshRegistry()
@@ -19,6 +18,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     private var nodes: List<RenderableNode> = emptyList()
     private var cameraSnapshot: CameraSnapshot = CameraSnapshot()
     private var aspectRatio: Float = 1f
+    private var uniforms: UniformLocations? = null
 
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
@@ -29,10 +29,13 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        releaseGlResources()
+
         GLES30.glClearColor(0.08f, 0.12f, 0.18f, 1.0f)
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
 
         programId = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
+        uniforms = UniformLocations.fromProgram(programId)
 
         meshBuffers = PrimitiveMeshRegistry.defaultMeshes().mapValues { (_, meshData) ->
             meshData.toGlMeshBuffers()
@@ -46,8 +49,10 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
-        
-        if (nodes.isEmpty()) return
+
+        if (nodes.isEmpty() || programId == 0) return
+
+        val uniformLocations = uniforms ?: return
 
         GLES30.glUseProgram(programId)
 
@@ -62,43 +67,55 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         val eyeZ = (orbitDistance * Math.cos(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
 
         Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, 0f, 0f, 0f, 0f, 1f, 0f)
-        
-        val uViewLoc = GLES30.glGetUniformLocation(programId, "uViewMatrix")
-        val uProjLoc = GLES30.glGetUniformLocation(programId, "uProjectionMatrix")
-        val uModelLoc = GLES30.glGetUniformLocation(programId, "uModelMatrix")
-        val uColorLoc = GLES30.glGetUniformLocation(programId, "uColor")
 
-        GLES30.glUniformMatrix4fv(uViewLoc, 1, false, viewMatrix, 0)
-        
+        GLES30.glUniformMatrix4fv(uniformLocations.viewMatrix, 1, false, viewMatrix, 0)
+
         // Proyección básica
         Matrix.perspectiveM(projectionMatrix, 0, 45f, aspectRatio, 0.1f, 100f)
-        GLES30.glUniformMatrix4fv(uProjLoc, 1, false, projectionMatrix, 0)
+        GLES30.glUniformMatrix4fv(uniformLocations.projectionMatrix, 1, false, projectionMatrix, 0)
 
         GLES30.glEnableVertexAttribArray(0)
 
         nodes.forEach { node ->
-            val meshData = meshRegistry.resolve(node.meshId)
-            val mesh = meshBuffers[node.meshId] ?: meshBuffers[PrimitiveMeshIds.Cube] ?: meshData.toGlMeshBuffers()
-            mesh.vertexBuffer.position(0)
+            if (meshRegistry.resolveOrNull(node.meshId) == null) {
+                Log.w(TAG, "Skipping renderable with unknown primitive mesh id: ${node.meshId}")
+                return@forEach
+            }
+
+            val mesh = meshBuffers[node.meshId]
+            if (mesh == null) {
+                Log.w(TAG, "Skipping renderable because GL buffers are missing for mesh id: ${node.meshId}")
+                return@forEach
+            }
+
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mesh.vertexBufferId)
             GLES30.glVertexAttribPointer(
                 0,
                 MeshData.CoordinatesPerVertex,
                 GLES30.GL_FLOAT,
                 false,
                 MeshData.CoordinatesPerVertex * Float.SIZE_BYTES,
-                mesh.vertexBuffer,
+                0,
             )
 
-            GLES30.glUniformMatrix4fv(uModelLoc, 1, false, node.modelMatrix, 0)
-            GLES30.glUniform4f(uColorLoc, node.material.r, node.material.g, node.material.b, node.material.a)
+            GLES30.glUniformMatrix4fv(uniformLocations.modelMatrix, 1, false, node.modelMatrix, 0)
+            GLES30.glUniform4f(
+                uniformLocations.color,
+                node.material.r,
+                node.material.g,
+                node.material.b,
+                node.material.a,
+            )
 
-            if (mesh.indexBuffer != null) {
-                mesh.indexBuffer.position(0)
-                GLES30.glDrawElements(mesh.drawMode.toGlDrawMode(), mesh.indexCount, GLES30.GL_UNSIGNED_INT, mesh.indexBuffer)
+            if (mesh.indexBufferId != 0) {
+                GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, mesh.indexBufferId)
+                GLES30.glDrawElements(mesh.drawMode.toGlDrawMode(), mesh.indexCount, GLES30.GL_UNSIGNED_INT, 0)
             } else {
                 GLES30.glDrawArrays(mesh.drawMode.toGlDrawMode(), 0, mesh.vertexCount)
             }
         }
+        GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0)
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
 
         GLES30.glDisableVertexAttribArray(0)
     }
@@ -125,29 +142,62 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         return program
     }
 
-    private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
-        val vertexByteBuffer = ByteBuffer.allocateDirect(vertices.size * Float.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-        val vertexBuffer = vertexByteBuffer.asFloatBuffer().apply {
-            put(vertices)
-            position(0)
-        }
+    fun releaseGlResources() {
+        meshBuffers.values.forEach { it.release() }
+        meshBuffers = emptyMap()
 
-        val indexBuffer = if (hasIndices) {
-            ByteBuffer.allocateDirect(indices.size * Int.SIZE_BYTES)
+        if (programId != 0) {
+            GLES30.glDeleteProgram(programId)
+            programId = 0
+        }
+        uniforms = null
+    }
+
+    private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
+        val vertexBuffer = ByteBuffer.allocateDirect(vertices.size * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+            .apply {
+                put(vertices)
+                position(0)
+            }
+        val vertexBufferIds = IntArray(1)
+        GLES30.glGenBuffers(1, vertexBufferIds, 0)
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vertexBufferIds[0])
+        GLES30.glBufferData(
+            GLES30.GL_ARRAY_BUFFER,
+            vertices.size * Float.SIZE_BYTES,
+            vertexBuffer,
+            GLES30.GL_STATIC_DRAW,
+        )
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
+
+        val indexBufferId = if (hasIndices) {
+            val indexBuffer = ByteBuffer.allocateDirect(indices.size * Int.SIZE_BYTES)
                 .order(ByteOrder.nativeOrder())
                 .asIntBuffer()
                 .apply {
                     put(indices)
                     position(0)
                 }
+            val indexBufferIds = IntArray(1)
+            GLES30.glGenBuffers(1, indexBufferIds, 0)
+            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, indexBufferIds[0])
+            GLES30.glBufferData(
+                GLES30.GL_ELEMENT_ARRAY_BUFFER,
+                indices.size * Int.SIZE_BYTES,
+                indexBuffer,
+                GLES30.GL_STATIC_DRAW,
+            )
+            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0)
+            indexBufferIds[0]
         } else {
-            null
+            0
         }
 
         return GlMeshBuffers(
-            vertexBuffer = vertexBuffer,
-            indexBuffer = indexBuffer,
+            vertexBufferId = vertexBufferIds[0],
+            indexBufferId = indexBufferId,
             vertexCount = vertexCount,
             indexCount = indexCount,
             drawMode = drawMode,
@@ -174,14 +224,45 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     private data class GlMeshBuffers(
-        val vertexBuffer: FloatBuffer,
-        val indexBuffer: IntBuffer?,
+        val vertexBufferId: Int,
+        val indexBufferId: Int,
         val vertexCount: Int,
         val indexCount: Int,
         val drawMode: MeshDrawMode,
-    )
+    ) {
+        fun release() {
+            val bufferIds = intArrayOf(vertexBufferId, indexBufferId).filter { it != 0 }.toIntArray()
+            if (bufferIds.isNotEmpty()) {
+                GLES30.glDeleteBuffers(bufferIds.size, bufferIds, 0)
+            }
+        }
+    }
+
+    private data class UniformLocations(
+        val viewMatrix: Int,
+        val projectionMatrix: Int,
+        val modelMatrix: Int,
+        val color: Int,
+    ) {
+        companion object {
+            fun fromProgram(programId: Int): UniformLocations = UniformLocations(
+                viewMatrix = requireUniform(programId, "uViewMatrix"),
+                projectionMatrix = requireUniform(programId, "uProjectionMatrix"),
+                modelMatrix = requireUniform(programId, "uModelMatrix"),
+                color = requireUniform(programId, "uColor"),
+            )
+
+            private fun requireUniform(programId: Int, name: String): Int {
+                val location = GLES30.glGetUniformLocation(programId, name)
+                check(location >= 0) { "Uniform not found in GL program: $name" }
+                return location
+            }
+        }
+    }
+
 
     private companion object {
+        private const val TAG = "SpatialGlRenderer"
         private const val VERTEX_SHADER = "#version 300 es\n" +
             "layout (location = 0) in vec4 aPosition;\n" +
             "uniform mat4 uModelMatrix;\n" +
@@ -192,7 +273,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             "}"
 
         private const val FRAGMENT_SHADER = "#version 300 es\n" +
-            "precision mediump float;\n" +
+            "precision medium float;\n" +
             "out vec4 fragColor;\n" +
             "uniform vec4 uColor;\n" +
             "void main() {\n" +

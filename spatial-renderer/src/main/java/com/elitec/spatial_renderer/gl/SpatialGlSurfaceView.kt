@@ -3,6 +3,7 @@ package com.elitec.spatial_renderer.gl
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
+import android.view.SurfaceHolder
 import android.view.View
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.scene.RenderableNode
@@ -42,6 +43,20 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
             spatialRenderer.updateCamera(frame.cameraState)
             requestRender()
         }
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        queueEvent {
+            spatialRenderer.releaseGlResources()
+        }
+        super.surfaceDestroyed(holder)
+    }
+
+    override fun onDetachedFromWindow() {
+        queueEvent {
+            spatialRenderer.releaseGlResources()
+        }
+        super.onDetachedFromWindow()
     }
 }
 
