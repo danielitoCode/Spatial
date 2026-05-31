@@ -53,11 +53,13 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
         val viewMatrix = FloatArray(16)
         val projectionMatrix = FloatArray(16)
-        
-        // Configuración de cámara básica (Orbit)
-        val eyeX = (cameraSnapshot.zoom * 10f * Math.sin(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
-        val eyeY = (cameraSnapshot.zoom * 10f * Math.sin(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
-        val eyeZ = (cameraSnapshot.zoom * 10f * Math.cos(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
+
+        // Configuración de cámara básica (Orbit). CameraSnapshot.zoom is visual magnification,
+        // so orbital distance is inversely proportional to zoom.
+        val orbitDistance = orbitDistanceForVisualZoom(cameraSnapshot.zoom)
+        val eyeX = (orbitDistance * Math.sin(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
+        val eyeY = (orbitDistance * Math.sin(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
+        val eyeZ = (orbitDistance * Math.cos(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
 
         Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, 0f, 0f, 0f, 0f, 1f, 0f)
         
@@ -199,3 +201,22 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     }
 }
+
+internal fun orbitDistanceForVisualZoom(
+    zoom: Float,
+    baseDistance: Float = DefaultOrbitCameraDistance,
+): Float {
+    val safeZoom = if (zoom.isFinite()) {
+        zoom.coerceIn(CameraSnapshot.MIN_ZOOM, CameraSnapshot.MAX_ZOOM)
+    } else {
+        1f
+    }
+    val safeBaseDistance = if (baseDistance.isFinite() && baseDistance > 0f) {
+        baseDistance
+    } else {
+        DefaultOrbitCameraDistance
+    }
+    return safeBaseDistance / safeZoom
+}
+
+private const val DefaultOrbitCameraDistance = 10f

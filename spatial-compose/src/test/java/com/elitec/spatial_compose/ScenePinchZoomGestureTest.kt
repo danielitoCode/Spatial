@@ -70,6 +70,26 @@ class ScenePinchZoomGestureTest {
     }
 
     @Test
+    fun pinchOutZoomsInVisually() {
+        val cameraState = CameraState(yaw = 0f.deg, pitch = 0f.deg, zoom = 1f)
+        val scaleDelta = resolvePinchZoomScaleDelta(currentDistance = 110f, previousDistance = 100f)
+
+        cameraState.zoomBy(scaleDelta)
+
+        assertTrue(cameraState.zoom > 1f)
+    }
+
+    @Test
+    fun pinchInZoomsOutVisually() {
+        val cameraState = CameraState(yaw = 0f.deg, pitch = 0f.deg, zoom = 1f)
+        val scaleDelta = resolvePinchZoomScaleDelta(currentDistance = 90f, previousDistance = 100f)
+
+        cameraState.zoomBy(scaleDelta)
+
+        assertTrue(cameraState.zoom < 1f)
+    }
+
+    @Test
     fun cameraZoomByRespectsMinAndMaxZoomLimits() {
         val cameraState = CameraState(yaw = 0f.deg, pitch = 0f.deg, zoom = 1f)
 

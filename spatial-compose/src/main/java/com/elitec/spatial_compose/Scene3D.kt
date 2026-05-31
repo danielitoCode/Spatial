@@ -215,6 +215,10 @@ class CameraState internal constructor(
         syncFromRuntime()
     }
 
+    /**
+     * Applies a multiplicative visual magnification delta. Values above `1f` zoom in visually
+     * (objects appear closer/larger); values below `1f` zoom out visually.
+     */
     fun zoomBy(scaleDelta: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture) {
         cameraRuntime.applyDelta(
             delta = CameraDelta(
@@ -781,6 +785,11 @@ internal fun pointerDistance(
     return sqrt(dx * dx + dy * dy)
 }
 
+/**
+ * Converts pinch distance changes to visual magnification deltas. Increasing finger distance
+ * (pinch out) returns a value greater than `1f`; decreasing distance (pinch in) returns less than
+ * `1f`.
+ */
 internal fun resolvePinchZoomScaleDelta(
     currentDistance: Float,
     previousDistance: Float,

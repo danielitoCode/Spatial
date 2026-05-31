@@ -20,6 +20,14 @@ enum class CameraUpdateSource {
 data class CameraSnapshot(
     val yaw: Float = 0f,
     val pitch: Float = 0f,
+    /**
+     * Visual magnification factor for the orbit camera.
+     *
+     * Values greater than `1f` mean the scene appears closer/larger, and values below `1f` mean
+     * the scene appears farther/smaller. Renderers that implement an orbital camera should convert
+     * this magnification to camera distance inversely (for example, `baseDistance / zoom`) rather
+     * than treating [zoom] itself as the orbital distance.
+     */
     val zoom: Float = 1f,
     val version: Long = 0L,
     val source: CameraUpdateSource = CameraUpdateSource.Gesture,
