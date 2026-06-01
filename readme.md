@@ -123,18 +123,19 @@ val cameraState = rememberCameraState()
 
 Scene(
     cameraState = cameraState,
-    gestures = Gestures.orbit()
+    gestures = Gestures.orbitAndZoom(),
 ) {
 
     Element.Cube(
-        modifier = Modifier3D
-            .size(2.meters)
-            .position(0f, 0f, -5f)
+        modifier = Modifier3D.Default
+            .size(2f.meters)
+            .position(0f.meters, 0f.meters, (-5f).meters),
     )
 
     Element.Sphere(
-        modifier = Modifier3D
-            .position(3f, 0f, -8f)
+        modifier = Modifier3D.Default
+            .size(1f.meters)
+            .position(3f.meters, 0f.meters, (-8f).meters),
     )
 }
 ```

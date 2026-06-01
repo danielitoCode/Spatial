@@ -46,37 +46,36 @@ import com.elitec.spatial_units.meters
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.sin
 import kotlin.math.sqrt
 
 @Immutable
-data class Vec3Distance(
+internal data class Vec3Distance(
     val x: Distance = 0f.meters,
     val y: Distance = 0f.meters,
     val z: Distance = 0f.meters,
 )
 
 @Immutable
-data class Rotation3D(
+internal data class Rotation3D(
     val x: Angle? = null,
     val y: Angle? = null,
     val z: Angle? = null,
 )
 
-object Shapes3D {
+internal object Shapes3D {
     val Cube: PrimitiveShape = PrimitiveShape.Cube
     val Sphere: PrimitiveShape = PrimitiveShape.Sphere
     val Plane: PrimitiveShape = PrimitiveShape.Plane
 }
 
 @Immutable
-data class Modifier3D(
-    val position: Vec3Distance = Vec3Distance(),
-    val rotation: Rotation3D = Rotation3D(),
-    val scale: Vec3Distance = Vec3Distance(1f.meters, 1f.meters, 1f.meters),
-    val size: Vec3Distance? = null,
+class Modifier3D internal constructor(
+    internal val position: Vec3Distance = Vec3Distance(),
+    internal val rotation: Rotation3D = Rotation3D(),
+    internal val scale: Vec3Distance = Vec3Distance(1f.meters, 1f.meters, 1f.meters),
+    internal val size: Vec3Distance? = null,
 ) {
     fun position(x: Float, y: Float, z: Float): Modifier3D = position(x.meters, y.meters, z.meters)
     fun position(x: Distance, y: Distance, z: Distance): Modifier3D = copy(position = Vec3Distance(x, y, z))
@@ -87,19 +86,31 @@ data class Modifier3D(
     fun size(all: Distance): Modifier3D = copy(size = Vec3Distance(all, all, all))
     fun size(width: Distance, height: Distance, depth: Distance): Modifier3D = copy(size = Vec3Distance(width, height, depth))
 
+    private fun copy(
+        position: Vec3Distance = this.position,
+        rotation: Rotation3D = this.rotation,
+        scale: Vec3Distance = this.scale,
+        size: Vec3Distance? = this.size,
+    ): Modifier3D = Modifier3D(
+        position = position,
+        rotation = rotation,
+        scale = scale,
+        size = size,
+    )
+
     companion object {
         val Default = Modifier3D()
     }
 }
 
-interface SceneRenderHost {
+internal interface SceneRenderHost {
     val view: View
     fun updateScene(nodes: List<RenderableNode>)
     fun updateCamera(cameraSnapshot: CameraSnapshot)
     fun requestFrame()
 }
 
-fun interface SceneRenderHostFactory {
+internal fun interface SceneRenderHostFactory {
     fun create(context: Context): SceneRenderHost
 }
 
@@ -496,42 +507,22 @@ object Gestures {
 }
 
 @Immutable
-data class SceneNode(
+internal data class SceneNode(
     val shape: PrimitiveShape,
     val modifier: Modifier3D = Modifier3D.Default,
 )
 
-enum class PrimitiveShape {
+internal enum class PrimitiveShape {
     Cube,
     Sphere,
     Plane,
 }
 
-class SceneBuilder internal constructor() {
+internal class SceneBuilder {
     private val internalNodes = mutableListOf<SceneNode>()
     val nodes: List<SceneNode> get() = internalNodes
 
     internal fun add(shape: PrimitiveShape, modifier: Modifier3D) {
-        internalNodes += SceneNode(shape, modifier)
-    }
-
-    // Legacy DSL compatibility.
-    fun cube(
-        modifier: Modifier3D = Modifier3D.Default
-    ) = add(PrimitiveShape.Cube, modifier)
-
-    fun sphere(
-        modifier: Modifier3D = Modifier3D.Default
-    ) = add(PrimitiveShape.Sphere, modifier)
-
-    fun plane(
-        modifier: Modifier3D = Modifier3D.Default
-    ) = add(PrimitiveShape.Plane, modifier)
-
-    fun element(
-        shape: PrimitiveShape,
-        modifier: Modifier3D = Modifier3D.Default,
-    ) {
         internalNodes += SceneNode(shape, modifier)
     }
 
@@ -544,35 +535,35 @@ class SceneBuilder internal constructor() {
 object Element {
     @Composable
     fun Cube(modifier: Modifier3D = Modifier3D.Default) {
-        Element(shape = PrimitiveShape.Cube, modifier = modifier)
+        SceneElement(shape = PrimitiveShape.Cube, modifier = modifier)
     }
 
     @Composable
     fun Sphere(modifier: Modifier3D = Modifier3D.Default) {
-        Element(shape = PrimitiveShape.Sphere, modifier = modifier)
+        SceneElement(shape = PrimitiveShape.Sphere, modifier = modifier)
     }
 
     @Composable
     fun Plane(modifier: Modifier3D = Modifier3D.Default) {
-        Element(shape = PrimitiveShape.Plane, modifier = modifier)
+        SceneElement(shape = PrimitiveShape.Plane, modifier = modifier)
     }
 }
 
 @Stable
-class SceneContentScope internal constructor(
+internal class SceneContentScope(
     private val sceneBuilder: SceneBuilder,
 ) {
     internal fun reset() {
         sceneBuilder.clear()
     }
     internal fun build(): List<SceneNode> = sceneBuilder.nodes.toList()
-    fun add(shape: PrimitiveShape, modifier: Modifier3D = Modifier3D.Default) = sceneBuilder.element(shape, modifier)
+    internal fun add(shape: PrimitiveShape, modifier: Modifier3D = Modifier3D.Default) = sceneBuilder.add(shape, modifier)
 }
 
 private val LocalSceneContentScope = compositionLocalOf<SceneContentScope?> { null }
 
 @Composable
-fun Element(
+internal fun SceneElement(
     shape: PrimitiveShape,
     modifier: Modifier3D = Modifier3D.Default,
 ) {
@@ -582,29 +573,43 @@ fun Element(
 }
 
 @Composable
-fun rememberSceneGraph(content: @Composable SceneContentScope.() -> Unit): List<SceneNode> {
+internal fun rememberSceneGraph(content: @Composable () -> Unit): List<SceneNode> {
     val scope = remember { SceneContentScope(SceneBuilder()) }
     scope.reset()
     CompositionLocalProvider(LocalSceneContentScope provides scope) {
-        scope.content()
+        content()
     }
     return scope.build()
 }
 
-/**
- * Compose-first 3D scene host.
- *
- * Like Canvas, callers describe content in a scoped DSL. Unlike Canvas, Scene owns a real Android
- * rendering surface internally and continuously syncs the resolved scene graph and camera state to
- * the OpenGL renderer.
- */
 @Composable
 fun Scene(
     modifier: Modifier = Modifier,
     cameraState: CameraState = rememberCameraState(),
     gestures: SceneGestures = Gestures.orbit(),
+    content: @Composable () -> Unit,
+) {
+    Scene(
+        modifier = modifier,
+        cameraState = cameraState,
+        gestures = gestures,
+        renderHostFactory = DefaultSceneRenderHostFactory,
+        content = content,
+    )
+}
+
+/**
+ * Internal host-injection entry point for compose module tests.
+ * Runtime callers use the public [Scene] overload; renderer infrastructure stays outside the
+ * source-level public API.
+ */
+@Composable
+internal fun Scene(
+    modifier: Modifier = Modifier,
+    cameraState: CameraState = rememberCameraState(),
+    gestures: SceneGestures = Gestures.orbit(),
     renderHostFactory: SceneRenderHostFactory = DefaultSceneRenderHostFactory,
-    content: @Composable SceneContentScope.() -> Unit,
+    content: @Composable () -> Unit,
 ) {
     val sceneNodes = rememberSceneGraph(content)
     val renderableNodes = sceneNodes.map(SceneNode::toRenderableNode)
