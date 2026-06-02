@@ -47,22 +47,24 @@ data class CameraDelta(
 )
 
 /**
+ * Animation specification for camera transitions.
+ */
+sealed class CameraAnimationSpec {
+    data object Instant : CameraAnimationSpec()
+    data class Tween(
+        val durationMs: Long = DEFAULT_DURATION_MS,
+        val easing: CameraEasing = MotionEasing.SmoothStep,
+    ) : CameraAnimationSpec()
+
+    companion object {
+        const val DEFAULT_DURATION_MS = 300L
+    }
+}
+
+/**
  * Runtime contract with atomic camera operations only.
- *
- * Thread policy:
- * - Writes should be serialized on Main/UI thread OR through a single runtime event loop.
- * - Reads are served from immutable snapshots created at synchronization points after each write.
- *
- * Source precedence on conflicts (same frame/version):
- * Gesture > Remote > Animation.
  */
 interface CameraRuntimeContract {
-    /**
-     * Synchronizes the runtime camera with an immutable snapshot produced by another owner.
-     *
-     * [CameraSnapshot] is the official Core #1 camera contract. Implementations should normalize
-     * safety limits, then make subsequent [snapshot] reads reflect the received value.
-     */
     fun syncSnapshot(snapshot: CameraSnapshot)
     fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
     fun applyDelta(delta: CameraDelta, source: CameraUpdateSource = CameraUpdateSource.Gesture)
@@ -78,12 +80,12 @@ interface CameraRuntimeContract {
         yaw: Float,
         pitch: Float,
         zoom: Float,
-        durationMs: Long = MotionSpec.DEFAULT_DURATION_MS,
+        durationMs: Long = CameraAnimationSpec.DEFAULT_DURATION_MS,
     ) {
-        animateTo(yaw = yaw, pitch = pitch, zoom = zoom, motion = MotionSpec.Tween(durationMs = durationMs))
+        animateTo(yaw = yaw, pitch = pitch, zoom = zoom, motion = CameraAnimationSpec.Tween(durationMs = durationMs))
     }
 
-    suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec)
+    suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: CameraAnimationSpec)
     fun snapshot(): CameraSnapshot
 }
 
@@ -146,16 +148,16 @@ class SpatialCamera(
         }
     }
 
-    override suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec) {
+    override suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: CameraAnimationSpec) {
         when (motion) {
-            MotionSpec.Instant -> jumpTo(
+            CameraAnimationSpec.Instant -> jumpTo(
                 yaw = yaw,
                 pitch = pitch,
                 zoom = zoom,
                 source = CameraUpdateSource.Animation,
             )
 
-            is MotionSpec.Tween -> animateTween(
+            is CameraAnimationSpec.Tween -> animateTween(
                 yaw = yaw,
                 pitch = pitch,
                 zoom = zoom,
@@ -309,18 +311,7 @@ class SpatialCamera(
 
 typealias CameraEasing = MotionEasing
 
-sealed class MotionSpec {
-    data object Instant : MotionSpec()
 
-    data class Tween(
-        val durationMs: Long = DEFAULT_DURATION_MS,
-        val easing: CameraEasing = MotionEasing.SmoothStep,
-    ) : MotionSpec()
-
-    companion object {
-        const val DEFAULT_DURATION_MS = 300L
-    }
-}
 
 fun interface CameraAnimationScheduler {
     suspend fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit)

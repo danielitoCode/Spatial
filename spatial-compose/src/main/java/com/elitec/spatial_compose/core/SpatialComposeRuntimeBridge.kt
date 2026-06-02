@@ -1,4 +1,4 @@
-package com.elitec.spatial_compose
+package com.elitec.spatial_compose.core
 
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_gesture.OrbitGestureDelta

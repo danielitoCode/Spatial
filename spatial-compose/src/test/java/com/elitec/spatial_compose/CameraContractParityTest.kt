@@ -61,7 +61,7 @@ class CameraContractParityTest {
             yaw = 120f,
             pitch = 42f,
             zoom = 2.5f,
-            motion = com.elitec.spatial_camera.MotionSpec.Instant,
+            motion = com.elitec.spatial_camera.CameraMotionSpec.Instant,
         )
 
         assertEquals(runtimeCamera.snapshot(), composeCamera.snapshot())

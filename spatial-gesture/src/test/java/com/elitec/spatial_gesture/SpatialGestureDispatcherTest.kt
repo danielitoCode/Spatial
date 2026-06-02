@@ -5,7 +5,7 @@ import com.elitec.spatial_camera.CameraRuntimeContract
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_camera.GestureMotionPolicy
-import com.elitec.spatial_camera.MotionSpec
+import com.elitec.spatial_camera.CameraMotionSpec
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -72,7 +72,7 @@ class SpatialGestureDispatcherTest {
 
         override fun jumpTo(yaw: Float, pitch: Float, zoom: Float, source: CameraUpdateSource) = Unit
 
-        override fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: MotionSpec) = Unit
+        override fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: CameraMotionSpec) = Unit
 
         override fun snapshot(): CameraSnapshot = CameraSnapshot()
     }

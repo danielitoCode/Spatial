@@ -1,4 +1,4 @@
-package com.elitec.spatial_compose
+package com.elitec.spatial_compose.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
