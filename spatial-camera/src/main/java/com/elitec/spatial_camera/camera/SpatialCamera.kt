@@ -1,93 +1,14 @@
-package com.elitec.spatial_camera
+package com.elitec.spatial_camera.camera
 
+import com.elitec.spatial_camera.animation.CameraAnimationScheduler
+import com.elitec.spatial_camera.animation.CameraAnimationSpec
+import com.elitec.spatial_camera.animation.FixedStepCameraAnimationScheduler
+import com.elitec.spatial_camera.gesture.GestureMotionPolicy
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_motion.CameraMotionProfile
 import com.elitec.spatial_motion.MotionEasing
 import com.elitec.spatial_motion.resolveCameraMotionPlan
-
-/**
- * Public motion policy used to normalize gesture camera deltas.
- *
- * The default [Adaptive] mode clamps per-event yaw, pitch and zoom-scale changes
- * to smooth noisy gesture streams. [Raw] is intended for advanced callers that
- * intentionally request abrupt steps; [SpatialCamera] still applies hard safety
- * limits so invalid or extreme deltas cannot destabilize the camera.
- */
-data class GestureMotionPolicy(
-    val mode: Mode = Mode.Adaptive,
-    val maxYawDeltaPerStep: Float = DEFAULT_MAX_YAW_DELTA_PER_STEP,
-    val maxPitchDeltaPerStep: Float = DEFAULT_MAX_PITCH_DELTA_PER_STEP,
-    val maxZoomScaleDeltaPerStep: Float = DEFAULT_MAX_ZOOM_SCALE_DELTA_PER_STEP,
-) {
-    enum class Mode {
-        Adaptive,
-        Raw,
-    }
-
-    companion object {
-        const val DEFAULT_MAX_YAW_DELTA_PER_STEP = 12f
-        const val DEFAULT_MAX_PITCH_DELTA_PER_STEP = 8f
-        const val DEFAULT_MAX_ZOOM_SCALE_DELTA_PER_STEP = 0.25f
-
-        const val HARD_MAX_YAW_DELTA_PER_STEP = 90f
-        const val HARD_MAX_PITCH_DELTA_PER_STEP = 45f
-        const val HARD_MAX_ZOOM_SCALE_DELTA_PER_STEP = 1f
-
-        val Adaptive = GestureMotionPolicy()
-        val Raw = GestureMotionPolicy(mode = Mode.Raw)
-    }
-}
-
-data class CameraDelta(
-    val deltaYaw: Float = 0f,
-    val deltaPitch: Float = 0f,
-    val zoomScaleDelta: Float = 1f,
-    val motionPolicy: GestureMotionPolicy = GestureMotionPolicy.Adaptive,
-)
-
-/**
- * Animation specification for camera transitions.
- */
-sealed class CameraAnimationSpec {
-    data object Instant : CameraAnimationSpec()
-    data class Tween(
-        val durationMs: Long = DEFAULT_DURATION_MS,
-        val easing: CameraEasing = MotionEasing.SmoothStep,
-    ) : CameraAnimationSpec()
-
-    companion object {
-        const val DEFAULT_DURATION_MS = 300L
-    }
-}
-
-/**
- * Runtime contract with atomic camera operations only.
- */
-interface CameraRuntimeContract {
-    fun syncSnapshot(snapshot: CameraSnapshot)
-    fun orbitTo(yaw: Float, pitch: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
-    fun applyDelta(delta: CameraDelta, source: CameraUpdateSource = CameraUpdateSource.Gesture)
-    fun zoomTo(zoom: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture)
-    fun jumpTo(
-        yaw: Float,
-        pitch: Float,
-        zoom: Float,
-        source: CameraUpdateSource = CameraUpdateSource.Remote,
-    )
-
-    suspend fun animateTo(
-        yaw: Float,
-        pitch: Float,
-        zoom: Float,
-        durationMs: Long = CameraAnimationSpec.DEFAULT_DURATION_MS,
-    ) {
-        animateTo(yaw = yaw, pitch = pitch, zoom = zoom, motion = CameraAnimationSpec.Tween(durationMs = durationMs))
-    }
-
-    suspend fun animateTo(yaw: Float, pitch: Float, zoom: Float, motion: CameraAnimationSpec)
-    fun snapshot(): CameraSnapshot
-}
 
 /**
  * Core #1 camera engine.
@@ -310,34 +231,3 @@ class SpatialCamera(
 }
 
 typealias CameraEasing = MotionEasing
-
-
-
-fun interface CameraAnimationScheduler {
-    suspend fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit)
-}
-
-class FixedStepCameraAnimationScheduler(
-    private val frameStepMs: Long = DEFAULT_FRAME_STEP_MS,
-) : CameraAnimationScheduler {
-    override suspend fun schedule(durationMs: Long, onFrame: (elapsedMs: Long) -> Unit) {
-        val safeDuration = durationMs.coerceAtLeast(0L)
-        val safeFrameStep = frameStepMs.takeIf { it > 0L } ?: DEFAULT_FRAME_STEP_MS
-
-        if (safeDuration == 0L) {
-            onFrame(0L)
-            return
-        }
-
-        var elapsedMs = 0L
-        while (elapsedMs < safeDuration) {
-            onFrame(elapsedMs)
-            elapsedMs += safeFrameStep
-        }
-        onFrame(safeDuration)
-    }
-
-    private companion object {
-        const val DEFAULT_FRAME_STEP_MS = 16L
-    }
-}

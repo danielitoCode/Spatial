@@ -2,6 +2,7 @@ package com.elitec.spatial_compose.scene
 
 import androidx.compose.runtime.Immutable
 
+@ConsistentCopyVisibility
 @Immutable
 data class SceneGestures internal constructor(
     val mode: Mode,

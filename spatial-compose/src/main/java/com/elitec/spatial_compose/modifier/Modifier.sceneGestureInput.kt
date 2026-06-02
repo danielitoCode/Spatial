@@ -10,10 +10,11 @@ import com.elitec.spatial_compose.scene.SceneGestureInputState
 import com.elitec.spatial_compose.scene.SceneGestures
 import com.elitec.spatial_compose.scene.SceneNode
 import com.elitec.spatial_compose.state.CameraState
+import com.elitec.spatial_compose.components.Scene
 
 /**
  * Internal host-injection entry point for compose module tests.
- * Runtime callers use the public [com.elitec.spatial_compose.components.Scene] overload; renderer infrastructure stays outside the
+ * Runtime callers use the public [Scene] overload; renderer infrastructure stays outside the
  * source-level public API.
  */
 internal fun Modifier.sceneGestureInput(

@@ -6,12 +6,12 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.elitec.spatial_camera.CameraDelta
-import com.elitec.spatial_camera.CameraRuntimeContract
-import com.elitec.spatial_camera.GestureMotionPolicy
-import com.elitec.spatial_camera.SpatialCamera
+import com.elitec.spatial_camera.camera.CameraDelta
+import com.elitec.spatial_camera.camera.CameraRuntimeContract
+import com.elitec.spatial_camera.camera.SpatialCamera
+import com.elitec.spatial_camera.gesture.GestureMotionPolicy
 import com.elitec.spatial_compose.camera.ComposeFrameCameraAnimationScheduler
-import com.elitec.spatial_camera.CameraAnimationSpec as RuntimeMotionSpec
+import com.elitec.spatial_camera.animation.CameraAnimationSpec as RuntimeMotionSpec
 import com.elitec.spatial_compose.motion.MotionSpec
 import com.elitec.spatial_compose.motion.toCameraMotionProfile
 import com.elitec.spatial_core.camera.CameraSnapshot
@@ -32,7 +32,8 @@ class CameraState internal constructor(
         initialState = CameraSnapshot(
             yaw = yaw.toDegrees(),
             pitch = pitch.toDegrees(),
-            zoom = zoom,),
+            zoom = zoom,
+        ),
         animationScheduler = ComposeFrameCameraAnimationScheduler(onFrameApplied = { syncFromRuntime() }),
     )
     var yaw: Angle by mutableStateOf(yaw)

@@ -1,10 +1,11 @@
 package com.elitec.spatial_compose.camera
 
 import androidx.compose.runtime.withFrameNanos
-import com.elitec.spatial_camera.CameraAnimationScheduler
-import com.elitec.spatial_camera.CameraRuntimeContract
-import com.elitec.spatial_camera.SpatialCamera
+import com.elitec.spatial_camera.animation.CameraAnimationScheduler
 import com.elitec.spatial_core.camera.CameraSnapshot
+import com.elitec.spatial_camera.camera.SpatialCamera
+import com.elitec.spatial_camera.camera.CameraRuntimeContract
+import com.elitec.spatial_compose.state.CameraState
 
 /**
  * Compose-owned camera adapter for Scene.
@@ -13,7 +14,7 @@ import com.elitec.spatial_core.camera.CameraSnapshot
  * observable fields while delegating normalization and atomic mutations to [CameraRuntimeContract]
  * (the default engine is [SpatialCamera]). The renderer only receives immutable snapshots.
  *
- * Public API guidance: Compose callers should use [com.elitec.spatial_compose.state.CameraState] and [com.elitec.spatial_compose.state.CameraState.animateTo]; runtime
+ * Public API guidance: Compose callers should use [CameraState] and [CameraState.animateTo]; runtime
  * callers should use [SpatialCamera]. Both APIs synchronize through [CameraSnapshot].
  */
 

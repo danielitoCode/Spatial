@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
-import com.elitec.spatial_camera.SpatialCamera
+import com.elitec.spatial_camera.camera.SpatialCamera
 import com.elitec.spatial_compose.modifier.sceneGestureInput
 import com.elitec.spatial_compose.scene.Gestures
 import com.elitec.spatial_compose.scene.SceneGestures
