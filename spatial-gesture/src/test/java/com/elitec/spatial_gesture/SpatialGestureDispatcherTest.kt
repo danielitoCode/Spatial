@@ -1,11 +1,8 @@
 package com.elitec.spatial_gesture
 
-import com.elitec.spatial_camera.CameraDelta
-import com.elitec.spatial_camera.CameraRuntimeContract
+import com.elitec.spatial_camera.camera.CameraDelta
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
-import com.elitec.spatial_camera.GestureMotionPolicy
-import com.elitec.spatial_camera.CameraMotionSpec
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

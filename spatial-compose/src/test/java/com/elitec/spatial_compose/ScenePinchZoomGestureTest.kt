@@ -1,5 +1,9 @@
 package com.elitec.spatial_compose
 
+import com.elitec.spatial_compose.core.PointerPosition
+import com.elitec.spatial_compose.core.resolvePinchZoomScaleDelta
+import com.elitec.spatial_compose.scene.SceneGestureInputState
+import com.elitec.spatial_compose.state.CameraState
 import com.elitec.spatial_units.deg
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull

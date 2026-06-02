@@ -1,6 +1,8 @@
 package com.elitec.spatial_compose
 
 import android.view.View
+import com.elitec.spatial_compose.scene.SceneRenderHost
+import com.elitec.spatial_compose.scene.renderSceneFrame
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.scene.MaterialData
 import com.elitec.spatial_core.scene.RenderableNode

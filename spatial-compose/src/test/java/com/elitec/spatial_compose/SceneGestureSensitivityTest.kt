@@ -1,6 +1,11 @@
 package com.elitec.spatial_compose
 
 import androidx.compose.ui.unit.IntSize
+import com.elitec.spatial_compose.core.resolveOrbitGestureDelta
+import com.elitec.spatial_compose.modifier.Modifier3D
+import com.elitec.spatial_compose.scene.GestureSensitivity
+import com.elitec.spatial_compose.scene.SceneNode
+import com.elitec.spatial_compose.shapes.PrimitiveShape
 import com.elitec.spatial_units.meters
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue

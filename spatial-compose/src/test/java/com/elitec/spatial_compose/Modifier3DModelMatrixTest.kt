@@ -1,5 +1,7 @@
 package com.elitec.spatial_compose
 
+import com.elitec.spatial_compose.modifier.Modifier3D
+import com.elitec.spatial_compose.modifier.toModelMatrix
 import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
 import org.junit.Assert.assertEquals

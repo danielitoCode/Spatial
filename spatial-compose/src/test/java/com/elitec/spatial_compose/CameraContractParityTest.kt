@@ -1,6 +1,10 @@
 package com.elitec.spatial_compose
 
-import com.elitec.spatial_camera.SpatialCamera
+import com.elitec.spatial_camera.animation.CameraAnimationSpec
+import com.elitec.spatial_camera.camera.CameraDelta
+import com.elitec.spatial_camera.camera.SpatialCamera
+import com.elitec.spatial_compose.motion.MotionSpec
+import com.elitec.spatial_compose.state.CameraState
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_units.deg
@@ -8,6 +12,7 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
 import junit.framework.TestCase.assertEquals
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 class CameraContractParityTest {
@@ -17,7 +22,7 @@ class CameraContractParityTest {
         val runtimeCamera = runtimeCamera()
 
         composeCamera.orbitBy(deltaYawDegrees = 7f, deltaPitchDegrees = -5f)
-        runtimeCamera.applyDelta(com.elitec.spatial_camera.CameraDelta(deltaYaw = 7f, deltaPitch = -5f))
+        runtimeCamera.applyDelta(CameraDelta(deltaYaw = 7f, deltaPitch = -5f))
 
         assertEquals(runtimeCamera.snapshot(), composeCamera.snapshot())
     }
@@ -28,7 +33,7 @@ class CameraContractParityTest {
         val runtimeCamera = runtimeCamera()
 
         composeCamera.zoomBy(scaleDelta = 1.08f)
-        runtimeCamera.applyDelta(com.elitec.spatial_camera.CameraDelta(zoomScaleDelta = 1.08f))
+        runtimeCamera.applyDelta(CameraDelta(zoomScaleDelta = 1.08f))
 
         assertEquals(runtimeCamera.snapshot(), composeCamera.snapshot())
     }
@@ -45,7 +50,7 @@ class CameraContractParityTest {
     }
 
     @Test
-    fun animateProducesSameSnapshotFromComposeAndRuntimeRoutes() {
+    fun animateProducesSameSnapshotFromComposeAndRuntimeRoutes() = runBlocking{
         val composeCamera = composeCamera()
         val runtimeCamera = runtimeCamera()
 
@@ -61,7 +66,7 @@ class CameraContractParityTest {
             yaw = 120f,
             pitch = 42f,
             zoom = 2.5f,
-            motion = com.elitec.spatial_camera.CameraMotionSpec.Instant,
+            motion = CameraAnimationSpec.Instant,
         )
 
         assertEquals(runtimeCamera.snapshot(), composeCamera.snapshot())
