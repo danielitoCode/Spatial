@@ -9,6 +9,7 @@ public interface SceneRenderHost {
     fun updateScene(nodes: List<RenderableNode>)
     fun updateCamera(cameraSnapshot: CameraSnapshot)
     fun requestFrame()
+    fun dispose()
 }
 
 internal fun SceneRenderHost.renderSceneFrame(
@@ -22,4 +23,9 @@ internal fun SceneRenderHost.renderSceneFrame(
 
 internal class SceneRenderHostHolder {
     var host: SceneRenderHost? = null
+
+    fun dispose() {
+        host?.dispose()
+        host = null
+    }
 }

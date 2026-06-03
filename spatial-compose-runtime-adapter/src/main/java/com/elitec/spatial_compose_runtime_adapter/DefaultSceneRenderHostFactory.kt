@@ -46,4 +46,9 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
             cameraSnapshot = pendingCameraSnapshot,
         )
     }
+
+    override fun dispose() {
+        runtime.onShutdown()
+        renderTarget.releaseGlResources()
+    }
 }

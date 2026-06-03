@@ -46,17 +46,21 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         }
     }
 
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
+    fun releaseGlResources() {
+        if (!isAttachedToWindow) return
+
         queueEvent {
             spatialRenderer.releaseGlResources()
         }
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        releaseGlResources()
         super.surfaceDestroyed(holder)
     }
 
     override fun onDetachedFromWindow() {
-        queueEvent {
-            spatialRenderer.releaseGlResources()
-        }
+        releaseGlResources()
         super.onDetachedFromWindow()
     }
 }
@@ -71,5 +75,9 @@ class SpatialGlRenderTarget @JvmOverloads constructor(
 
     override fun render(frame: RenderFrame) {
         surfaceView.render(frame)
+    }
+
+    fun releaseGlResources() {
+        surfaceView.releaseGlResources()
     }
 }

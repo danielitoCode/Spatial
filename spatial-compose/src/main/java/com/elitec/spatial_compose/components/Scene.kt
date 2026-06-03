@@ -11,12 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
-import com.elitec.spatial_camera.camera.SpatialCamera
 import com.elitec.spatial_compose.modifier.sceneGestureInput
 import com.elitec.spatial_compose.scene.Gestures
 import com.elitec.spatial_compose.scene.SceneGestures
 import com.elitec.spatial_compose.scene.SceneNode
-import com.elitec.spatial_compose.scene.SceneRenderHost
 import com.elitec.spatial_compose.scene.SceneRenderHostFactory
 import com.elitec.spatial_compose.scene.SceneRenderHostHolder
 import com.elitec.spatial_compose.scene.rememberSceneGraph
@@ -24,8 +22,6 @@ import com.elitec.spatial_compose.scene.renderSceneFrame
 import com.elitec.spatial_compose.scene.toRenderableNode
 import com.elitec.spatial_compose.state.CameraState
 import com.elitec.spatial_compose.state.rememberCameraState
-import com.elitec.spatial_core.camera.CameraSnapshot
-import com.elitec.spatial_core.scene.RenderableNode
 
 @Composable
 fun Scene(
@@ -51,6 +47,9 @@ fun Scene(
                 renderHostHolder.host = host
                 host.renderSceneFrame(renderableNodes, cameraSnapshot)
             }.view
+        },
+        onRelease = {
+            renderHostHolder.dispose()
         },
         update = {
             renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot)
