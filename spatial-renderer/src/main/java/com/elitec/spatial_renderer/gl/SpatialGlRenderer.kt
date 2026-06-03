@@ -273,7 +273,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             "}"
 
         private const val FRAGMENT_SHADER = "#version 300 es\n" +
-            "precision medium float;\n" +
+            "precision mediump float;\n" +
             "out vec4 fragColor;\n" +
             "uniform vec4 uColor;\n" +
             "void main() {\n" +
