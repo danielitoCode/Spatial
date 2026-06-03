@@ -26,32 +26,13 @@ import com.elitec.spatial_compose.state.CameraState
 import com.elitec.spatial_compose.state.rememberCameraState
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.scene.RenderableNode
-import com.elitec.spatial_renderer.adapter.ChoreographerFrameScheduler
-import com.elitec.spatial_renderer.gl.SpatialGlRenderTarget
-import com.elitec.spatial_runtime.SpatialRuntime
 
 @Composable
 fun Scene(
     modifier: Modifier = Modifier,
+    renderHostFactory: SceneRenderHostFactory,
     cameraState: CameraState = rememberCameraState(),
     gestures: SceneGestures = Gestures.orbit(),
-    content: @Composable () -> Unit,
-) {
-    Scene(
-        modifier = modifier,
-        cameraState = cameraState,
-        gestures = gestures,
-        renderHostFactory = DefaultSceneRenderHostFactory,
-        content = content,
-    )
-}
-
-@Composable
-internal fun Scene(
-    modifier: Modifier = Modifier,
-    cameraState: CameraState = rememberCameraState(),
-    gestures: SceneGestures = Gestures.orbit(),
-    renderHostFactory: SceneRenderHostFactory = DefaultSceneRenderHostFactory,
     content: @Composable () -> Unit,
 ) {
     val sceneNodes = rememberSceneGraph(content)
@@ -75,41 +56,4 @@ internal fun Scene(
             renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot)
         },
     )
-}
-
-private object DefaultSceneRenderHostFactory : SceneRenderHostFactory {
-    override fun create(context: Context): SceneRenderHost = SpatialRuntimeSceneRenderHost(context)
-}
-
-private class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
-    private val renderTarget = SpatialGlRenderTarget(context)
-    private val runtimeCamera = SpatialCamera()
-    private val runtime = SpatialRuntime(
-        renderBackend = renderTarget,
-        frameScheduler = ChoreographerFrameScheduler(),
-        cameraRuntime = runtimeCamera,
-    )
-    private var pendingNodes: List<RenderableNode> = emptyList()
-    private var pendingCameraSnapshot: CameraSnapshot = runtimeCamera.snapshot()
-
-    override val view: View get() = renderTarget.view
-
-    init {
-        runtime.onInitialize()
-    }
-
-    override fun updateScene(nodes: List<RenderableNode>) {
-        pendingNodes = nodes
-    }
-
-    override fun updateCamera(cameraSnapshot: CameraSnapshot) {
-        pendingCameraSnapshot = cameraSnapshot
-    }
-
-    override fun requestFrame() {
-        runtime.requestFrame(
-            nodes = pendingNodes,
-            cameraSnapshot = pendingCameraSnapshot,
-        )
-    }
 }

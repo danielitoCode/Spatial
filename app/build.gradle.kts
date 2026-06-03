@@ -50,12 +50,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     implementation(project(":spatial-core"))
-    implementation(project(":spatial-renderer"))
-    implementation(project(":spatial-runtime"))
     implementation(project(":spatial-gesture"))
     implementation(project(":spatial-units"))
     implementation(project(":spatial-compose"))
     implementation(project(":spatial-camera"))
+    implementation(project(":spatial-compose-runtime-adapter"))
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -12,6 +12,7 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/spatial-camera" />
             <option value="$PROJECT_DIR$/spatial-compose" />
+            <option value="$PROJECT_DIR$/spatial-compose-runtime-adapter" />
             <option value="$PROJECT_DIR$/spatial-core" />
             <option value="$PROJECT_DIR$/spatial-geometry" />
             <option value="$PROJECT_DIR$/spatial-gesture" />

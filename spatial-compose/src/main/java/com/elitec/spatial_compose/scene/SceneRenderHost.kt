@@ -4,7 +4,7 @@ import android.view.View
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.scene.RenderableNode
 
-internal interface SceneRenderHost {
+public interface SceneRenderHost {
     val view: View
     fun updateScene(nodes: List<RenderableNode>)
     fun updateCamera(cameraSnapshot: CameraSnapshot)

@@ -51,6 +51,7 @@ class ScenePublicApiContractTest {
         assertFalse(Regex("\\bfun\\s+(cube|sphere|plane|element)\\s*\\(").containsMatchIn(sceneBuilderBody))
     }
 
+
     @Test
     fun `documented compose source api stays intentionally small`() {
         val source = scene3DSource()

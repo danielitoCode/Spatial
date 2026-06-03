@@ -14,6 +14,7 @@ import com.elitec.spatial_compose.scene.Gestures as CoreGestures
 import com.elitec.spatial_compose.scene.SceneGestures as CoreSceneGestures
 import com.elitec.spatial_compose.state.CameraState as CoreCameraState
 import com.elitec.spatial_compose.state.rememberCameraState as rememberCoreCameraState
+import com.elitec.spatial_compose.scene.SceneRenderHostFactory as CoreSceneRenderHostFactory
 
 /**
  * Core #1 exposes its Compose scene API from the root `com.elitec.spatial_compose` package.
@@ -60,18 +61,23 @@ public typealias GestureSensitivity = CoreGestureSensitivity
 /** Root-package export for camera state. */
 public typealias CameraState = CoreCameraState
 
+/** Root-package contract for supplying the Android host that renders a Scene. */
+public typealias SceneRenderHostFactory = CoreSceneRenderHostFactory
+
 /** Root-package export for camera animation motion policies. */
 public typealias MotionSpec = CoreMotionSpec
 
 @Composable
 public fun Scene(
     modifier: Modifier = Modifier,
+    renderHostFactory: SceneRenderHostFactory,
     cameraState: CameraState = rememberCameraState(),
     gestures: SceneGestures = Gestures.orbit(),
     content: @Composable () -> Unit,
 ) {
     ComponentScene(
         modifier = modifier,
+        renderHostFactory = renderHostFactory,
         cameraState = cameraState,
         gestures = gestures,
         content = content,

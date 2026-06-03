@@ -21,6 +21,7 @@ import com.elitec.spatial.ui.theme.SpatialTheme
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures
 import com.elitec.spatial_compose.Modifier3D
+import com.elitec.spatial_compose_runtime_adapter.DefaultSceneRenderHostFactory
 import com.elitec.spatial_compose.Scene
 import com.elitec.spatial_compose.rememberCameraState
 import com.elitec.spatial_units.deg
@@ -56,6 +57,7 @@ private fun SpatialRendererHost(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxSize()
                 .weight(1f),
+            renderHostFactory = DefaultSceneRenderHostFactory,
             cameraState = cameraState,
             gestures = Gestures.orbit(),
         ) {
