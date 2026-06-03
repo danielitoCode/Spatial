@@ -20,6 +20,9 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     private var aspectRatio: Float = 1f
     private var uniforms: UniformLocations? = null
 
+    /** Called once GL surface is fully initialized so the host can trigger a first render pass. */
+    var onSurfaceReadyCallback: (() -> Unit)? = null
+
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
     }
@@ -40,6 +43,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         meshBuffers = PrimitiveMeshRegistry.defaultMeshes().mapValues { (_, meshData) ->
             meshData.toGlMeshBuffers()
         }
+
+        onSurfaceReadyCallback?.invoke()
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {

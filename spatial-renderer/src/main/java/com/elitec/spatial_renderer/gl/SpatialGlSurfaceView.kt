@@ -19,6 +19,7 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
 
     init {
         setEGLContextClientVersion(3)
+        spatialRenderer.onSurfaceReadyCallback = { post { requestRender() } }
         setRenderer(spatialRenderer)
         renderMode = RENDERMODE_WHEN_DIRTY
     }

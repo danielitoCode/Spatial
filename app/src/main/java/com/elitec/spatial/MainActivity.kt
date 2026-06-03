@@ -18,11 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.elitec.spatial.ui.theme.SpatialTheme
-import com.elitec.spatial_compose.components.Scene
-import com.elitec.spatial_compose.core.Element
-import com.elitec.spatial_compose.modifier.Modifier3D
-import com.elitec.spatial_compose.scene.Gestures
-import com.elitec.spatial_compose.state.rememberCameraState
+import com.elitec.spatial_compose.Element
+import com.elitec.spatial_compose.Gestures
+import com.elitec.spatial_compose.Modifier3D
+import com.elitec.spatial_compose.Scene
+import com.elitec.spatial_compose.rememberCameraState
 import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
 import kotlinx.coroutines.launch

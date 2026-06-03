@@ -42,7 +42,9 @@ Instead, it focuses on:
 
 # 🎯 Core #1 Goals
 
-Core #1 focuses on building the foundation for a premium 3D experience:
+Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose` package:
+
+
 
 ## Included
 
@@ -118,7 +120,28 @@ Good defaults and minimal boilerplate.
 
 # 🧩 Example API
 
+Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose` package:
+
 ```kotlin
+import com.elitec.spatial_compose.CameraState
+import com.elitec.spatial_compose.Element
+import com.elitec.spatial_compose.GestureSensitivity
+import com.elitec.spatial_compose.Gestures
+import com.elitec.spatial_compose.Modifier3D
+import com.elitec.spatial_compose.MotionSpec
+import com.elitec.spatial_compose.Scene
+import com.elitec.spatial_compose.SceneGestures
+import com.elitec.spatial_compose.rememberCameraState
+```
+
+```kotlin
+import com.elitec.spatial_compose.Element
+import com.elitec.spatial_compose.Gestures
+import com.elitec.spatial_compose.Modifier3D
+import com.elitec.spatial_compose.Scene
+import com.elitec.spatial_compose.rememberCameraState
+import com.elitec.spatial_units.meters
+
 val cameraState = rememberCameraState()
 
 Scene(
