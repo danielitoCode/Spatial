@@ -171,12 +171,6 @@ class CameraState internal constructor(
         source = snapshot.source
     }
 
-    private fun write(updateSource: CameraUpdateSource, block: CameraState.() -> Unit) {
-        block()
-        source = updateSource
-        version += 1L
-    }
-
     private fun Angle.coercePitch(): Angle = toDegrees().coerceIn(MIN_PITCH_DEGREES, MAX_PITCH_DEGREES).deg
 
     private companion object {
