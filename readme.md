@@ -42,9 +42,11 @@ Instead, it focuses on:
 
 # 🎯 Core #1 Goals
 
-Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose` package:
+Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose` package.
 
+## Current status
 
+Core #1 remains **In Development**. This status must only change when the Core #1 contracts and tests are closed and passing against the real public API. Until then, README badges, phase notes, and release messaging must not describe Core #1 as complete or stable.
 
 ## Included
 
@@ -76,6 +78,20 @@ Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose
 - Editor tooling
 
 ---
+
+# 🚧 Over Core #1
+
+These items are explicitly outside the Core #1 scope and must not be pulled into Core #1 API, renderer, or test commitments:
+
+- PBR
+- Shadows
+- Active lights in shaders
+- Object animation
+- External model loading
+- Advanced picking
+- 
+---
+
 ## Core #1 Lighting Decision
 
 Core #1 keeps lighting as contracts only. `LightData` exists so scene, light, and future renderer modules can agree on shape, direction, color, and intensity metadata, but Core #1 does **not** transport lights through the render frame and does **not** evaluate real lighting in shaders.
@@ -118,9 +134,11 @@ Good defaults and minimal boilerplate.
 
 ---
 
-# 🧩 Example API
+# 🧩 Core #1 public API
 
-Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose` package:
+Core #1 exposes its stable public Compose API from the root `com.elitec.spatial_compose` package. Implementation packages remain split internally, but application code should prefer these root imports.
+
+## Public imports
 
 ```kotlin
 import com.elitec.spatial_compose.CameraState
@@ -134,32 +152,52 @@ import com.elitec.spatial_compose.SceneGestures
 import com.elitec.spatial_compose.rememberCameraState
 ```
 
+A real Android render host is supplied by the runtime adapter:
+
 ```kotlin
+import com.elitec.spatial_compose_runtime_adapter.DefaultSceneRenderHostFactory
+```
+
+## Compilable Compose example
+
+```kotlin
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures
 import com.elitec.spatial_compose.Modifier3D
 import com.elitec.spatial_compose.Scene
+import com.elitec.spatial_compose_runtime_adapter.DefaultSceneRenderHostFactory
+import com.elitec.spatial_units.deg
 import com.elitec.spatial_compose.rememberCameraState
 import com.elitec.spatial_units.meters
 
-val cameraState = rememberCameraState()
-
-Scene(
-    cameraState = cameraState,
-    gestures = Gestures.orbitAndZoom(),
-) {
-
-    Element.Cube(
-        modifier = Modifier3D.Default
-            .size(2f.meters)
-            .position(0f.meters, 0f.meters, (-5f).meters),
+@Composable
+fun CoreOneScene() {
+    val cameraState = rememberCameraState(
+        yaw = 20f.deg,
+        pitch = (-12f).deg,
+        zoom = 1.25f,
     )
+    Scene(
+        modifier = Modifier.fillMaxSize(),
+        renderHostFactory = DefaultSceneRenderHostFactory,
+        cameraState = cameraState,
+        gestures = Gestures.orbitAndZoom(),
+    ) {
+        Element.Cube(
+            modifier = Modifier3D.Default
+                .size(2f.meters)
+                .position(0f.meters, 0f.meters, (-5f).meters),
+        )
 
-    Element.Sphere(
-        modifier = Modifier3D.Default
-            .size(1f.meters)
-            .position(3f.meters, 0f.meters, (-8f).meters),
-    )
+        Element.Sphere(
+            modifier = Modifier3D.Default
+                .size(1f.meters)
+                .position(3f.meters, 0f.meters, (-8f).meters),
+        )
+    }
 }
 ```
 
@@ -190,6 +228,19 @@ Spatial avoids unnecessary enterprise abstractions such as:
 - DTO overengineering
 - Artificial use cases
 - Massive inheritance hierarchies
+
+---
+
+# 🧭 Scene3D Split
+
+The old monolithic `Scene3D` responsibility is now documented as a thin public facade plus internal feature slices:
+
+- `components/Scene.kt` owns the Compose `Scene` composable, Android view hosting, render-host lifecycle, gesture modifier wiring, scene graph collection, and frame submission.
+- `scene/*` owns scene graph construction and conversion: `SceneBuilder`, `SceneContentScope`, `SceneNode`, gesture configuration, render host contracts, graph remembering, and renderable-node adapters.
+- `modifier/*` owns `Modifier3D`, gesture input modifiers, and conversion from declarative transforms to model matrices.
+- `state/*` owns `CameraState` and `rememberCameraState`.
+- `core/Element.kt` owns the primitive element facade (`Element.Cube`, `Element.Sphere`, and `Element.Plane`).
+- `Scene3D.kt` remains the root-package public API facade that re-exports the stable Core #1 symbols from `com.elitec.spatial_compose`.
 
 ---
 

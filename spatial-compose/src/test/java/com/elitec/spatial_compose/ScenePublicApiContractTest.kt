@@ -10,36 +10,6 @@ import org.junit.Test
 
 class ScenePublicApiContractTest {
 
-    /*@Test
-    fun `scene3d keeps renderer and graph infrastructure source-internal`() {
-        val source = scene3DSource()
-
-        listOf(
-            "Vec3Distance",
-            "Rotation3D",
-            "SceneRenderHost",
-            "SceneRenderHostFactory",
-            "SceneBuilder",
-            "SceneContentScope",
-            "SceneNode",
-            "PrimitiveShape",
-        ).forEach { symbol ->
-            assertTrue(
-                Regex("(?m)^(internal|private)\\s+(?:@[A-Za-z]+\\s+)*.*\\b$symbol\\b").containsMatchIn(source) ||
-                        Regex("(?m)^@[A-Za-z]+\\s+\\ninternal\\s+.*\\b$symbol\\b").containsMatchIn(source),
-                "$symbol must stay internal/private to avoid exposing compose infrastructure.",
-            )
-        }
-        assertTrue(
-            Regex("(?m)^internal\\s+fun\\s+rememberSceneGraph\\b").containsMatchIn(source),
-            "rememberSceneGraph must stay internal.",
-        )
-        assertFalse(
-            Regex("(?m)^fun\\s+Scene\\([^)]*renderHostFactory", RegexOption.DOT_MATCHES_ALL).containsMatchIn(source),
-            "The public Scene overload must not expose renderHostFactory; use the internal overload for tests.",
-        )
-    }*/
-
     @Test
     fun `scene builder does not keep legacy public shape helpers`() {
         val source = scene3DSource()
