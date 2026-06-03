@@ -94,6 +94,23 @@ class ScenePinchZoomGestureTest {
     }
 
     @Test
+    fun modifierRecreationDuringOrbitKeepsRememberedGestureStateStable() {
+        val rememberedState = SceneGestureInputState()
+        var recreatedModifierSession = GestureModifierSession(rememberedState)
+
+        recreatedModifierSession.onDown(10f, 10f)
+        val firstDrag = recreatedModifierSession.onMove(15f, 12f)
+        assertEquals(5f, firstDrag.orbitDeltaPixels!!.dx, 0.0001f)
+        assertEquals(2f, firstDrag.orbitDeltaPixels!!.dy, 0.0001f)
+
+        recreatedModifierSession = GestureModifierSession(rememberedState)
+        val dragAfterRecreation = recreatedModifierSession.onMove(18f, 13f)
+
+        assertEquals(3f, dragAfterRecreation.orbitDeltaPixels!!.dx, 0.0001f)
+        assertEquals(1f, dragAfterRecreation.orbitDeltaPixels!!.dy, 0.0001f)
+    }
+
+    @Test
     fun cameraZoomByRespectsMinAndMaxZoomLimits() {
         val cameraState = CameraState(yaw = 0f.deg, pitch = 0f.deg, zoom = 1f)
 
@@ -110,5 +127,19 @@ class ScenePinchZoomGestureTest {
         assertEquals(1f, resolvePinchZoomScaleDelta(currentDistance = 100f, previousDistance = Float.NaN), 0.0001f)
         assertTrue(resolvePinchZoomScaleDelta(currentDistance = 1_000f, previousDistance = 10f) <= 1.08f)
         assertTrue(resolvePinchZoomScaleDelta(currentDistance = 10f, previousDistance = 1_000f) >= 0.92f)
+    }
+
+    private class GestureModifierSession(
+        private val rememberedState: SceneGestureInputState,
+    ) {
+        fun onDown(x: Float, y: Float) {
+            rememberedState.onDown(x, y)
+        }
+
+        fun onMove(x: Float, y: Float) = rememberedState.onMove(
+            pointers = listOf(PointerPosition(x, y)),
+            orbitEnabled = true,
+            zoomEnabled = true,
+        )
     }
 }

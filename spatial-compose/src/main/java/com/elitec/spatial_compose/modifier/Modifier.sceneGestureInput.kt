@@ -1,7 +1,9 @@
 package com.elitec.spatial_compose.modifier
 
 import android.view.MotionEvent
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.unit.IntSize
 import com.elitec.spatial_compose.core.resolveOrbitGestureDelta
@@ -25,53 +27,55 @@ internal fun Modifier.sceneGestureInput(
 ): Modifier {
     if (gestures.mode == SceneGestures.Mode.None) return this
 
-    val gestureState = SceneGestureInputState()
-    return pointerInteropFilter { event ->
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                gestureState.onDown(event.x, event.y)
-                true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                val rawDelta = gestureState.onMove(
-                    pointers = event.pointerPositions(),
-                    orbitEnabled = gestures.orbitEnabled,
-                    zoomEnabled = gestures.zoomEnabled,
-                )
-                rawDelta.scaleDelta?.let(cameraState::zoomBy)
-                rawDelta.orbitDeltaPixels?.let { orbitDelta ->
-                    val delta = resolveOrbitGestureDelta(
-                        dx = orbitDelta.dx,
-                        dy = orbitDelta.dy,
-                        cameraZoom = cameraState.zoom,
-                        sceneNodes = sceneNodes,
-                        viewportSize = viewportSize,
-                        sensitivity = gestures.orbitSensitivity,
-                    )
-                    cameraState.orbitBy(delta.yawDegrees, delta.pitchDegrees)
+    return composed {
+        val gestureState = remember { SceneGestureInputState() }
+        pointerInteropFilter { event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    gestureState.onDown(event.x, event.y)
+                    true
                 }
-                true
+                MotionEvent.ACTION_MOVE -> {
+                    val rawDelta = gestureState.onMove(
+                        pointers = event.pointerPositions(),
+                        orbitEnabled = gestures.orbitEnabled,
+                        zoomEnabled = gestures.zoomEnabled,
+                    )
+                    rawDelta.scaleDelta?.let(cameraState::zoomBy)
+                    rawDelta.orbitDeltaPixels?.let { orbitDelta ->
+                        val delta = resolveOrbitGestureDelta(
+                            dx = orbitDelta.dx,
+                            dy = orbitDelta.dy,
+                            cameraZoom = cameraState.zoom,
+                            sceneNodes = sceneNodes,
+                            viewportSize = viewportSize,
+                            sensitivity = gestures.orbitSensitivity,
+                        )
+                        cameraState.orbitBy(delta.yawDegrees, delta.pitchDegrees)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    gestureState.onPointerDown(
+                        pointers = event.pointerPositions(),
+                        zoomEnabled = gestures.zoomEnabled,
+                    )
+                    true
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    gestureState.onPointerUp(
+                        pointers = event.pointerPositions(),
+                        actionIndex = event.actionIndex,
+                        zoomEnabled = gestures.zoomEnabled,
+                    )
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    gestureState.reset()
+                    true
+                }
+                else -> true
             }
-            MotionEvent.ACTION_POINTER_DOWN -> {
-                gestureState.onPointerDown(
-                    pointers = event.pointerPositions(),
-                    zoomEnabled = gestures.zoomEnabled,
-                )
-                true
-            }
-            MotionEvent.ACTION_POINTER_UP -> {
-                gestureState.onPointerUp(
-                    pointers = event.pointerPositions(),
-                    actionIndex = event.actionIndex,
-                    zoomEnabled = gestures.zoomEnabled,
-                )
-                true
-            }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                gestureState.reset()
-                true
-            }
-            else -> true
         }
     }
 }
