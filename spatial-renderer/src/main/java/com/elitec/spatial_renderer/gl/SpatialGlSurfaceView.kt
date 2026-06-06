@@ -3,10 +3,12 @@ package com.elitec.spatial_renderer.gl
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
+import android.util.Log
 import android.view.SurfaceHolder
 import android.view.View
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_renderer.BuildConfig
 import com.elitec.spatial_renderer.render.RenderBackend
 import com.elitec.spatial_renderer.render.RenderFrame
 
@@ -39,7 +41,13 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
     }
 
     fun render(frame: RenderFrame) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "render(frame): enqueueing ${frame.nodes.size} nodes")
+        }
         queueEvent {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "render(frame): GL queue received ${frame.nodes.size} nodes")
+            }
             spatialRenderer.updateNodes(frame.nodes)
             spatialRenderer.updateCamera(frame.cameraState)
             requestRender()
@@ -81,3 +89,5 @@ class SpatialGlRenderTarget @JvmOverloads constructor(
         surfaceView.releaseGlResources()
     }
 }
+
+private const val TAG = "SpatialGlSurfaceView"

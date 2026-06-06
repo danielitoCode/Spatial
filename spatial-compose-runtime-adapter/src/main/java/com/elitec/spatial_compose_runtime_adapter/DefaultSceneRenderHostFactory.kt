@@ -1,6 +1,7 @@
 package com.elitec.spatial_compose_runtime_adapter
 
 import android.content.Context
+import android.util.Log
 import android.view.View
 import com.elitec.spatial_camera.camera.SpatialCamera
 import com.elitec.spatial_compose.scene.SceneRenderHost
@@ -41,6 +42,12 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     }
 
     override fun requestFrame() {
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "requestFrame: pendingNodes.size=${pendingNodes.size}, cameraSnapshot=$pendingCameraSnapshot",
+            )
+        }
         runtime.requestFrame(
             nodes = pendingNodes,
             cameraSnapshot = pendingCameraSnapshot,
@@ -52,3 +59,5 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
         renderTarget.releaseGlResources()
     }
 }
+
+private const val TAG = "SpatialRuntimeHost"

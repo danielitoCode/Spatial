@@ -10,6 +10,7 @@ import com.elitec.spatial_core.camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_renderer.BuildConfig
 
 class SpatialGlRenderer : GLSurfaceView.Renderer {
     private val meshRegistry = PrimitiveMeshRegistry()
@@ -44,20 +45,48 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             meshData.toGlMeshBuffers()
         }
 
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "onSurfaceCreated: programId=$programId, meshBuffers.size=${meshBuffers.size}, meshIds=${meshBuffers.keys}",
+            )
+        }
+
         onSurfaceReadyCallback?.invoke()
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES30.glViewport(0, 0, width, height)
         aspectRatio = if (height == 0) 1f else width.toFloat() / height.toFloat()
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onSurfaceChanged: width=$width, height=$height, aspectRatio=$aspectRatio")
+        }
     }
 
     override fun onDrawFrame(gl: GL10?) {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
 
-        if (nodes.isEmpty() || programId == 0) return
+        if (nodes.isEmpty()) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "onDrawFrame: returning because nodes.isEmpty(); programId=$programId")
+            }
+            return
+        }
 
-        val uniformLocations = uniforms ?: return
+        if (programId == 0) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "onDrawFrame: returning because programId == 0; nodes.size=${nodes.size}")
+            }
+            return
+        }
+
+        val uniformLocations = uniforms
+        if (uniformLocations == null) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "onDrawFrame: returning because uniforms are missing; nodes.size=${nodes.size}, programId=$programId")
+            }
+            return
+        }
 
         GLES30.glUseProgram(programId)
 
@@ -81,15 +110,25 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
         GLES30.glEnableVertexAttribArray(0)
 
+        var drawCalls = 0
+        var skippedUnknownMeshIds = 0
+        var skippedMissingBuffers = 0
+
         nodes.forEach { node ->
             if (meshRegistry.resolveOrNull(node.meshId) == null) {
-                Log.w(TAG, "Skipping renderable with unknown primitive mesh id: ${node.meshId}")
+                skippedUnknownMeshIds++
+                if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "Skipping renderable with unknown primitive mesh id: ${node.meshId}")
+                }
                 return@forEach
             }
 
             val mesh = meshBuffers[node.meshId]
             if (mesh == null) {
-                Log.w(TAG, "Skipping renderable because GL buffers are missing for mesh id: ${node.meshId}")
+                skippedMissingBuffers++
+                if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "Skipping renderable because GL buffers are missing for mesh id: ${node.meshId}")
+                }
                 return@forEach
             }
 
@@ -118,6 +157,13 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             } else {
                 GLES30.glDrawArrays(mesh.drawMode.toGlDrawMode(), 0, mesh.vertexCount)
             }
+            drawCalls++
+        }
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "onDrawFrame: nodes.size=${nodes.size}, drawCalls=$drawCalls, skippedUnknownMeshIds=$skippedUnknownMeshIds, skippedMissingBuffers=$skippedMissingBuffers",
+            )
         }
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)

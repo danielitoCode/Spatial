@@ -1,6 +1,7 @@
 package com.elitec.spatial_compose.components
 
 import android.content.Context
+import android.util.Log
 import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
+import com.elitec.spatial_compose.BuildConfig
 import com.elitec.spatial_compose.modifier.sceneGestureInput
 import com.elitec.spatial_compose.scene.Gestures
 import com.elitec.spatial_compose.scene.SceneGestures
@@ -33,6 +35,12 @@ fun Scene(
 ) {
     val sceneNodes = rememberSceneGraph(content)
     val renderableNodes = sceneNodes.map(SceneNode::toRenderableNode)
+    if (BuildConfig.DEBUG) {
+        Log.d(
+            TAG,
+            "renderableNodes: sceneNodes.size=${sceneNodes.size}, meshIds=${renderableNodes.map { it.meshId }}",
+        )
+    }
     val cameraSnapshot = cameraState.snapshot()
     val renderHostHolder = remember { SceneRenderHostHolder() }
 
@@ -56,3 +64,5 @@ fun Scene(
         },
     )
 }
+
+private const val TAG = "SpatialComposeScene"
