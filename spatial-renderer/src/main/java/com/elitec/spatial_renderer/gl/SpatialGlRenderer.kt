@@ -9,6 +9,7 @@ import android.util.Log
 import com.elitec.spatial_core.camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_renderer.BuildConfig
 
@@ -32,10 +33,16 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         cameraSnapshot = snapshot
     }
 
+    private var frameClearColor: Color4 = LegacyNavyClearColor
+
+    fun updateClearColor(color: Color4) {
+        frameClearColor = color
+    }
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         releaseGlResources()
 
-        GLES30.glClearColor(0.08f, 0.12f, 0.18f, 1.0f)
+        applyClearColor(frameClearColor)
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
 
         programId = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
@@ -64,19 +71,24 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
+        applyClearColor(
+            when {
+                nodes.isEmpty() -> Color4(0.18f, 0.02f, 0.02f, 1f)
+                programId == 0 -> Color4(0.18f, 0.02f, 0.18f, 1f)
+                else -> frameClearColor
+            },
+        )
 
         if (nodes.isEmpty()) {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "onDrawFrame: returning because nodes.isEmpty(); programId=$programId")
-            }
+            Log.i(TAG, "Skipping draw frame: GL surface is ready but there are no renderable nodes")
             return
         }
 
         if (programId == 0) {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "onDrawFrame: returning because programId == 0; nodes.size=${nodes.size}")
-            }
+            Log.e(
+                TAG,
+                "Skipping draw frame: GL program is not ready while ${nodes.size} renderable node(s) are present",
+            )
             return
         }
 
@@ -203,6 +215,9 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         }
         uniforms = null
     }
+    private fun applyClearColor(color: Color4) {
+        GLES30.glClearColor(color.r, color.g, color.b, color.a)
+    }
 
     private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
         val vertexBuffer = ByteBuffer.allocateDirect(vertices.size * Float.SIZE_BYTES)
@@ -289,6 +304,13 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         }
     }
 
+    private data class ClearColor(
+        val red: Float,
+        val green: Float,
+        val blue: Float,
+        val alpha: Float = 1.0f,
+    )
+
     private data class UniformLocations(
         val viewMatrix: Int,
         val projectionMatrix: Int,
@@ -314,6 +336,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     private companion object {
         private const val TAG = "SpatialGlRenderer"
+        val LegacyNavyClearColor = Color4(0.02f, 0.05f, 0.18f, 1f)
         private const val VERTEX_SHADER = "#version 300 es\n" +
             "layout (location = 0) in vec4 aPosition;\n" +
             "uniform mat4 uModelMatrix;\n" +

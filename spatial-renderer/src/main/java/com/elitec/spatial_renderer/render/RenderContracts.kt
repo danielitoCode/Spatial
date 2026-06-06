@@ -1,6 +1,7 @@
 package com.elitec.spatial_renderer.render
 
 import com.elitec.spatial_core.camera.CameraSnapshot
+import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.scene.RenderableNode
 
 /** Contrato mínimo para disparar render de un frame. */
@@ -24,4 +25,5 @@ data class RenderFrame(
     val nodes: List<RenderableNode> = emptyList(),
     val resources: List<GpuResourceHandle> = emptyList(),
     val cameraState: CameraSnapshot = CameraSnapshot(),
+    val clearColor: Color4 = Color4.BLACK,
 )

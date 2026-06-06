@@ -26,11 +26,18 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     )
     private var pendingNodes: List<RenderableNode> = emptyList()
     private var pendingCameraSnapshot: CameraSnapshot = runtimeCamera.snapshot()
+    @Volatile private var glReady = false
+    private var queuedFrame: (() -> Unit)? = null
 
     override val view: View get() = renderTarget.view
 
     init {
         runtime.onInitialize()
+        renderTarget.setOnSurfaceReady {
+            glReady = true
+            queuedFrame?.invoke()
+            queuedFrame = null
+        }
     }
 
     override fun updateScene(nodes: List<RenderableNode>) {
@@ -48,6 +55,14 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
                 "requestFrame: pendingNodes.size=${pendingNodes.size}, cameraSnapshot=$pendingCameraSnapshot",
             )
         }
+        if (!glReady) {
+            queuedFrame = { requestFrameInternal() }
+            return
+        }
+        requestFrameInternal()
+    }
+
+    private fun requestFrameInternal() {
         runtime.requestFrame(
             nodes = pendingNodes,
             cameraSnapshot = pendingCameraSnapshot,

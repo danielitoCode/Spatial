@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.SurfaceHolder
 import android.view.View
 import com.elitec.spatial_core.camera.CameraSnapshot
+import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_renderer.BuildConfig
 import com.elitec.spatial_renderer.render.RenderBackend
@@ -48,6 +49,7 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "render(frame): GL queue received ${frame.nodes.size} nodes")
             }
+            spatialRenderer.updateClearColor(frame.clearColor)
             spatialRenderer.updateNodes(frame.nodes)
             spatialRenderer.updateCamera(frame.cameraState)
             requestRender()
@@ -71,6 +73,13 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         releaseGlResources()
         super.onDetachedFromWindow()
     }
+
+    fun setOnSurfaceReady(callback: () -> Unit) {
+        spatialRenderer.onSurfaceReadyCallback = {
+            post { requestRender() }
+            callback()
+        }
+    }
 }
 
 class SpatialGlRenderTarget @JvmOverloads constructor(
@@ -87,6 +96,10 @@ class SpatialGlRenderTarget @JvmOverloads constructor(
 
     fun releaseGlResources() {
         surfaceView.releaseGlResources()
+    }
+
+    fun setOnSurfaceReady(callback: () -> Unit) {
+        surfaceView.setOnSurfaceReady(callback)
     }
 }
 

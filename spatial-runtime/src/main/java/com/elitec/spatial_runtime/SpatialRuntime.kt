@@ -46,6 +46,7 @@ class SpatialRuntime(
                 frameTimeNanos = snapshot.frameTimeNanos,
                 nodes = nodes,
                 cameraState = cameraRuntime.snapshot(),
+                clearColor = snapshot.clearColor,
             )
         )
     }
