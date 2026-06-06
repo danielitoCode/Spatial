@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.elitec.spatial.ui.theme.SpatialTheme
 import com.elitec.spatial_compose.Element
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Preview
 @Composable
 private fun SpatialRendererHost(modifier: Modifier = Modifier) {
     val cameraState = rememberCameraState(yaw = 20f.deg, pitch = (-12f).deg, zoom = 1.25f)

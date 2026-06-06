@@ -45,7 +45,5 @@ dependencies {
     implementation(project(":spatial-gesture"))
     implementation(project(":spatial-camera"))
     implementation(project(":spatial-units"))
-    // implementation(project(":spatial-renderer"))
     implementation(project(":spatial-motion"))
-    // implementation(project(":spatial-runtime"))
 }

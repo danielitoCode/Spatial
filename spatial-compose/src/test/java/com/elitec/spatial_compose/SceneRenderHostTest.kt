@@ -72,6 +72,8 @@ class SceneRenderHostTest {
         }
 
         override fun dispose() {
+            events += "dispose"
+            disposeCount += 1
         }
     }
 }

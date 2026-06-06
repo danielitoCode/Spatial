@@ -25,7 +25,7 @@ class ScenePublicApiContractTest {
     @Test
     fun `documented compose source api stays intentionally small`() {
         val source = scene3DSource()
-        val publicSymbols = Regex("(?m)^(?:@[A-Za-z]+\\s*\\n)*(?:(?:data|sealed)\\s+)?(?:class|interface|object|fun)\\s+([A-Z_a-z][A-Za-z0-9_]*)")
+        val publicSymbols = Regex("(?m)^(?:@[A-Za-z]+\\s*\\n)*(?:public\\s+)?(?:(?:data|sealed)\\s+)?(?:typealias|class|interface|object|fun)\\s+([A-Z_a-z][A-Za-z0-9_]*)")
             .findAll(source)
             .map { it.groupValues[1] }
             .filterNot { it.first().isLowerCase() && it != "rememberCameraState" }
@@ -51,6 +51,7 @@ class ScenePublicApiContractTest {
             "CameraState",
             "MotionSpec",
             "GestureSensitivity",
+            "SceneRenderHostFactory",
             "SceneGestures",
             "Gestures",
             "Element",
@@ -62,7 +63,6 @@ class ScenePublicApiContractTest {
             "Rotation3D",
             "Shapes3D",
             "SceneRenderHost",
-            "SceneRenderHostFactory",
             "DefaultSceneRenderHostFactory",
             "SpatialRuntimeSceneRenderHost",
             "SceneRenderHostHolder",
