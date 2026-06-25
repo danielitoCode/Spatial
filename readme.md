@@ -26,6 +26,8 @@
 
 Its goal is to make 3D scene creation feel as natural and expressive as Compose, while completely hiding the complexity of OpenGL and GPU pipelines from the developer.
 
+For a more detailed explanation: https://deepwiki.com/danielitoCode/Spatial
+
 Spatial is **not** intended to become a full game engine.
 
 Instead, it focuses on:
