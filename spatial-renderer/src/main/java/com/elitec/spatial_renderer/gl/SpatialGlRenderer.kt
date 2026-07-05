@@ -25,6 +25,13 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     /** Called once GL surface is fully initialized so the host can trigger a first render pass. */
     var onSurfaceReadyCallback: (() -> Unit)? = null
 
+    /** Called every time the viewport size changes, so the host can keep its own aspect ratio in sync. */
+    var onViewportChangedCallback: ((aspectRatio: Float) -> Unit)? = null
+
+    // Cached once per onSurfaceChanged instead of once per onDrawFrame (Phase 2.1: the frustum only
+    // changes when the viewport size changes, not every frame).
+    private val projectionMatrix = FloatArray(16)
+
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
     }
@@ -65,9 +72,11 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES30.glViewport(0, 0, width, height)
         aspectRatio = if (height == 0) 1f else width.toFloat() / height.toFloat()
+        Matrix.perspectiveM(projectionMatrix, 0, 45f, aspectRatio, 0.1f, 100f)
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onSurfaceChanged: width=$width, height=$height, aspectRatio=$aspectRatio")
         }
+        onViewportChangedCallback?.invoke(aspectRatio)
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -116,8 +125,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
         GLES30.glUniformMatrix4fv(uniformLocations.viewMatrix, 1, false, viewMatrix, 0)
 
-        // Proyección básica
-        Matrix.perspectiveM(projectionMatrix, 0, 45f, aspectRatio, 0.1f, 100f)
+        // Proyección cacheada: solo se recalcula en onSurfaceChanged (Phase 2.1).
         GLES30.glUniformMatrix4fv(uniformLocations.projectionMatrix, 1, false, projectionMatrix, 0)
 
         GLES30.glEnableVertexAttribArray(0)
@@ -272,6 +280,9 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     private fun MeshDrawMode.toGlDrawMode(): Int = when (this) {
         MeshDrawMode.Triangles -> GLES30.GL_TRIANGLES
+        MeshDrawMode.TriangleStrip -> GLES30.GL_TRIANGLE_STRIP
+        MeshDrawMode.Lines -> GLES30.GL_LINES
+        MeshDrawMode.LineStrip -> GLES30.GL_LINE_STRIP
     }
 
     private fun compileShader(type: Int, source: String): Int {

@@ -6,6 +6,7 @@ import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
+import com.elitec.spatial_core.render.buildOrbitFrameSnapshot
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_gesture.OrbitGestureDelta
 import com.elitec.spatial_gesture.PinchZoomDelta
@@ -21,8 +22,19 @@ class SpatialRuntime(
 
     private var initialized = false
 
+    /**
+     * Viewport aspect ratio (width / height), synced from `onSurfaceChanged` via the render host.
+     * Defaults to 1:1 until the surface reports its real size, matching the renderer's own default.
+     */
+    @Volatile private var aspectRatio: Float = 1f
+
     override fun onInitialize() {
         initialized = true
+    }
+
+    /** Synchronizes the viewport aspect ratio used to populate [FrameSnapshot.viewProjection]. */
+    fun updateViewport(aspectRatio: Float) {
+        this.aspectRatio = if (aspectRatio.isFinite() && aspectRatio > 0f) aspectRatio else 1f
     }
 
     override fun onFrame(snapshot: FrameSnapshot) {
@@ -57,7 +69,11 @@ class SpatialRuntime(
         cameraSnapshot: CameraSnapshot,
     ) {
         onFrame(
-            snapshot = FrameSnapshot(frameTimeNanos = frameTimeNanos),
+            snapshot = buildOrbitFrameSnapshot(
+                frameTimeNanos = frameTimeNanos,
+                cameraSnapshot = cameraSnapshot,
+                aspectRatio = aspectRatio,
+            ),
             nodes = nodes,
             cameraSnapshot = cameraSnapshot,
         )

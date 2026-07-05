@@ -26,7 +26,15 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     )
     private var pendingNodes: List<RenderableNode> = emptyList()
     private var pendingCameraSnapshot: CameraSnapshot = runtimeCamera.snapshot()
-    @Volatile private var glReady = false
+
+    // Audit note (Core #1 Stability, item 1.2 follow-up): `glReady` and `queuedFrame` used to be
+    // read/written as two separate, non-atomic steps (a @Volatile flag plus a nullable field). That
+    // allowed a genuine lost-frame race: the GL thread could flip `glReady` to true and drain a null
+    // `queuedFrame` *between* this thread's `if (!glReady)` check and its `queuedFrame = { ... }`
+    // assignment, so the just-queued frame would never be replayed. All access to both fields is now
+    // funneled through `readyLock` so the check-then-act sequence is atomic on both sides.
+    private val readyLock = Any()
+    private var glReady = false
     private var queuedFrame: (() -> Unit)? = null
 
     override val view: View get() = renderTarget.view
@@ -34,9 +42,14 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     init {
         runtime.onInitialize()
         renderTarget.setOnSurfaceReady {
-            glReady = true
-            queuedFrame?.invoke()
-            queuedFrame = null
+            val frameToReplay = synchronized(readyLock) {
+                glReady = true
+                queuedFrame.also { queuedFrame = null }
+            }
+            frameToReplay?.invoke()
+        }
+        renderTarget.setOnViewportChanged { aspectRatio ->
+            runtime.updateViewport(aspectRatio)
         }
     }
 
@@ -55,11 +68,17 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
                 "requestFrame: pendingNodes.size=${pendingNodes.size}, cameraSnapshot=$pendingCameraSnapshot",
             )
         }
-        if (!glReady) {
-            queuedFrame = { requestFrameInternal() }
-            return
+        val shouldRunNow = synchronized(readyLock) {
+            if (glReady) {
+                true
+            } else {
+                queuedFrame = { requestFrameInternal() }
+                false
+            }
         }
-        requestFrameInternal()
+        if (shouldRunNow) {
+            requestFrameInternal()
+        }
     }
 
     private fun requestFrameInternal() {

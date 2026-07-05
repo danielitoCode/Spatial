@@ -80,6 +80,11 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
             callback()
         }
     }
+
+    /** Notifies [callback] every time the viewport aspect ratio changes (see `onSurfaceChanged`). */
+    fun setOnViewportChanged(callback: (aspectRatio: Float) -> Unit) {
+        spatialRenderer.onViewportChangedCallback = callback
+    }
 }
 
 class SpatialGlRenderTarget @JvmOverloads constructor(
@@ -100,6 +105,10 @@ class SpatialGlRenderTarget @JvmOverloads constructor(
 
     fun setOnSurfaceReady(callback: () -> Unit) {
         surfaceView.setOnSurfaceReady(callback)
+    }
+
+    fun setOnViewportChanged(callback: (aspectRatio: Float) -> Unit) {
+        surfaceView.setOnViewportChanged(callback)
     }
 }
 

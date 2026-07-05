@@ -31,18 +31,42 @@ class ImmediateFrameScheduler : FrameScheduler {
     }
 }
 
-/** VSYNC-aligned asynchronous scheduler using Android Choreographer. Thread-safe coalescing. */
+/**
+ * VSYNC-aligned asynchronous scheduler using Android Choreographer.
+ *
+ * Audit note (Core #1 Stability, item 2.2): the original implementation coalesced *scheduling*
+ * (only one `postFrameCallback` in flight at a time) but not *data*: if [requestFrame] was called
+ * more than once before the pending VSYNC fired, every call after the first was silently dropped,
+ * including the closure carrying the freshest `nodes`/`cameraSnapshot`. The frame that actually
+ * rendered was the *first*, stalest, call - not the latest one - which reads as dropped gesture
+ * updates and one-frame-behind stutter under load. [latestOnFrame] is now updated on every call
+ * (even while a callback is already pending) so the VSYNC tick always replays the most recent state.
+ */
 class ChoreographerFrameScheduler : FrameScheduler {
     private val choreographer: Choreographer = Choreographer.getInstance()
-    @Volatile private var pending = false
+    private val lock = Any()
+    private var pending = false
+    private var latestOnFrame: ((RenderFrame) -> Unit)? = null
 
     override fun requestFrame(onFrame: (RenderFrame) -> Unit) {
-        if (pending) return  // coalesce
-        pending = true
+        val shouldSchedule = synchronized(lock) {
+            latestOnFrame = onFrame
+            if (pending) {
+                false
+            } else {
+                pending = true
+                true
+            }
+        }
+        if (!shouldSchedule) return
+
         choreographer.postFrameCallback(object : Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
-                pending = false
-                onFrame(RenderFrame(frameTimeNanos = frameTimeNanos))
+                val callback = synchronized(lock) {
+                    pending = false
+                    latestOnFrame.also { latestOnFrame = null }
+                }
+                callback?.invoke(RenderFrame(frameTimeNanos = frameTimeNanos))
             }
         })
     }

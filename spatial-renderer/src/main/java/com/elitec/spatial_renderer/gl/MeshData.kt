@@ -3,6 +3,9 @@ package com.elitec.spatial_renderer.gl
 /** Draw mode understood by the renderer without exposing Android GL classes to mesh tests. */
 enum class MeshDrawMode {
     Triangles,
+    TriangleStrip,
+    Lines,
+    LineStrip,
 }
 
 /**

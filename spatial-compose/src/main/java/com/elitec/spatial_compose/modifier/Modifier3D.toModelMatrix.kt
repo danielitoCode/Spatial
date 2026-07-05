@@ -5,9 +5,24 @@ import com.elitec.spatial_units.Angle
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * Core #1 model matrix composition order (item 3.1): `M = T * Rz * Ry * Rx * S`.
+ *
+ * Matrices are OpenGL-style column-major and column-vectors are transformed as `M * v`, so this
+ * product is applied to a vertex right-to-left: scale first, then rotate around X, then Y, then Z,
+ * then translate. Because each rotation is post-multiplied onto the *already-rotated* axes of the
+ * previous step (not onto the original world axes), this is an **intrinsic** (body-frame) rotation
+ * sequence, equivalent to Tait-Bryan angles applied in X, then Y, then Z order relative to the
+ * object's own, already-rotated axes. It is *not* the same as extrinsic rotations about the fixed
+ * world axes applied in Z, Y, X order, even though the matrix product looks similar - the two only
+ * coincide when at most one axis is non-zero at a time.
+ *
+ * Practical consequence for consumers composing `Modifier3D.rotation(x, y, z)`: expect gimbal-lock
+ * behavior consistent with intrinsic X→Y→Z (i.e. gimbal lock when the *intermediate* Y rotation
+ * approaches ±90°), not with any other Euler convention.
+ */
 internal fun Modifier3D.toModelMatrix(): FloatArray {
     val resolvedSize = size ?: scale
-    // Core #1 model composition order: T * Rz * Ry * Rx * S (OpenGL column-major).
     return translationMatrix(position)
         .multiply(rotationZMatrix(rotation.z))
         .multiply(rotationYMatrix(rotation.y))
