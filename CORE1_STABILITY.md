@@ -1,6 +1,6 @@
 # Core #1 Stability Plan
 
-> **Status:** In Progress | **Last Updated:** 2026-07-05
+> **Status:** In Progress | **Last Updated:** 2026-07-07
 > **Owner:** Agent Session | **Purpose:** Track and resolve all blockers for a stable Core #1 release.
 
 This document serves as the canonical reference for the Core #1 stabilization effort. All agents (human or AI) accessing this project should consult this file before making changes to the rendering pipeline, frame scheduling, or lifecycle management.
@@ -46,6 +46,11 @@ Items that prevent Core #1 from being considered stable. These must be addressed
 - **Veredicto:** ✅ **Hecho** con limitación. El contrato funciona en el happy path (escena con nodos y programa GL válido), pero no en estados degradados. Se recomienda que en `nodes.isEmpty()` o `programId == 0` se siga usando `frameClearColor` (guardando los colores diagnóstico solo como log o sustituyéndolos por un canal alpha=0).
 - **Acción recomendada (no bloqueante):** Unificar `onDrawFrame` para que siempre aplique `frameClearColor`, eliminando las ramas de color hardcodeado. Mantener los logs existentes para los estados degradados.
 
+**Resolved (2026-07-07, Claude):**
+- `onDrawFrame` ahora siempre llama `applyClearColor(frameClearColor)` incondicionalmente al inicio; ya no sobreescribe con los colores de diagnóstico hardcodeados. Esos estados degradados (`nodes.isEmpty()`, `programId == 0`) siguen logueando (`Log.i`/`Log.e`) para facilitar debugging, pero ya no afectan lo que ve el usuario.
+- Eliminada la `data class ClearColor` muerta.
+- **Bug crítico encontrado y corregido en la misma pasada (no reportado por GLM-5.2):** `onDrawFrame` declaraba una variable local `val projectionMatrix = FloatArray(16)` que **sombreaba** el campo cacheado de la clase (introducido por el fix de 2.1), y subía esa matriz local — siempre en ceros, nunca poblada — al uniform de la GPU. Esto rendería la escena completamente degenerada/invisible (matriz de proyección nula), justo el síntoma que el primer ítem del Regression Checklist ("App launches without blank/black first frame") pretende detectar. Se eliminó la declaración local; ahora `onDrawFrame` usa el campo `projectionMatrix` cacheado real.
+
 ---
 
 ### 1.1 Replace synchronous `ChoreographerFrameScheduler`
@@ -88,6 +93,11 @@ Items that prevent Core #1 from being considered stable. These must be addressed
   - Corregir KDoc para referenciar ambos items (1.1 + 2.2).
   - Considerar añadir `cancel()` al contrato `FrameScheduler` para cleanup lifecycle.
   - Añadir test con Robolectric para `ChoreographerFrameScheduler` cuando se integre ese runner.
+
+**Resolved (2026-07-07, Claude):**
+- KDoc de `ChoreographerFrameScheduler` corregido para referenciar explícitamente 1.1 y 2.2.
+- `FrameScheduler.cancel()` añadido al contrato (default no-op para no romper implementaciones existentes, incl. el `object : FrameScheduler {}` anónimo en `SpatialRuntimeFrameStateTest`). `ChoreographerFrameScheduler` guarda una referencia al `Choreographer.FrameCallback` en vuelo y la remueve con `choreographer.removeFrameCallback(...)` cuando se llama `cancel()`. `SpatialRuntime.onShutdown()` ahora llama `frameScheduler.cancel()`, y `SpatialRuntimeSceneRenderHost.dispose()` ya invocaba `runtime.onShutdown()`, así que la cadena de cleanup queda completa.
+- El test con Robolectric queda pendiente (no bloqueante); no se añadió en esta pasada por no tener Robolectric configurado en el proyecto y estar fuera del alcance solicitado (ítems 1.0-1.3).
 
 ---
 
@@ -136,6 +146,11 @@ Items that prevent Core #1 from being considered stable. These must be addressed
   - Considerar encadenar el callback por defecto en `setOnSurfaceReady` en vez de sobrescribirlo, o eliminar el fallback si nunca se usa.
   - Añadir test instrumentado que simule una recomposición de Compose antes de `onSurfaceCreated` para validar el replay del frame encolado.
 
+**Resolved (2026-07-07, Claude):**
+- Añadido comentario en `Scene.kt` (línea de la llamada `host.renderSceneFrame(...)` dentro de `factory`) explicando por qué es seguro llamar antes de que la superficie GL esté lista.
+- `SpatialGlSurfaceView.setOnSurfaceReady` ahora **encadena** el callback anterior (capturado en una `val previousCallback` antes de sobrescribir el campo) en vez de descartarlo, así el fallback `post { requestRender() }` del `init` deja de ser código potencialmente muerto.
+- El test instrumentado que simula una recomposición antes de `onSurfaceCreated` queda pendiente (no bloqueante): requiere orquestar dos threads reales (UI + GL) en un test instrumentado, y este sandbox no puede ejecutar `connectedAndroidTest` para verificarlo (ver "Known limitations of this audit"). Se documenta como trabajo futuro en vez de entregarse sin poder confirmarlo.
+
 ---
 
 ### 1.3 Sanitize `releaseGlResources` lifecycle
@@ -167,6 +182,11 @@ Items that prevent Core #1 from being considered stable. These must be addressed
   - Considerar también `try/catch` dentro del `queueEvent` lambda para `GLES30.glDeleteProgram`/`glDeleteBuffers` (por si el context EGL se invalida entre el encolado y la ejecución).
   - Documentar en KDoc de `releaseGlResources()` que el cleanup es best-effort y el EGL context teardown eventual liberará lo que quede.
   - Considerar eliminar la doble invocación con un flag `released` en `SpatialGlSurfaceView` para evitar el redundante encolado.
+
+**Resolved (2026-07-07, Claude):**
+- `SpatialGlSurfaceView.releaseGlResources()` ahora envuelve tanto el `queueEvent { ... }` como la llamada interna a `spatialRenderer.releaseGlResources()` en `try/catch (IllegalStateException)` separados, cada uno logueando en modo debug y degradando a un no-op en vez de crashear.
+- Añadido el flag `glResourcesReleased` (dedup): `surfaceDestroyed` y `onDetachedFromWindow` pueden seguir llamando ambos a `releaseGlResources()`, pero solo el primero realmente encola trabajo.
+- KDoc actualizado en ambos métodos (`SpatialGlSurfaceView.releaseGlResources` y `SpatialGlRenderer.releaseGlResources`) documentando que el cleanup es best-effort y que el teardown del contexto EGL por el sistema es la red de seguridad final.
 
 ---
 
@@ -444,4 +464,6 @@ After each phase is completed, run through this checklist before declaring Core 
 | 2026-07-05   | Agent     | Completed 1.0: Wire FrameSnapshot.clearColor into SpatialGlRenderer. |
 | 2026-07-05   | Agent     | Completed 1.2: Fixed first-frame race condition in SpatialGlSurfaceView by queuing the first frame requests until the GL surface is fully ready. |
 | 2026-07-03   | Agent     | Completed 1.3: Sanitized releaseGlResources lifecycle with isAttachedToWindow guards and safe try-catch blocks to prevent crashes on configuration changes. |
-| 2026-07-05   | Claude    | Audit pass over Phase 2/3. Corrected stale checkbox for 2.3 (already implemented). Completed 2.0 (real `FrameSnapshot.viewProjection`/`cameraPosition` via new `spatial-math` `Mat4Math` + `spatial-core` `OrbitFrameSnapshotFactory`, wired through a new `SpatialRuntime.updateViewport`/`onViewportChangedCallback` chain). Completed 2.1 (cached projection matrix, recomputed only in `onSurfaceChanged`). Completed 2.2, and found + fixed a real data-coalescing bug in `ChoreographerFrameScheduler` (was replaying the *first*, stale, closure instead of the *latest* one) plus an analogous check-then-act race in `SpatialRuntimeSceneRenderHost.glReady`/`queuedFrame` (not on the original list). Completed 3.0 (`MeshDrawMode.TriangleStrip/Lines/LineStrip`) and 3.1 (expanded rotation-convention KDoc). Added an instrumented test for 3.2 (`CubeRendersOnFirstFrameTest`) but left its checkbox unchecked pending on-device execution, since this sandbox cannot run the Android Gradle Plugin or an emulator. See "Known limitations of this audit" above. |   
+| 2026-07-05   | Claude    | Audit pass over Phase 2/3. Corrected stale checkbox for 2.3 (already implemented). Completed 2.0 (real `FrameSnapshot.viewProjection`/`cameraPosition` via new `spatial-math` `Mat4Math` + `spatial-core` `OrbitFrameSnapshotFactory`, wired through a new `SpatialRuntime.updateViewport`/`onViewportChangedCallback` chain). Completed 2.1 (cached projection matrix, recomputed only in `onSurfaceChanged`). Completed 2.2, and found + fixed a real data-coalescing bug in `ChoreographerFrameScheduler` (was replaying the *first*, stale, closure instead of the *latest* one) plus an analogous check-then-act race in `SpatialRuntimeSceneRenderHost.glReady`/`queuedFrame` (not on the original list). Completed 3.0 (`MeshDrawMode.TriangleStrip/Lines/LineStrip`) and 3.1 (expanded rotation-convention KDoc). Added an instrumented test for 3.2 (`CubeRendersOnFirstFrameTest`) but left its checkbox unchecked pending on-device execution, since this sandbox cannot run the Android Gradle Plugin or an emulator. See "Known limitations of this audit" above. |
+| 2026-07-05   | GLM-5.2   | Independent review of items 1.0-1.3 against the actual code (not just the checkboxes). Confirmed all four were genuinely implemented, but flagged non-blocking gaps in each: 1.0 still overwrote the real clear color with hardcoded diagnostic colors in degraded states; 1.1's KDoc mis-referenced 2.2 instead of 1.1, and the scheduler had no `cancel()` for lifecycle cleanup; 1.2's fix diverged from the originally-planned approach (didn't touch `Scene.kt`) and left the `init` fallback callback effectively dead code; 1.3's `isAttachedToWindow` guard didn't cover the narrower edge case (GLThread already gone while still "attached") that the original fix targeted, and lacked try/catch + dedup. |
+| 2026-07-07   | Claude    | Addressed all four GLM-5.2 recommendations for items 1.0-1.3 (see "Resolved" notes under each item above). **Also found and fixed a critical regression in `onDrawFrame` introduced by my own 2.1 fix**: a local `val projectionMatrix = FloatArray(16)` was shadowing the cached class field and uploading an all-zero matrix to the GPU every frame, which would have made every draw call degenerate/invisible. Removed the shadowing declaration so the real cached matrix is used. |

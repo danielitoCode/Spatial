@@ -53,6 +53,11 @@ fun Scene(
         factory = { context ->
             renderHostFactory.create(context).also { host ->
                 renderHostHolder.host = host
+                // Safe even though the GL surface is not guaranteed ready yet: the render host
+                // (SpatialRuntimeSceneRenderHost) queues this first frame internally and replays it
+                // once `onSurfaceCreated` fires, instead of touching GL before it's ready. See the
+                // item 1.2 audit notes in CORE1_STABILITY.md for the full mechanism and its
+                // known limitations (single-slot coalescer, not a real queue).
                 host.renderSceneFrame(renderableNodes, cameraSnapshot)
             }.view
         },

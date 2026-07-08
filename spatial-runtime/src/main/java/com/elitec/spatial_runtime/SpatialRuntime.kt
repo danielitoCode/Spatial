@@ -94,6 +94,9 @@ class SpatialRuntime(
 
     override fun onShutdown() {
         initialized = false
+        // Item 1.1 follow-up: cancel any in-flight postFrameCallback so it can't fire against a
+        // torn-down runtime/renderer after shutdown.
+        frameScheduler.cancel()
     }
 
     fun onOrbitGesture(delta: OrbitGestureDelta) {

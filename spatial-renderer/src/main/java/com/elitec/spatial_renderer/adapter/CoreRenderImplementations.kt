@@ -34,19 +34,26 @@ class ImmediateFrameScheduler : FrameScheduler {
 /**
  * VSYNC-aligned asynchronous scheduler using Android Choreographer.
  *
- * Audit note (Core #1 Stability, item 2.2): the original implementation coalesced *scheduling*
- * (only one `postFrameCallback` in flight at a time) but not *data*: if [requestFrame] was called
- * more than once before the pending VSYNC fired, every call after the first was silently dropped,
- * including the closure carrying the freshest `nodes`/`cameraSnapshot`. The frame that actually
- * rendered was the *first*, stalest, call - not the latest one - which reads as dropped gesture
- * updates and one-frame-behind stutter under load. [latestOnFrame] is now updated on every call
- * (even while a callback is already pending) so the VSYNC tick always replays the most recent state.
+ * Audit notes (Core #1 Stability, items 1.1 + 2.2):
+ * - **1.1** replaced a synchronous placeholder with this real, VSYNC-aligned implementation.
+ * - **2.2** documents a data-coalescing bug found in an intermediate version of this class: it
+ *   coalesced *scheduling* (only one `postFrameCallback` in flight at a time) but not *data* - if
+ *   [requestFrame] was called more than once before the pending VSYNC fired, every call after the
+ *   first was silently dropped, including the closure carrying the freshest `nodes`/`cameraSnapshot`.
+ *   The frame that actually rendered was the *first*, stalest, call - not the latest one - which
+ *   reads as dropped gesture updates and one-frame-behind stutter under load. [latestOnFrame] is
+ *   updated on every call (even while a callback is already pending) so the VSYNC tick always
+ *   replays the most recent state.
+ *
+ * [cancel] closes a lifecycle gap flagged during review: without it, a `postFrameCallback` already
+ * in flight when the host is disposed would still fire `doFrame` against a torn-down instance.
  */
 class ChoreographerFrameScheduler : FrameScheduler {
     private val choreographer: Choreographer = Choreographer.getInstance()
     private val lock = Any()
     private var pending = false
     private var latestOnFrame: ((RenderFrame) -> Unit)? = null
+    private var scheduledCallback: Choreographer.FrameCallback? = null
 
     override fun requestFrame(onFrame: (RenderFrame) -> Unit) {
         val shouldSchedule = synchronized(lock) {
@@ -60,15 +67,30 @@ class ChoreographerFrameScheduler : FrameScheduler {
         }
         if (!shouldSchedule) return
 
-        choreographer.postFrameCallback(object : Choreographer.FrameCallback {
-            override fun doFrame(frameTimeNanos: Long) {
-                val callback = synchronized(lock) {
-                    pending = false
-                    latestOnFrame.also { latestOnFrame = null }
-                }
-                callback?.invoke(RenderFrame(frameTimeNanos = frameTimeNanos))
+        val callback = Choreographer.FrameCallback { frameTimeNanos ->
+            val onFrameToInvoke = synchronized(lock) {
+                pending = false
+                scheduledCallback = null
+                latestOnFrame.also { latestOnFrame = null }
             }
-        })
+            onFrameToInvoke?.invoke(RenderFrame(frameTimeNanos = frameTimeNanos))
+        }
+        synchronized(lock) { scheduledCallback = callback }
+        choreographer.postFrameCallback(callback)
+    }
+
+    /**
+     * Cancels a pending, not-yet-fired [requestFrame] callback, if any. Intended to be called from a
+     * host's `dispose()`/`onDetachedFromWindow` so the scheduler never invokes `onFrame` after the
+     * owner has already torn down its GL resources.
+     */
+    override fun cancel() {
+        val callback = synchronized(lock) {
+            pending = false
+            latestOnFrame = null
+            scheduledCallback.also { scheduledCallback = null }
+        }
+        callback?.let { choreographer.removeFrameCallback(it) }
     }
 }
 

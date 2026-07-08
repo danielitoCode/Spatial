@@ -80,13 +80,13 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        applyClearColor(
-            when {
-                nodes.isEmpty() -> Color4(0.18f, 0.02f, 0.02f, 1f)
-                programId == 0 -> Color4(0.18f, 0.02f, 0.18f, 1f)
-                else -> frameClearColor
-            },
-        )
+        // Item 1.0 follow-up (audit 2026-07-05/07, Claude + GLM-5.2 review): this used to
+        // *overwrite* the consumer's `frameClearColor` with hardcoded diagnostic colors whenever
+        // nodes were empty or the GL program wasn't ready yet, which broke the contract's promise
+        // that consumers can theme the background via `FrameSnapshot.clearColor` in degraded
+        // states. The real clear color is now always applied; the degraded-state colors are kept
+        // only as debug logging so they're still easy to spot while developing.
+        applyClearColor(frameClearColor)
 
         if (nodes.isEmpty()) {
             Log.i(TAG, "Skipping draw frame: GL surface is ready but there are no renderable nodes")
@@ -112,7 +112,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         GLES30.glUseProgram(programId)
 
         val viewMatrix = FloatArray(16)
-        val projectionMatrix = FloatArray(16)
 
         // Configuración de cámara básica (Orbit). CameraSnapshot.zoom is visual magnification,
         // so orbital distance is inversely proportional to zoom.
@@ -213,6 +212,12 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         return program
     }
 
+    /**
+     * Releases GPU-side resources (mesh buffers, GL program). Must be called on the GL thread with a
+     * valid, current EGL context. [SpatialGlSurfaceView.releaseGlResources] is responsible for
+     * queueing this correctly and for catching [IllegalStateException] if the EGL context has already
+     * been torn down by the system before this runs (see its KDoc, item 1.3 audit notes).
+     */
     fun releaseGlResources() {
         meshBuffers.values.forEach { it.release() }
         meshBuffers = emptyMap()
@@ -314,13 +319,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             }
         }
     }
-
-    private data class ClearColor(
-        val red: Float,
-        val green: Float,
-        val blue: Float,
-        val alpha: Float = 1.0f,
-    )
 
     private data class UniformLocations(
         val viewMatrix: Int,
