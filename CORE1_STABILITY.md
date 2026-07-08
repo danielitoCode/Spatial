@@ -33,6 +33,19 @@ Items that prevent Core #1 from being considered stable. These must be addressed
 
 - [X] **Done**
 
+**Checked (2026-07-05, Modelo: GLM-5.2):**
+- **Veracidad:** Sí está hecho. La cadena de propagación está completa y se verificó cada eslabón:
+  1. `FrameSnapshot.clearColor` → `spatial-core/render/FrameSnapshot.kt:7` (campo del contrato).
+  2. `SpatialRuntime.onFrame` copia `snapshot.clearColor` a `RenderFrame.clearColor` → `SpatialRuntime.kt:61`.
+  3. `SpatialGlSurfaceView.render(frame)` invoca `spatialRenderer.updateClearColor(frame.clearColor)` → `SpatialGlSurfaceView.kt:52`.
+  4. `SpatialGlRenderer.updateClearColor` lo almacena en `frameClearColor` → `SpatialGlRenderer.kt:45-47`.
+  5. `onSurfaceCreated` aplica `frameClearColor` → `SpatialGlRenderer.kt:52`.
+  6. `onDrawFrame` aplica `frameClearColor` cuando hay nodos y el programa GL está listo → `SpatialGlRenderer.kt:81-86`.
+- **Limitación detectada (infringimiento parcial del contrato):** `onDrawFrame` (líneas 74-80) **sobreescribe** el color del consumidor con colores diagnóstico hardcodeados (`Color4(0.18,0.02,0.02,1)` si `nodes.isEmpty()`, `Color4(0.18,0.02,0.18,1)` si `programId == 0`). Esto rompe la promesa del ítem ("consumers cannot theme the background via `FrameSnapshot`") en los estados degradados/{}_vacíos. Un consumidor que setee `Color4.WHITE` verá igualmente fondo rojizo si su escena está vacía o el programa GL aún no compila.
+- **Consideración menor:** Existe un `data class ClearColor` privado muerto (líneas 307-312) que no se usa; solo se usa `Color4` del core. No afecta el comportamiento, es ruido de refactor pendiente.
+- **Veredicto:** ✅ **Hecho** con limitación. El contrato funciona en el happy path (escena con nodos y programa GL válido), pero no en estados degradados. Se recomienda que en `nodes.isEmpty()` o `programId == 0` se siga usando `frameClearColor` (guardando los colores diagnóstico solo como log o sustituyéndolos por un canal alpha=0).
+- **Acción recomendada (no bloqueante):** Unificar `onDrawFrame` para que siempre aplique `frameClearColor`, eliminando las ramas de color hardcodeado. Mantener los logs existentes para los estados degradados.
+
 ---
 
 ### 1.1 Replace synchronous `ChoreographerFrameScheduler`
@@ -56,6 +69,25 @@ Items that prevent Core #1 from being considered stable. These must be addressed
   - Re-implemented `ChoreographerFrameScheduler` to use `Choreographer.getInstance().postFrameCallback` with `@Volatile private var pending` for thread-safe coalescing.
   - The class now defers frame emission to the next VSYNC tick, and coalesces overlapping requests.
 - **Verification:** Check `CoreRenderImplementations.kt` lines 34-58.
+
+**Checked (2026-07-05, Modelo: GLM-5.2):**
+- **Veracidad:** Sí está hecho, y además fue reforzado por la auditoría Claude posterior. Cadena verificada:
+  1. `FrameScheduler` contrato en `RenderContracts.kt:13-15` (sin cambios, correcto).
+  2. `ImmediateFrameScheduler` preserva comportamiento síncrono original → `CoreRenderImplementations.kt:28-32`. Usable en tests JVM sin Looper.
+  3. `ChoreographerFrameScheduler` ahora real: `Choreographer.getInstance().postFrameCallback(...)` → `doFrame(frameTimeNanos)` en siguiente VSYNC. `frameTimeNanos` proviene del propio Choreographer (no de `System.nanoTime()`), correcto para frame pacing.
+  4. Coalescing thread-safe con `synchronized(lock)` protegiendo `pending` + `latestOnFrame` → `CoreRenderImplementations.kt:47-72`. `doFrame` siempre ejecuta el closure más reciente (no el primero), corrigiendo el bug de data-coalescing de la implementación intermedia.
+  5. Wiring en `DefaultSceneRenderHostFactory.kt:24` instancia `ChoreographerFrameScheduler()` correctamente.
+- **Bug histórico detectado y corregido:** La primera "corrección" del agente previo usaba `@Volatile var pending` simple y descartaba closures tras el primero. Ver `Audit Notes` Claude en item 2.2 para detalles. **Estado actual correcto.**
+- **Limitaciones:**
+  - **Acoplamiento al Looper/Main Thread:** `Choreographer.getInstance()` lanza `IllegalStateException("The current thread must have a looper")` si se invoca desde un thread sin Looper. Por diseño correcto (UI thread), pero acopla el scheduler al framework Android. `ImmediateFrameScheduler` no tiene este acoplamiento → es la opción para tests puramente JVM.
+  - **Sin tests específicos del scheduler:** `ChoreographerFrameScheduler.requestFrame()` no tiene cobertura directa. `SpatialRuntimeFrameStateTest` usa un `object : FrameScheduler {}` anónimo síncrono, no testing del scheduler real. Justificado: imposible sin Robolectric/Looper fake, pero es un gap de cobertura.
+  - **Lifecycle no cancelable:** No hay método para cancelar callbacks pendientes en `dispose()`. Si la vista se destruye con un `postFrameCallback` en vuelo, el callback se dispara sobre una instancia descartada. No crítico (`runtime.initialized = false` bloquea el trabajo), pero queda trabajo pendiente.
+  - **KDoc mal referenciado:** El comentario en `CoreRenderImplementations.kt:37` dice "Audit note (Core #1 Stability, item 2.2)" cuando debería referenciar 1.1 (justificación original del refactor) y 2.2 (donde se documentó el bug data-coalescing corregido). Confuso para auditoría cruzada.
+- **Veredicto:** ✅ **Hecho** y robusto. La implementación final es correcta, thread-safe, y alineada a VSYNC. Las limitaciones son no-bloqueantes.
+- **Acción recomendada (no bloqueante):**
+  - Corregir KDoc para referenciar ambos items (1.1 + 2.2).
+  - Considerar añadir `cancel()` al contrato `FrameScheduler` para cleanup lifecycle.
+  - Añadir test con Robolectric para `ChoreographerFrameScheduler` cuando se integre ese runner.
 
 ---
 
@@ -84,6 +116,26 @@ Items that prevent Core #1 from being considered stable. These must be addressed
   - Una vez `glReady == true`, `requestFrame()` ejecuta `requestFrameInternal()` inmediatamente.
 - **Verification:** Build successful (`spatial-renderer` + `spatial-compose-runtime-adapter`).
 
+**Checked (2026-07-05, Modelo: GLM-5.2):**
+- **Veracidad:** Sí está hecho, **pero con un enfoque distinto al `Fix` original.** Verificación cadena:
+  1. `Scene.kt:56` **NO se modificó** — sigue llamando `host.renderSceneFrame()` inmediatamente en el factory de `AndroidView`.
+  2. En su lugar, `SpatialRuntimeSceneRenderHost.requestFrame()` (`DefaultSceneRenderHostFactory.kt:64-82`) **letaliza** la llamada temprana: si `!glReady`, encola el frame en `queuedFrame` (slot único) y retorna sin tocar GL.
+  3. `SpatialGlRenderer.onSurfaceCreated` → `onSurfaceReadyCallback?.invoke()` (`SpatialGlRenderer.kt:69`).
+  4. `SpatialGlSurfaceView.setOnSurfaceReady` registra el callback wrapper (`SpatialGlSurfaceView.kt:77-82`), que a su vez dispara `renderTarget.setOnSurfaceReady { ... }`.
+  5. `SpatialRuntimeSceneRenderHost.init` registra el callback que en `synchronized(readyLock)`: pone `glReady = true`, extrae `queuedFrame`, lo invoca fuera del lock (`DefaultSceneRenderHostFactory.kt:44-50`).
+  6. **Race cerrado correctamente:** tanto el path `requestFrame()` (líneas 71-78) como el path `setOnSurfaceReady` (líneas 45-48) usan el mismo `readyLock`, atomicidad check-then-act garantizada en ambos sentidos. Bug histórico del `@Volatile + nullable field` separados documentado en `DefaultSceneRenderHostFactory.kt:30-35`y corregido por Claude.
+- **Divergencia con el plan:** El `Fix` original proponía "mover el `renderSceneFrame` inicial a `onSurfaceReadyCallback`" o "marcar el host como ready solo después de `onSurfaceCreated`". La solución implementada eligió la **segunda alternativa** (marcar ready después de `onSurfaceCreated`) sin tocar `Scene.kt`. Funciona, pero el enfoque es distinto: el frame sigue lanzándose desde el factory, solo que se acota temporalmente con un queue coalescer en el host.
+- **Limitaciones:**
+  - **`queuedFrame` es coalescer, no queue:** Es un slot único que se sobrescribe. Si `requestFrame()` se llama N veces antes de `glReady`, solo se ejecuta el **último** closure; los N-1 anteriores se pierden. Mitigado en efecto: `requestFrameInternal()` siempre usa `pendingNodes`/`pendingCameraSnapshot` (campos mutable actualizados en `updateScene`/`updateCamera`), así que el último replay transporta el estado más reciente. Pero conceptualmente no es una "cola" como dice el plan.
+  - **`Scene.kt` sin modificar:** El archivo listado en el ítem no recibió cambios. El problema fue mitigado, no resuelto siguiendo el plan literal. Futuras correcciones deberían considerar mover el `renderSceneFrame` inicial al `update` (que se dispara tras el primer frame del Compose) o documentar la divergencia.
+  - **Callback por defecto muerto:** `SpatialGlSurfaceView.kt:25` asigna `spatialRenderer.onSurfaceReadyCallback = { post { requestRender() } }` en `init`, pero `setOnSurfaceReady` (líneas 77-82) lo **sobrescribe**. Si un consumidor no llama `setOnSurfaceReady`, el fallback nunca se invoca. Inofensivo porque el host siempre registra el callback, pero queda código inactivo. Sería más limpio hacer que `setOnSurfaceReady` encadene en vez de sobrescribir.
+  - **Sin test de ConcurrentStates:** No hay cobertura que verifique que `requestFrame()` llamado desde el UI thread mientras `onSurfaceCreated` corre en GL thread efectivamente encola y replays correctamente. El bug original era de concurrencia; el fix es correcto, pero sin test de stress condos threads es difícil confirmarlo en CI.
+- **Veredicto:** ✅ **Hecho** con limitaciones no-bloqueantes. El race está cerrado y el primer frame deja de ser negro. La divergencia con el `Fix` planificado y el coalescer de slot único son consideraciones de diseño a documentar, no bugs.
+- **Acción recomendada (no bloqueante):**
+  - Documentar en `Scene.kt:56` que la llamada temprana a `renderSceneFrame` es segura porque el host encolará si GL no está listo (evitaría futura confusión de auditoría).
+  - Considerar encadenar el callback por defecto en `setOnSurfaceReady` en vez de sobrescribirlo, o eliminar el fallback si nunca se usa.
+  - Añadir test instrumentado que simule una recomposición de Compose antes de `onSurfaceCreated` para validar el replay del frame encolado.
+
 ---
 
 ### 1.3 Sanitize `releaseGlResources` lifecycle
@@ -98,6 +150,23 @@ Items that prevent Core #1 from being considered stable. These must be addressed
 **Fix:** Check if the view is still attached before enqueuing. Ensure `isAttachedToWindow` is checked or wrap in a try/catch for `IllegalStateException`.
 
 - [X] **Done**
+
+**Checked (2026-07-05, Modelo: GLM-5.2):**
+- **Veracidad:** Sí está hecho, **pero solo parcialmente** conforme al `Fix` original. Verificación línea por línea (`SpatialGlSurfaceView.kt:59-75`):
+  1. `releaseGlResources()` (líneas 59-65) implementa el guard `if (!isAttachedToWindow) return` antes de `queueEvent { ... }`. ✅ Mitiga el caso común (vista ya detached).
+  2. `surfaceDestroyed(holder)` (líneas 67-70) y `onDetachedFromWindow()` (líneas 72-75) llaman ambos `releaseGlResources()` **antes** de `super`. En este punto `isAttachedToWindow` sigue siendo `true` → pasa el guard → encola el cleanup.
+- **Discrepancia con el `Fix` planificado:** El plan decía "check `isAttachedToWindow` **o** wrap en `try/catch IllegalStateException`". Se implementó **solo** el check, no el try/catch. El edge case que el try/catch cubriría (vista attachada pero GLThread ya finalizado) **sigue sin protección**.
+- **Limitaciones:**
+  - **Edge case sin cubrir (crash potencial):** Si `isAttachedToWindow == true` pero el `GLThread` interno ya terminó (por ejemplo, el EGL context fue destruido por el sistema entre el check y la ejecución del `queueEvent`), `spatialRenderer.releaseGlResources()` correrá con un EGL context inválido y crasheará en `GLES30.glDeleteProgram()` o `GLES30.glDeleteBuffers()`. Este es exactamente el escenario que el item 1.3 pretendía prevenir. El guard bloquea el path "común" pero no el "edge case" que el plan identificó como objetivo.
+  - **Leak en `dispose()` post-detach:** Si `SpatialRuntimeSceneRenderHost.dispose()` (`DefaultSceneRenderHostFactory.kt:91-94`) se llama **después** de que Compose ya detachó la vista, `isAttachedToWindow == false` → `releaseGlResources()` retorna temprano → `spatialRenderer.releaseGlResources()` **nunca se ejecuta** → leak de `meshBuffers` y `programId`. El EGL context eventualmente se destruye y libera todo con él, pero no hay cleanup explícito. Comportamiento observado en ciclos de rotación rápida.
+  - **Doble liberación redundante:** `surfaceDestroyed` y `onDetachedFromWindow` pueden dispararse en secuencia, llamando `releaseGlResources()` dos veces. `SpatialGlRenderer.releaseGlResources()` es idempotente (`if (programId != 0)`), pero `queueEvent` se encola dos veces → trabajo redundante. No crítico, pero ineficiente.
+  - **Orden de cleanup subóptimo:** `surfaceDestroyed`/`onDetachedFromWindow` ejecutan `releaseGlResources()` **antes** que `super`. Esto encola cleanup mientras el surface aún es válido, pero el `super` puede invalidarlo antes de que el `queueEvent` se procese. Si se invirtiera (super primero), no habría surface contra el cual encolar.
+- **Veredicto:** ⚠️ **Hecho parcialmente.** El caso común (vista detachada → no encolar) está cubierto, pero el edge case identificado en el `Fix` original (try/catch `IllegalStateException`) **no**. El crash en la condición de carrera EGL-destrozado sigue siendo posible, aunque poco frecuente. Marcaría esto como "Done con limitación significativa", no como "Done completo".
+- **Acción recomendada (no bloqueante pero recomendado):**
+  - Envolver el `queueEvent { spatialRenderer.releaseGlResources() }` en `try { ... } catch (e: IllegalStateException) { if (BuildConfig.DEBUG) Log.w(TAG, "releaseGlResources: GLThread already gone", e) }` para cubrir el edge case restante.
+  - Considerar también `try/catch` dentro del `queueEvent` lambda para `GLES30.glDeleteProgram`/`glDeleteBuffers` (por si el context EGL se invalida entre el encolado y la ejecución).
+  - Documentar en KDoc de `releaseGlResources()` que el cleanup es best-effort y el EGL context teardown eventual liberará lo que quede.
+  - Considerar eliminar la doble invocación con un flag `released` en `SpatialGlSurfaceView` para evitar el redundante encolado.
 
 ---
 
