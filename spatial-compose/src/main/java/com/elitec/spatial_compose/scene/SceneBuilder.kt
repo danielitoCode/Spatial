@@ -1,17 +1,18 @@
 package com.elitec.spatial_compose.scene
 
-import com.elitec.spatial_compose.modifier.Modifier3D
-import com.elitec.spatial_compose.shapes.PrimitiveShape
+import androidx.compose.runtime.mutableStateListOf
 
 internal class SceneBuilder {
-    private val internalNodes = mutableListOf<SceneNode>()
+    private val internalNodes = mutableStateListOf<SceneNode>()
     val nodes: List<SceneNode> get() = internalNodes
 
-    internal fun add(shape: PrimitiveShape, modifier: Modifier3D) {
-        internalNodes += SceneNode(shape, modifier)
+    internal fun add(node: SceneNode) {
+        if (node !in internalNodes) {
+            internalNodes.add(node)
+        }
     }
 
-    internal fun clear() {
-        internalNodes.clear()
+    internal fun remove(node: SceneNode) {
+        internalNodes.remove(node)
     }
 }

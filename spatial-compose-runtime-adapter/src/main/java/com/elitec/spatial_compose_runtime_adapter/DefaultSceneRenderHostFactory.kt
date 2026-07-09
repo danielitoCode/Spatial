@@ -68,11 +68,23 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
                 "requestFrame: pendingNodes.size=${pendingNodes.size}, cameraSnapshot=$pendingCameraSnapshot",
             )
         }
+        // Capture a snapshot of the current pending data NOW, before any recomposition can overwrite
+        // pendingNodes/pendingCameraSnapshot between this call and onSurfaceReady's replay.
+        // Previously the closure read pendingNodes lazily at execution time: if onSurfaceCreated
+        // triggered a Compose recomposition that produced an empty node list before the queued frame
+        // fired, the replay would render 0 nodes even though 17 were pending at enqueue time.
+        val capturedNodes = pendingNodes
+        val capturedCamera = pendingCameraSnapshot
         val shouldRunNow = synchronized(readyLock) {
             if (glReady) {
                 true
             } else {
-                queuedFrame = { requestFrameInternal() }
+                queuedFrame = {
+                    runtime.requestFrame(
+                        nodes = capturedNodes,
+                        cameraSnapshot = capturedCamera,
+                    )
+                }
                 false
             }
         }

@@ -1,5 +1,6 @@
 package com.elitec.spatial_compose.state
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -160,7 +161,16 @@ class CameraState internal constructor(
         syncFromRuntime()
     }
 
-    fun snapshot(): CameraSnapshot = cameraRuntime.snapshot()
+    fun snapshot(): CameraSnapshot {
+        // Read Compose state properties to register state observation in the calling scope.
+        // Without reading these, calls to snapshot() read directly from the non-state cameraRuntime,
+        // meaning Compose never detects camera changes and the scene remains frozen.
+        val currentVersion = version
+        val currentYaw = yaw
+        val currentPitch = pitch
+        val currentZoom = zoom
+        return cameraRuntime.snapshot()
+    }
 
     private fun syncFromRuntime() {
         val snapshot = cameraRuntime.snapshot()

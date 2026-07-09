@@ -230,6 +230,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
     private fun applyClearColor(color: Color4) {
         GLES30.glClearColor(color.r, color.g, color.b, color.a)
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
     }
 
     private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
