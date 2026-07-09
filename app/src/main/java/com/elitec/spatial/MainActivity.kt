@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.elitec.spatial.presentation.screens.ShapesContentScreen
 import com.elitec.spatial.ui.theme.SpatialTheme
 import com.elitec.spatial_compose.CameraState
 import com.elitec.spatial_compose.Element
@@ -61,7 +62,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             SpatialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PlaygroundScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
+                    ShapesContentScreen(
+                        modifier = Modifier.fillMaxSize().padding(innerPadding)
+                    )
+                    //PlaygroundScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
                 }
             }
         }
@@ -96,6 +100,7 @@ private fun PlaygroundScreen(modifier: Modifier = Modifier) {
 
     Column(modifier = modifier) {
         Scene(
+            backgroundColor = Color.Transparent,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),

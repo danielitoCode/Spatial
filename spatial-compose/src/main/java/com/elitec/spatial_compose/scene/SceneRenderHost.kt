@@ -8,6 +8,7 @@ public interface SceneRenderHost {
     val view: View
     fun updateScene(nodes: List<RenderableNode>)
     fun updateCamera(cameraSnapshot: CameraSnapshot)
+    fun updateClearColor(color: com.elitec.spatial_core.render.Color4) {}
     fun requestFrame()
     fun dispose()
 }
@@ -15,9 +16,11 @@ public interface SceneRenderHost {
 internal fun SceneRenderHost.renderSceneFrame(
     nodes: List<RenderableNode>,
     cameraSnapshot: CameraSnapshot,
+    clearColor: com.elitec.spatial_core.render.Color4 = com.elitec.spatial_core.render.Color4.BLACK,
 ) {
     updateScene(nodes)
     updateCamera(cameraSnapshot)
+    updateClearColor(clearColor)
     requestFrame()
 }
 

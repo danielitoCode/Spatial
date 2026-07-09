@@ -31,6 +31,7 @@ fun Scene(
     renderHostFactory: SceneRenderHostFactory,
     cameraState: CameraState = rememberCameraState(),
     gestures: SceneGestures = Gestures.orbit(),
+    backgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Transparent,
     content: @Composable () -> Unit,
 ) {
     val sceneNodes = rememberSceneGraph(content)
@@ -45,6 +46,7 @@ fun Scene(
     val renderHostHolder = remember { SceneRenderHostHolder() }
 
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
+    val clearColor = remember(backgroundColor) { backgroundColor.toColor4() }
 
     AndroidView(
         modifier = modifier
@@ -58,16 +60,20 @@ fun Scene(
                 // once `onSurfaceCreated` fires, instead of touching GL before it's ready. See the
                 // item 1.2 audit notes in CORE1_STABILITY.md for the full mechanism and its
                 // known limitations (single-slot coalescer, not a real queue).
-                host.renderSceneFrame(renderableNodes, cameraSnapshot)
+                host.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
             }.view
         },
         onRelease = {
             renderHostHolder.dispose()
         },
         update = {
-            renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot)
+            renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
         },
     )
+}
+
+private fun androidx.compose.ui.graphics.Color.toColor4(): com.elitec.spatial_core.render.Color4 {
+    return com.elitec.spatial_core.render.Color4(red, green, blue, alpha)
 }
 
 private const val TAG = "SpatialComposeScene"

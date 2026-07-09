@@ -4,6 +4,7 @@ import com.elitec.spatial_camera.camera.CameraDelta
 import com.elitec.spatial_camera.camera.CameraRuntimeContract
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.camera.CameraUpdateSource
+import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
 import com.elitec.spatial_core.render.buildOrbitFrameSnapshot
@@ -67,12 +68,14 @@ class SpatialRuntime(
         frameTimeNanos: Long,
         nodes: List<RenderableNode>,
         cameraSnapshot: CameraSnapshot,
+        clearColor: Color4 = Color4.BLACK,
     ) {
         onFrame(
             snapshot = buildOrbitFrameSnapshot(
                 frameTimeNanos = frameTimeNanos,
                 cameraSnapshot = cameraSnapshot,
                 aspectRatio = aspectRatio,
+                clearColor = clearColor,
             ),
             nodes = nodes,
             cameraSnapshot = cameraSnapshot,
@@ -82,12 +85,14 @@ class SpatialRuntime(
     fun requestFrame(
         nodes: List<RenderableNode>,
         cameraSnapshot: CameraSnapshot,
+        clearColor: Color4 = Color4.BLACK,
     ) {
         frameScheduler.requestFrame { scheduledFrame ->
             renderFrame(
                 frameTimeNanos = scheduledFrame.frameTimeNanos,
                 nodes = nodes,
                 cameraSnapshot = cameraSnapshot,
+                clearColor = clearColor,
             )
         }
     }

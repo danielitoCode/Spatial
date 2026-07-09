@@ -13,6 +13,8 @@ import com.elitec.spatial_renderer.BuildConfig
 import com.elitec.spatial_renderer.render.RenderBackend
 import com.elitec.spatial_renderer.render.RenderFrame
 
+import android.graphics.PixelFormat
+
 class SpatialGlSurfaceView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
@@ -22,6 +24,15 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
 
     init {
         setEGLContextClientVersion(3)
+        // Configure EGL for translucent config (RGBA_8888) and 16-bit depth buffer
+        setEGLConfigChooser(8, 8, 8, 8, 16, 0)
+        
+        // Request translucency format from the surface holder
+        holder.setFormat(PixelFormat.TRANSLUCENT)
+        
+        // Set Z-order on top so that transparent clear colors show whatever Compose draws behind us
+        setZOrderOnTop(true)
+        
         spatialRenderer.onSurfaceReadyCallback = { post { requestRender() } }
         setRenderer(spatialRenderer)
         renderMode = RENDERMODE_WHEN_DIRTY

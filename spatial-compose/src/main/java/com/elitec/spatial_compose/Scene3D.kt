@@ -73,6 +73,7 @@ public fun Scene(
     renderHostFactory: SceneRenderHostFactory,
     cameraState: CameraState = rememberCameraState(),
     gestures: SceneGestures = Gestures.orbit(),
+    backgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Transparent,
     content: @Composable () -> Unit,
 ) {
     ComponentScene(
@@ -80,6 +81,7 @@ public fun Scene(
         renderHostFactory = renderHostFactory,
         cameraState = cameraState,
         gestures = gestures,
+        backgroundColor = backgroundColor,
         content = content,
     )
 }

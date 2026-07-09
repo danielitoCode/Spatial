@@ -181,6 +181,7 @@ fun ShapesContentScreen(
                                 renderHostFactory = DefaultSceneRenderHostFactory,
                                 cameraState = cameraState,
                                 gestures = Gestures.orbitAndZoom(),
+                                backgroundColor = Color.Transparent
                             ) {
                                 when(shapeItem.tittle.lowercase()) {
                                     "plane" -> Element.Plane(
@@ -189,11 +190,11 @@ fun ShapesContentScreen(
                                     )
                                     "cube" -> Element.Cube(
                                         modifier = Modifier3D.Default
-                                            .size(1.4f.meters)
+                                            .size(2f.meters)
                                     )
                                     "sphere" ->  Element.Sphere(
                                         modifier = Modifier3D.Default
-                                            .size(1f.meters)
+                                            .size(3f.meters)
                                     )
                                 }
                             }
