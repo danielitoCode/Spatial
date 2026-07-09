@@ -67,11 +67,25 @@ public typealias SceneRenderHostFactory = CoreSceneRenderHostFactory
 /** Root-package export for camera animation motion policies. */
 public typealias MotionSpec = CoreMotionSpec
 
+/**
+ * Renders a 3D scene as a Compose element.
+ *
+ * @param contentScale Initial visual scale of the scene content relative to the default camera
+ * distance. `1f` (100%) is the default orbital view; `0.5f` makes content appear at half size
+ * (camera zoomed out); `2f` makes content appear at double size (camera zoomed in).
+ * This value seeds the camera's initial zoom via [rememberCameraState] and can be adjusted
+ * afterwards through [cameraState] or gestures.
+ *
+ * **Important:** If you supply an explicit [cameraState], [contentScale] is ignored — your
+ * camera's own zoom takes precedence. Only provide [contentScale] when relying on the default
+ * internal camera.
+ */
 @Composable
 public fun Scene(
     modifier: Modifier = Modifier,
     renderHostFactory: SceneRenderHostFactory,
-    cameraState: CameraState = rememberCameraState(),
+    contentScale: Float = 1f,
+    cameraState: CameraState = rememberCameraState(zoom = contentScale.toInitialZoom()),
     gestures: SceneGestures = Gestures.orbit(),
     backgroundColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Transparent,
     content: @Composable () -> Unit,
@@ -85,6 +99,19 @@ public fun Scene(
         content = content,
     )
 }
+
+/**
+ * Maps a public [contentScale] fraction (where 1f = default orbital view) to the internal
+ * [CameraSnapshot.zoom] value used by the orbit camera.
+ *
+ * The orbit camera treats zoom as a *visual magnification factor*, so `contentScale` maps
+ * directly to zoom — a value of `0.5f` halves the apparent size of objects (camera moves
+ * farther out) and `2f` doubles it (camera moves closer in). The result is clamped to the
+ * camera's valid zoom range [MIN_ZOOM, MAX_ZOOM].
+ */
+private fun Float.toInitialZoom(): Float =
+    coerceIn(com.elitec.spatial_core.camera.CameraSnapshot.MIN_ZOOM,
+              com.elitec.spatial_core.camera.CameraSnapshot.MAX_ZOOM)
 
 @Composable
 public fun rememberCameraState(
