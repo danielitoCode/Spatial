@@ -1,4 +1,4 @@
-package com.elitec.spatial_renderer.gl
+package com.elitec.spatial_geometry
 
 /** Draw mode understood by the renderer without exposing Android GL classes to mesh tests. */
 enum class MeshDrawMode {
@@ -10,6 +10,8 @@ enum class MeshDrawMode {
 
 /**
  * Pure mesh description. Vertices are packed as x/y/z triples; indices address vertices.
+ *
+ * This is the common exchange format between geometry loaders (glTF, OBJ) and the renderer.
  */
 data class MeshData(
     val vertices: FloatArray,
@@ -46,5 +48,11 @@ data class MeshData(
 
     companion object {
         const val CoordinatesPerVertex = 3
+
+        /** A simple 1x1 triangle used as a fallback while real models are loading. */
+        val FallbackTriangle: MeshData = MeshData(
+            vertices = floatArrayOf(0f, 1f, 0f, -1f, -1f, 0f, 1f, -1f, 0f),
+            indices = intArrayOf(0, 1, 2)
+        )
     }
 }

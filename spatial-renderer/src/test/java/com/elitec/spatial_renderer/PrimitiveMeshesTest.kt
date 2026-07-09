@@ -1,7 +1,7 @@
 package com.elitec.spatial_renderer
 
-import com.elitec.spatial_renderer.gl.MeshData
-import com.elitec.spatial_renderer.gl.MeshDrawMode
+import com.elitec.spatial_geometry.MeshData
+import com.elitec.spatial_geometry.MeshDrawMode
 import com.elitec.spatial_renderer.gl.PrimitiveMeshIds
 import com.elitec.spatial_renderer.gl.PrimitiveMeshRegistry
 import com.elitec.spatial_renderer.gl.UnknownPrimitiveMeshException

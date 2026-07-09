@@ -11,6 +11,8 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_geometry.MeshData
+import com.elitec.spatial_geometry.MeshDrawMode
 import com.elitec.spatial_renderer.BuildConfig
 
 class SpatialGlRenderer : GLSurfaceView.Renderer {

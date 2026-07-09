@@ -1,5 +1,6 @@
 package com.elitec.spatial_renderer.gl
 
+import com.elitec.spatial_geometry.MeshData
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin

@@ -43,6 +43,7 @@ dependencies {
 
     // Compose consume únicamente contratos de core para evitar acoplar UI a backends de bajo nivel
     implementation(project(":spatial-core"))
+    implementation(project(":spatial-geometry"))
     implementation(project(":spatial-gesture"))
     implementation(project(":spatial-camera"))
     implementation(project(":spatial-units"))
