@@ -56,17 +56,13 @@ class ChoreographerFrameScheduler : FrameScheduler {
     private var scheduledCallback: Choreographer.FrameCallback? = null
 
     override fun requestFrame(onFrame: (RenderFrame) -> Unit) {
-        val shouldSchedule = synchronized(lock) {
-            latestOnFrame = onFrame
-            if (pending) {
-                false
-            } else {
-                pending = true
-                true
-            }
-        }
-        if (!shouldSchedule) return
-
+        // Built before the lock so the whole "decide + record" step below is a single atomic
+        // synchronized block; a previous version split this into two separate `synchronized`
+        // blocks (one to flip `pending`, a second to record `scheduledCallback`), leaving a
+        // theoretical window where a concurrent `cancel()` between them would find
+        // `scheduledCallback == null` and be unable to call `removeFrameCallback`, even though
+        // `postFrameCallback` would still go on to run afterwards. Not exploitable today (this
+        // scheduler is only ever driven from a single Looper thread), but cheap to close outright.
         val callback = Choreographer.FrameCallback { frameTimeNanos ->
             val onFrameToInvoke = synchronized(lock) {
                 pending = false
@@ -75,8 +71,20 @@ class ChoreographerFrameScheduler : FrameScheduler {
             }
             onFrameToInvoke?.invoke(RenderFrame(frameTimeNanos = frameTimeNanos))
         }
-        synchronized(lock) { scheduledCallback = callback }
-        choreographer.postFrameCallback(callback)
+
+        val shouldSchedule = synchronized(lock) {
+            latestOnFrame = onFrame
+            if (pending) {
+                false
+            } else {
+                pending = true
+                scheduledCallback = callback
+                true
+            }
+        }
+        if (shouldSchedule) {
+            choreographer.postFrameCallback(callback)
+        }
     }
 
     /**

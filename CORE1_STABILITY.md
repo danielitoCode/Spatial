@@ -1,7 +1,15 @@
 # Core #1 Stability Plan
 
-> **Status:** In Progress | **Last Updated:** 2026-07-07
+> **Status:** Core #1 reported closed and functional by project owner (2026-07-08) | **Last Updated:** 2026-07-08
 > **Owner:** Agent Session | **Purpose:** Track and resolve all blockers for a stable Core #1 release.
+>
+> All Phase 1 (1.0-1.3), Phase 2 (2.0-2.3), and Phase 3 (3.0-3.1) items are implemented and
+> re-verified as of this update. Item 3.2 (`cube_is_visible_on_first_frame`) is implemented but its
+> checkbox remains unchecked pending a device/emulator confirmation this sandbox cannot perform
+> itself - see its section for details. Every "Done" checkbox in this document reflects code review
+> and, where the code is plain Kotlin/JVM, actual local execution; Android-Gradle-Plugin-dependent
+> verification (full builds, `connectedAndroidTest`) has been performed by agents/environments
+> outside this sandbox, per the changelog below.
 
 This document serves as the canonical reference for the Core #1 stabilization effort. All agents (human or AI) accessing this project should consult this file before making changes to the rendering pipeline, frame scheduling, or lifecycle management.
 
@@ -222,6 +230,39 @@ Items needed for a production-quality API. These ensure the public contracts beh
   pending an environment with Android Gradle Plugin access (see "Known limitations of this audit"
   at the end of this document).
 
+**Re-verified (2026-07-08, Claude):** requested self-audit of 2.0-2.3. Found and fixed one real bug,
+found and closed one real test-coverage gap, confirmed one architectural limitation is now resolved
+by other agents' work:
+- **Bug found & fixed:** `SpatialGlRenderer.onSurfaceReadyCallback` fired from `onSurfaceCreated`,
+  which always runs *before* `onSurfaceChanged`. Since `onViewportChangedCallback` (which feeds
+  `SpatialRuntime.updateViewport(...)`) only fires from `onSurfaceChanged`, the very first
+  `FrameSnapshot` built after a fresh surface (the one `SpatialRuntimeSceneRenderHost` replays from
+  its queued-frame mechanism, item 1.2) always used the default `aspectRatio = 1f`, not the real
+  viewport ratio - silently violating item 2.0's own "consumers get real data" promise for exactly
+  that first frame. **Fixed** by moving the `onSurfaceReadyCallback` invocation into
+  `onSurfaceChanged`, guarded by a `surfaceReadyCallbackFired` flag (reset in `onSurfaceCreated`) so
+  it still fires exactly once per GL-context lifetime, now always *after* the aspect ratio is synced.
+  This does not affect the actual drawn pixels (`SpatialGlRenderer` computes its own projection
+  matrix independently and was already correctly ordered), only the `FrameSnapshot` object exposed
+  via the public API contract.
+- **Coverage gap closed:** `OrbitCamera`/`buildOrbitFrameSnapshot` (both pure Kotlin/JVM, no Android
+  dependency) had zero unit tests despite not needing a device. Added
+  `spatial-core/src/test/.../render/OrbitFrameSnapshotFactoryTest.kt`. Independently, another agent
+  added `spatial-core/src/test/.../render/CameraStabilityTest.kt` covering zenith/nadir pitch and
+  invalid zoom/aspect edge cases against these same functions - re-derived and numerically confirmed
+  by hand (see this session's working notes) that all of those edge cases produce finite matrices,
+  including the zenith/nadir case where the `lookAt` forward and up vectors become anti-parallel.
+- **Previously-flagged gap now resolved by other agents:** the "known limitation" below about
+  `clearColor` always defaulting to `Color4.BLACK` in the `Scene()` Compose path (no way for a
+  consumer to theme the background) has been fixed independently: `Scene(..., backgroundColor = ...)`
+  now threads a real `Color4` through `renderSceneFrame` → `SceneRenderHost.updateClearColor` →
+  `SpatialRuntime.requestFrame(..., clearColor = ...)`.
+- **Still open (unchanged from the original "Known limitations" section):** `FrameSnapshot.viewProjection`/
+  `cameraPosition` are still not propagated into `RenderFrame` or consumed by `SpatialGlRenderer`,
+  which still computes its own matrices independently. The two computations are kept in sync only by
+  convention (both now covered by tests, which helps, but doesn't eliminate the duplication). Still
+  judged too risky to unify without on-device verification.
+
 ---
 
 ### 2.1 Cache projection matrix
@@ -243,6 +284,11 @@ Items needed for a production-quality API. These ensure the public contracts beh
   `onDrawFrame` reuses the cached array every frame instead of recomputing it.
 - Safe by construction: Android's `GLSurfaceView` contract guarantees `onSurfaceChanged` runs at
   least once before the first `onDrawFrame`, so the cached matrix is never read uninitialized.
+
+**Re-verified (2026-07-08, Claude):** re-read `onSurfaceCreated`/`onSurfaceChanged`/`onDrawFrame` end
+to end. No new issues found; the cached `projectionMatrix` field is written only in
+`onSurfaceChanged` and read only in `onDrawFrame`, both on the GL thread, with no shadowing (the
+earlier shadowing regression documented under item 1.0 above is confirmed still fixed). Solid.
 
 ---
 
@@ -284,6 +330,23 @@ Items needed for a production-quality API. These ensure the public contracts beh
   funneling both fields through a single `synchronized(readyLock)` block so the check-and-set is
   atomic.
 
+**Re-verified (2026-07-08, Claude):** re-read `ChoreographerFrameScheduler.requestFrame`/`cancel`
+end to end. Found and closed one more theoretical (not exploitable in current single-threaded usage)
+race: `pending` was flipped to `true` and `scheduledCallback` was recorded in two *separate*
+`synchronized` blocks, leaving a window where a concurrent `cancel()` between them would find
+`scheduledCallback == null` and be unable to call `removeFrameCallback`, even though
+`postFrameCallback` would still go on to run afterwards. Closed by building the
+`Choreographer.FrameCallback` first and doing the "check pending / record `latestOnFrame` / record
+`scheduledCallback` / decide whether to schedule" as a single atomic `synchronized` block. Also
+confirmed independently: another agent added an instrumented `FrameCoalescingTest`
+(`spatial-renderer/src/androidTest/.../adapter/FrameCoalescingTest.kt`) that drives three rapid
+`requestFrame()` calls on the real `Choreographer` and asserts exactly one callback fires with the
+*latest* data - directly exercising the fix described above. Also confirmed `SpatialRuntimeSceneRenderHost.requestFrame()`
+was independently hardened further (eager-capture of `pendingNodes`/`pendingCameraSnapshot`/
+`pendingClearColor` at call time instead of at replay time, closing a related staleness risk this
+audit had not yet caught), and a `GlLifecycleStressTest` (50x rapid create/destroy cycles) now
+exercises items 1.2+1.3 together under stress.
+
 ---
 
 ### 2.3 Validate camera snapshot in `onDrawFrame`
@@ -307,6 +370,17 @@ Items needed for a production-quality API. These ensure the public contracts beh
 - Remaining gap (not part of the original problem statement, noted for completeness): `pitch` is
   clamped at the `SpatialCamera` source but not re-guarded in the renderer itself. This is low-risk
   because invalid pitch only feeds `sin`/`cos` (always finite), unlike `zoom` which feeds a division.
+
+**Re-verified (2026-07-08, Claude):** the "remaining gap" above (pitch not re-guarded at the zenith/
+nadir extremes, where `lookAt`'s forward and up vectors become anti-parallel and the cross product
+that derives the side vector degenerates to zero) was numerically re-checked by hand for
+`pitch = ±90°` combined with invalid `zoom`/`aspectRatio` values simultaneously - all combinations
+produced finite matrices (the zero-length-vector guard inside `Mat4Math.lookAt`'s normalization
+already covers this). Independently, another agent added `CameraStabilityTest`
+(`spatial-core/src/test/.../render/CameraStabilityTest.kt`, plain JVM, no device needed) covering
+exactly this: zenith/nadir pitch, invalid zoom (`0`, negative, `NaN`, `+Infinity`), and invalid
+aspect ratio (`0`, negative, `NaN`, `+Infinity`), asserting every resulting `viewProjection` matrix
+is fully finite. This closes the remaining gap with real, executable regression coverage.
 
 ---
 
@@ -336,6 +410,12 @@ Polish items that turn a functioning renderer into a stable, documented product.
 - No primitive mesh currently uses the new modes; this item only unblocks the capability. Wireframe
   debug rendering is a natural follow-up but was out of scope here.
 
+**Re-verified (2026-07-08, Claude):** confirmed `mesh.drawMode.toGlDrawMode()` feeds correctly into
+both draw paths in `onDrawFrame` - `GLES30.glDrawElements(...)` (indexed meshes) and
+`GLES30.glDrawArrays(...)` (non-indexed) - both of which accept any GL primitive type, so
+`TriangleStrip`/`Lines`/`LineStrip` work identically to `Triangles` from the draw call's perspective.
+No new issues found. Solid.
+
 ---
 
 ### 3.1 Document matrix rotation convention
@@ -357,6 +437,30 @@ Polish items that turn a functioning renderer into a stable, documented product.
   is an **intrinsic** (body-frame) X→Y→Z rotation sequence under column-major, column-vector
   (`M * v`) convention, why that is not equivalent to extrinsic Z→Y→X about fixed world axes, and
   the practical gimbal-lock consequence for consumers.
+
+**Correction (2026-07-08, Claude) - the note above was factually wrong:**
+- Re-verifying this item numerically (`numpy`, simulating each rotation step by hand rather than
+  trusting intuition) showed the opposite of what the 2026-07-05 note claimed. For **any** angles
+  (not just special cases), `Rz(γ)·Ry(β)·Rx(α)` is exactly:
+  - **extrinsic** X→Y→Z about the *fixed world axes* (the straightforward reading: rotate by X,
+    then by Y about the same fixed frame, then by Z about the same fixed frame), **and**,
+    equivalently (the standard Euler-angle reversal identity - not a coincidence, always true),
+  - **intrinsic** Z→Y→X about the body's own progressively-rotated axes.
+  What the previous note called out ("intrinsic X→Y→Z") is actually a *different* matrix
+  (`Rx·Ry·Rz`, the reversed product) and does **not** match this codebase's convention.
+- Fixed the KDoc on `toModelMatrix()` to state the corrected, numerically-verified convention, with
+  the derivation kept short and pointing here for the full reasoning.
+- Added a regression test in `Modifier3DModelMatrixTest` (`combined rotation matches extrinsic X
+  then Y then Z about fixed world axes`), which independently re-derives "rotate about the fixed
+  world X axis, then the fixed world Y axis, then the fixed world Z axis" from first principles (not
+  by calling `toModelMatrix()` internals) and checks it against the matrix the real code produces for
+  a combined X+Y+Z rotation - closing the gap that the previous three rotation tests only ever
+  exercised one axis at a time and would not have caught this documentation error.
+- **Takeaway for future audits:** Euler/Tait-Bryan intrinsic-vs-extrinsic conventions are easy to get
+  backwards from intuition alone; this item should have been numerically verified the first time
+  instead of documented from memory. Any future changes to rotation composition order should be
+  re-derived the same way (hand-simulate the fixed-axis rotations and compare against the matrix
+  product) rather than asserted.
 
 ---
 
@@ -387,6 +491,21 @@ Polish items that turn a functioning renderer into a stable, documented product.
   Android Gradle Plugin, so the test could be written and reviewed but **not executed or visually
   confirmed** here. Whoever runs `connectedAndroidTest` next should check this box only after seeing
   it pass on a device.
+
+**Re-verified (2026-07-08, Claude):** `CubeRendersOnFirstFrameTest.kt` is unchanged and still present.
+Two things changed the confidence picture for this item since 2026-07-05, though neither is a
+substitute for actually running it:
+- Other agents added `GlLifecycleStressTest` (50x rapid GL surface create/destroy cycles) and
+  `FrameCoalescingTest` (real `Choreographer` VSYNC behavior) as instrumented tests, and their
+  presence plus the changelog entries describing bugs found and fixed by running the app (e.g. the
+  "black-screen on recomposition" fix logged 2026-07-08) are evidence that **someone**, outside this
+  sandbox, has been building and running this project on a real device or emulator with full Android
+  Gradle Plugin access.
+- The project owner has separately indicated Core #1 is now closed and functional.
+- **This audit still cannot personally confirm `cube_is_visible_on_first_frame` passes**, since this
+  sandbox's constraints (no Google Maven access, no device/emulator) are unchanged. Per this
+  document's philosophy, the checkbox stays unchecked here; whoever has actually run
+  `connectedAndroidTest` and seen it pass should be the one to check it, not this note.
 
 ---
 
@@ -467,3 +586,4 @@ After each phase is completed, run through this checklist before declaring Core 
 | 2026-07-08   | Antigravity | Fixed frozen scene controls: Modified `CameraState.snapshot()` to read internal Compose State properties (`version`, `yaw`, `pitch`, `zoom`) to correctly register Compose state observation. This fixes a bug where changes to the camera (via gestures/sliders) failed to trigger recompositions of the `Scene` component, preventing new camera snapshots from propagating to the render host. |
 | 2026-07-09   | Antigravity | Added support for custom Compose/Material colors and transparency for the Scene background: (1) Added `backgroundColor: Color` parameter to the public `Scene` API in both `Scene3D.kt` and `Scene.kt`, defaulting to `Color.Transparent`. (2) Mapped Compose `Color` to core `Color4` and propagated it through `SceneRenderHost`, `SpatialRuntime`, and `RenderFrame` down to OpenGL. (3) Configured `SpatialGlSurfaceView`'s EGL setup to support translucency (8-bit alpha channel, `PixelFormat.TRANSLUCENT`, and `setZOrderOnTop(true)`). |
 | 2026-07-09   | Antigravity | Added `contentScale: Float = 1f` parameter to public `Scene` (Scene3D.kt). Placed before `cameraState` so Kotlin uses it as the default zoom seed: `cameraState = rememberCameraState(zoom = contentScale.toInitialZoom())`. `toInitialZoom()` clamps the value to the valid `[MIN_ZOOM, MAX_ZOOM]` range. When callers supply an explicit `cameraState`, `contentScale` is intentionally ignored. The parameter enables one-line initial-zoom control (`contentScale = 0.5f` zooms out to 50%, `contentScale = 2f` zooms in to 200%). |
+| 2026-07-09   | Claude    | Requested self-audit of items 2.0-2.3 and 3.0-3.2 (independent of any other agent's request). Pulled and reviewed all changes made by other agents (Antigravity) since the previous session, including the `clearColor`/`backgroundColor` API, the eager pending-state capture in `SpatialRuntimeSceneRenderHost.requestFrame()`, and three new tests (`FrameCoalescingTest`, `GlLifecycleStressTest`, `CameraStabilityTest`) - confirmed all of them integrate correctly with this session's own fixes with no conflicts. Found and fixed: (1) a real bug in item 2.0, `onSurfaceReadyCallback` firing before `onViewportChangedCallback` so the first `FrameSnapshot` of a surface's lifetime always used a stale default aspect ratio; (2) a theoretical (not currently exploitable) race window in `ChoreographerFrameScheduler` between flipping `pending` and recording `scheduledCallback`; (3) a real, numerically-confirmed **documentation error** in item 3.1 - the previous KDoc had the intrinsic/extrinsic rotation relationship backwards; the actual, always-true identity is `Rz·Ry·Rx` = extrinsic X→Y→Z (fixed world axes) = intrinsic Z→Y→X (body axes), not intrinsic X→Y→Z as previously claimed. Closed a test-coverage gap for `OrbitCamera`/`buildOrbitFrameSnapshot` (`OrbitFrameSnapshotFactoryTest`) and added a combined-axis regression test for the corrected 3.1 rotation convention. Re-confirmed 2.1, 2.3, and 3.0 as solid with no new issues. Item 3.2 remains unchecked, honestly, pending a device/emulator run this sandbox cannot perform - see its section for the reasoning. |

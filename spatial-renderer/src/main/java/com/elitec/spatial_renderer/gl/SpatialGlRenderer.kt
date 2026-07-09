@@ -32,6 +32,11 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     // changes when the viewport size changes, not every frame).
     private val projectionMatrix = FloatArray(16)
 
+    // Item 2.0 follow-up (re-verification, 2026-07-08): guards `onSurfaceReadyCallback` so it fires
+    // exactly once per GL-context lifetime, from `onSurfaceChanged` instead of `onSurfaceCreated`.
+    // See the comment on that callback invocation below for why.
+    private var surfaceReadyCallbackFired = false
+
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
     }
@@ -66,7 +71,10 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             )
         }
 
-        onSurfaceReadyCallback?.invoke()
+        // `onSurfaceReadyCallback` no longer fires here (see onSurfaceChanged): a fresh EGL context
+        // always gets at least one onSurfaceChanged before the first onDrawFrame, so we defer to
+        // that call to guarantee the aspect ratio is already synced by the time "ready" fires.
+        surfaceReadyCallbackFired = false
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -76,7 +84,21 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onSurfaceChanged: width=$width, height=$height, aspectRatio=$aspectRatio")
         }
+        // Item 2.0 follow-up (re-verification, 2026-07-08): `onViewportChangedCallback` must run
+        // before `onSurfaceReadyCallback` so that whoever consumes the "ready" signal (i.e.
+        // SpatialRuntimeSceneRenderHost replaying its queued first frame) already has the real
+        // aspect ratio synced into SpatialRuntime.updateViewport(...). Previously the ready callback
+        // fired from onSurfaceCreated - *before* onSurfaceChanged ever ran - so the very first
+        // FrameSnapshot built for a fresh surface always used the default 1:1 aspect ratio instead
+        // of the real one, silently breaking item 2.0's "consumers get real data" promise for
+        // exactly the first frame of a surface's lifetime. This doesn't affect the pixels actually
+        // drawn (SpatialGlRenderer computes its own projection matrix independently, already
+        // correctly ordered), only the FrameSnapshot object exposed via the public contract.
         onViewportChangedCallback?.invoke(aspectRatio)
+        if (!surfaceReadyCallbackFired) {
+            surfaceReadyCallbackFired = true
+            onSurfaceReadyCallback?.invoke()
+        }
     }
 
     override fun onDrawFrame(gl: GL10?) {
