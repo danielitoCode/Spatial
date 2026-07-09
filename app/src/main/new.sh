@@ -1,0 +1,1 @@
+./gradlew :spatial-renderer:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.elitec.spatial_renderer.gl.GlLifecycleStressTest
