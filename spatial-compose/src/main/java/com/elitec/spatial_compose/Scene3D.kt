@@ -7,6 +7,7 @@ import com.elitec.spatial_units.Angle
 import com.elitec.spatial_units.deg
 import com.elitec.spatial_compose.components.Scene as ComponentScene
 import com.elitec.spatial_compose.core.Element as CoreElement
+import com.elitec.spatial_compose.scene.ModelSceneElement as CoreModelSceneElement
 import com.elitec.spatial_compose.modifier.Modifier3D as CoreModifier3D
 import com.elitec.spatial_compose.motion.MotionSpec as CoreMotionSpec
 import com.elitec.spatial_compose.scene.GestureSensitivity as CoreGestureSensitivity
@@ -37,6 +38,28 @@ public object Element {
     @Composable
     public fun Plane(modifier: Modifier3D = Modifier3D.Default) {
         CoreElement.Plane(modifier = modifier)
+    }
+
+    /**
+     * Renders a 3D model loaded from an external resource (e.g., a GLB file from `/res/raw/`).
+     *
+     * Usage:
+     * ```kotlin
+     * Element.Model(
+     *     model = ModelResource.fromRawResource(R.raw.my_model),
+     *     modifier = Modifier3D.Default.size(2f.meters)
+     * )
+     * ```
+     *
+     * @param model The [ModelResource] identifying the 3D asset to load.
+     * @param modifier The [Modifier3D] to position, rotate, or scale the model in the scene.
+     */
+    @Composable
+    public fun Model(
+        model: ModelResource,
+        modifier: Modifier3D = Modifier3D.Default,
+    ) {
+        CoreModelSceneElement(model = model, modifier = modifier)
     }
 }
 

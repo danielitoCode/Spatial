@@ -43,6 +43,14 @@ public sealed interface ModelResource {
         public fun fromRawResource(@RawRes resId: Int): ModelResource {
             return RawResourceModel(resId)
         }
+
+        /**
+         * Unwraps the [ModelResource] to its underlying Android `R.raw` resource ID.
+         * @throws IllegalArgumentException if the resource is not a [RawResourceModel].
+         */
+        internal fun unwrapResId(resource: ModelResource): Int {
+            return resource.rawResIdOrNull() ?: error("Unsupported ModelResource type")
+        }
     }
 }
 
@@ -51,7 +59,7 @@ public sealed interface ModelResource {
  */
 @Stable
 @Immutable
-class RawResourceModel(
+internal class RawResourceModel(
     @RawRes public val resId: Int,
 ) : ModelResource {
     override val id: String get() = "raw:$resId"

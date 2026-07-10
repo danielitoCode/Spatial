@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
+import com.elitec.spatial_compose.ModelResource.Companion.unwrapResId
 import com.elitec.spatial_geometry.GltfBinaryParser
 import com.elitec.spatial_geometry.MeshData
 import kotlinx.coroutines.Dispatchers
@@ -43,7 +44,7 @@ public fun rememberModel(model: ModelResource): MeshData {
 
         val loadedMesh = withContext(Dispatchers.IO) {
             try {
-                val resId = (model as RawResourceModel).resId
+                val resId = unwrapResId(model)
                 context.resources.openRawResource(resId).use { inputStream ->
                     GltfBinaryParser.parse(inputStream)
                 }
