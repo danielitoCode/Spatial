@@ -11,7 +11,7 @@ import org.junit.Test
 class SpatialComposeDependencyContractTest {
 
     @Test
-    fun `spatial compose depends only on allowed Core 1 modules`() {
+    fun `spatial compose depends only on allowed framework modules`() {
         val buildFile = spatialComposeBuildFile()
         val source = Files.readString(buildFile)
         val projectDependencies = Regex("project\\(\\\":([^\\\"]+)\\\"\\)")
@@ -25,7 +25,7 @@ class SpatialComposeDependencyContractTest {
             projectDependencies.any { it in forbiddenBackendDependencies },
         )
         assertTrue(
-            "The build file must document Option B as the official Core #1 boundary.",
+            "The build file must document Option B as the official framework boundary.",
             source.contains("Frontera oficial Core #1") && source.contains(":spatial-compose-runtime-adapter"),
         )
     }
@@ -42,6 +42,7 @@ class SpatialComposeDependencyContractTest {
     private companion object {
         val allowedProjectDependencies = setOf(
             "spatial-core",
+            "spatial-geometry",
             "spatial-gesture",
             "spatial-camera",
             "spatial-units",

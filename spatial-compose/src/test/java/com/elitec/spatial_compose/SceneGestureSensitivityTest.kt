@@ -14,7 +14,7 @@ import org.junit.Test
 class SceneGestureSensitivityTest {
     @Test
     fun adaptiveSensitivity_decreasesAngularDeltaWhenZoomIncreases() {
-        val nodes = listOf(SceneNode(PrimitiveShape.Cube, Modifier3D.Default.size(2f.meters)))
+        val nodes = listOf(SceneNode.Primitive(PrimitiveShape.Cube, Modifier3D.Default.size(2f.meters)))
 
         val normalZoomDelta = resolveOrbitGestureDelta(
             dx = 120f,
@@ -40,7 +40,7 @@ class SceneGestureSensitivityTest {
     @Test
     fun adaptiveSensitivity_keepsSmallScenesBelowReasonableStepThreshold() {
         val tinyScene = listOf(
-            SceneNode(
+            SceneNode.Primitive(
                 PrimitiveShape.Cube,
                 Modifier3D.Default.size(0.1f.meters),
             ),
@@ -62,7 +62,7 @@ class SceneGestureSensitivityTest {
     @Test
     fun fixedSensitivity_preservesExplicitLegacyDegreesPerPixelUntilStepCap() {
         val tinyScene = listOf(
-            SceneNode(
+            SceneNode.Primitive(
                 PrimitiveShape.Cube,
                 Modifier3D.Default.size(0.1f.meters),
             ),
