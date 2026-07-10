@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -19,12 +20,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.elitec.spatial.R
 import com.elitec.spatial.util.GlobalPreview
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 
 @Composable
 fun SplashScreen(
+    navigate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(null) {
+        delay(2000.milliseconds)
+        navigate()
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -62,6 +70,7 @@ fun SplashScreen(
 fun SplashScreenPreview() {
     GlobalPreview {
         SplashScreen(
+            {},
             modifier = Modifier.fillMaxSize()
         )
     }

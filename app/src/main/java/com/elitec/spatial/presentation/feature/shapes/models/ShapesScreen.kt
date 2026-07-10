@@ -1,4 +1,4 @@
-package com.elitec.spatial.presentation.screens
+package com.elitec.spatial.presentation.feature.shapes.models
 
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
@@ -37,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.elitec.spatial.R
-import com.elitec.spatial.presentation.models.ShapeSectionItem
 import com.elitec.spatial.util.GlobalPreview
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures

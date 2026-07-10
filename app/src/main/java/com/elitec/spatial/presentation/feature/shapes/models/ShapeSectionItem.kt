@@ -1,4 +1,4 @@
-package com.elitec.spatial.presentation.models
+package com.elitec.spatial.presentation.feature.shapes.models
 
 data class ShapeSectionItem(
     val tittle: String,
