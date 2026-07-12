@@ -46,7 +46,6 @@ import kotlin.random.Random
 
 @Composable
 fun MainScreen(
-    navigateTo: (MainRoutesKey) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isRotatedTagsFocused by remember { mutableStateOf(false) }
@@ -549,7 +548,6 @@ fun MainScreen(
 fun MainScreenPreview() {
     GlobalPreview {
         MainScreen(
-            {},
             Modifier
                 .fillMaxSize()
                 .padding(10.dp)

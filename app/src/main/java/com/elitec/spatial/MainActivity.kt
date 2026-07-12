@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elitec.spatial.presentation.feature.shapes.models.ShapesContentScreen
+import com.elitec.spatial.presentation.navigation.MainNavigationWrapper
 import com.elitec.spatial.ui.theme.SpatialTheme
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures
@@ -53,10 +54,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             SpatialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ShapesContentScreen(
+                    MainNavigationWrapper(
                         modifier = Modifier.fillMaxSize().padding(innerPadding)
                     )
-                    //PlaygroundScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
                 }
             }
         }

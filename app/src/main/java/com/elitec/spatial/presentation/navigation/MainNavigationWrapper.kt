@@ -5,13 +5,17 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.elitec.spatial.presentation.feature.shapes.models.CodeScreen
+import com.elitec.spatial.presentation.feature.shapes.models.ShapesContentScreen
+import com.elitec.spatial.presentation.screens.LandingScreen
+import com.elitec.spatial.presentation.screens.MainScreen
 import com.elitec.spatial.presentation.screens.SplashScreen
-import java.util.Map.entry
 
 @Composable
 fun MainNavigationWrapper(
@@ -64,8 +68,15 @@ fun MainNavigationWrapper(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            entry<MainRoutesKey.MainHome> {
-
+            entry<MainRoutesKey.Landing> {
+                LandingScreen(
+                    navigate = { backStack.navigateTo(MainRoutesKey.Home) },
+                )
+            }
+            entry<MainRoutesKey.Home> {
+                InternalNavigationWrapper(
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     )

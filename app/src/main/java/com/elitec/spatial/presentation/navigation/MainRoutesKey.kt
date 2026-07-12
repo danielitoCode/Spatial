@@ -12,6 +12,9 @@ sealed class MainRoutesKey: NavKey {
     object Landing : MainRoutesKey()
 
     @Serializable
+    object Home : MainRoutesKey()
+
+    @Serializable
     object MainHome : MainRoutesKey()
 
     @Serializable
