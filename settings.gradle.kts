@@ -17,6 +17,7 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
     }
@@ -38,3 +39,4 @@ include(":spatial-light")
 include(":spatial-units")
 include(":spatial-runtime")
 include(":spatial-compose-runtime-adapter")
+include(":spatial")

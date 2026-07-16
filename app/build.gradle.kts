@@ -70,4 +70,8 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.material3.adaptive.navigation3)
     implementation(libs.kotlinx.serialization.core)
+
+
+    // Highligh
+    implementation(libs.snipme.kodeview)
 }

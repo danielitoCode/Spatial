@@ -52,6 +52,9 @@ private val shapeItems = listOf(
     ShapeSectionItem("Plane", "A simple plane in a axis orientation , 2D only", 0, {}, {}),
     ShapeSectionItem("Cube", "Native cube shape", 0, {}, {}),
     ShapeSectionItem("Sphere", "Native sphere shape", 0, {}, {}),
+    ShapeSectionItem("Plane", "A simple plane in a axis orientation , 2D only", 0, {}, {}),
+    ShapeSectionItem("Cube", "Native cube shape", 0, {}, {}),
+    ShapeSectionItem("Sphere", "Native sphere shape", 0, {}, {}),
 )
 
 @Composable

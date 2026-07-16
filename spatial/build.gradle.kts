@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.elitec.spatial_renderer"
+    namespace = "com.elitec.spatial"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -16,15 +16,12 @@ android {
         minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures {
-        buildConfig = true
-    }
+
 }
 
 dependencies {
@@ -35,14 +32,18 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 
-    // Renderer solo depende de bloques de bajo nivel (math/material/light), nunca de core/scene/compose.
-    implementation(project(":spatial-math"))
-    implementation(project(":spatial-geometry"))
-    implementation(project(":spatial-material"))
-    implementation(project(":spatial-light"))
-    // Renderer implementa contratos definidos en core.
-    implementation(project(":spatial-core"))
-    implementation(project(":spatial-camera"))
+    api(project(":spatial-compose"))
+    api(project(":spatial-core"))
+    api(project(":spatial-runtime"))
+    api(project(":spatial-renderer"))
+    api(project(":spatial-camera"))
+    api(project(":spatial-geometry"))
+    api(project(":spatial-gesture"))
+    api(project(":spatial-motion"))
+    api(project(":spatial-material"))
+    api(project(":spatial-light"))
+    api(project(":spatial-units"))
+    api(project(":spatial-math"))
 }
 
 signing {
@@ -57,15 +58,15 @@ mavenPublishing {
 
     coordinates(
         groupId = "io.github.danielitocode",
-        artifactId = "spatial-renderer",
+        artifactId = "spatial",
         version = "0.1.0-alpha01"
     )
 
     pom {
 
-        name.set("Spatial Renderer")
+        name.set("Spatial")
 
-        description.set("Renderer module for Spatial 3D engine")
+        description.set("Spatial 3D engine")
 
         inceptionYear.set("2026")
 
