@@ -54,6 +54,42 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
         }
     }
 
+    /**
+     * Called by the Compose host when the hosting Activity resumes (see the `LifecycleObserver`
+     * wired in `Scene` for the entry point).
+     *
+     * Track 1 (Fix background-then-foreground bug, Core #1): after a background/foreground cycle,
+     * the EGL context may be torn down and recreated by the system. `SpatialGlSurfaceView.onResume`
+     * re-arms the "ready" gate so the next `onSurfaceChanged` re-fires `onSurfaceReadyCallback`. We
+     * mirror that here: drop `glReady` back to `false` so any `requestFrame()` calls that land on
+     * us BEFORE `onSurfaceReady` re-fires (e.g. from a Compose recomposition driven by the resume)
+     * are correctly queued instead of falling through `requestFrameInternal()` against a renderer
+     * whose `programId == 0` / `meshBuffers` are being rebuilt on the GL thread at the same moment.
+     *
+     * Critically, we do NOT touch `pendingNodes`/`pendingCameraSnapshot`/`pendingClearColor` here.
+     * Those survive across the background/foreground boundary (Compose's `SnapshotStateList` in
+     * `rememberSceneGraph` is not disposed on background), so the queued frame will re-push the
+     * exact same scene state and the screen will repaint with the user's 3D figures still present,
+     * instead of the bug-reported "figures 3D disappear".
+     */
+    override fun onResume() {
+        synchronized(readyLock) {
+            glReady = false
+        }
+        renderTarget.onResume()
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onResume: glReady gate re-armed, GL thread resume dispatched")
+        }
+    }
+
+    /** Called by the Compose host when the hosting Activity pauses. */
+    override fun onPause() {
+        renderTarget.onPause()
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onPause: GL thread pause dispatched")
+        }
+    }
+
     override fun updateScene(nodes: List<RenderableNode>) {
         pendingNodes = nodes
     }

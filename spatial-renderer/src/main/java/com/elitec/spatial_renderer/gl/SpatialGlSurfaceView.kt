@@ -30,8 +30,13 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         // Request translucency format from the surface holder
         holder.setFormat(PixelFormat.TRANSLUCENT)
         
-        // Set Z-order on top so that transparent clear colors show whatever Compose draws behind us
-        setZOrderOnTop(true)
+        // Use Z-order media overlay so the GL surface respects its position in the View hierarchy.
+        // `setZOrderOnTop(true)` would force the GL surface above ALL Compose content (including
+        // TopBars, Scaffolds, dialogs), causing the 3D scene to bleed through overlapping UI.
+        // `setZOrderMediaOverlay(true)` keeps the surface above the Window's background but below
+        // other Compose content that is positioned on top of it in the layout tree, matching
+        // how Compose's AndroidView normally participates in z-ordering.
+        setZOrderMediaOverlay(true)
         
         spatialRenderer.onSurfaceReadyCallback = { post { requestRender() } }
         setRenderer(spatialRenderer)
@@ -109,12 +114,29 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        // When the screen turns off and back on, the EGL context is torn down and recreated.
+        // We release GL resources here so the GLThread doesn't try to use stale buffers, but we
+        // MUST reset the `glResourcesReleased` flag so that when `onSurfaceCreated` fires again
+        // (after the surface is recreated), the renderer is allowed to rebuild buffers from scratch.
+        // Without this reset, the flag stays `true` forever and `onSurfaceCreated` silently
+        // skips buffer creation, leaving the scene empty until the app is fully restarted.
         releaseGlResources()
+        glResourcesReleased = false
         super.surfaceDestroyed(holder)
     }
 
     override fun onDetachedFromWindow() {
         releaseGlResources()
+        // Track 1 (Fix background-then-foreground bug, Core #1): the SurfaceHolder path
+        // (`surfaceDestroyed`) already resets `glResourcesReleased` so a subsequent
+        // `onSurfaceCreated` can re-enqueue cleanup. The detach path historically did NOT,
+        // so once a detach fired (e.g. the AndroidView's host left composition during a
+        // navigation pop, or the system tore down the view between background and foreground),
+        // the flag stayed `true` forever and the next surface lifetime leaked the renderer's
+        // GPU resources *and* short-circuited the new buffer creation path because
+        // `releaseGlResources()` would early-return. Reset here too so both teardown entry
+        // points converge on the same flushed state.
+        glResourcesReleased = false
         super.onDetachedFromWindow()
     }
 
@@ -137,6 +159,51 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
     /** Notifies [callback] every time the viewport aspect ratio changes (see `onSurfaceChanged`). */
     fun setOnViewportChanged(callback: (aspectRatio: Float) -> Unit) {
         spatialRenderer.onViewportChangedCallback = callback
+    }
+
+    // -- Background/foreground lifecycle hooks -------------------------------------------------
+    //
+    // Track 1 (Fix background-then-foreground bug, Core #1):
+    //
+    // `GLSurfaceView` exposes public `onPause()`/`onResume()` that the hosting Activity MUST call
+    // from its own lifecycle so the GL thread is paused/resumed in lockstep with the app. Without
+    // these calls:
+    //   - The GL thread keeps spinning on a dead surface on some devices (battery drain + possible
+    //     crash when the EGL context is torn down underneath it).
+    //   - On return from background, the EGL context may or may not be preserved (device-dependent
+    //     via `setPreserveEGLContextOnPause`, defaulting to `true` only on API 11+). When it is not
+    //     preserved, `onSurfaceCreated` must fire again - but if `onResume()` was never called, the
+    //     GL thread is not correctly restarted and the recreate sequence gets desynchronised,
+    //     leaving the renderer with the freshly-recreated `programId == 0` / empty `meshBuffers`
+    //     state described in the bug report ("figures 3D disappear after closing the screen").
+    //
+    // These overrides forward to `super` (which does the real GLThread work) AND ask the renderer
+    // to forget any stale "ready" state so the next `onSurfaceChanged` re-fires
+    // `onSurfaceReadyCallback`. That callback re-runs the host's queued replay path, which
+    // re-pushes the cached `pendingNodes` to the renderer so the scene is repainted instead of
+    // staying empty until the user touches a slider.
+    //
+    // Note: these are NOT the same as `Activity.onPause/onResume`. They must be called BY the
+    // Activity's overrides (or via a `LifecycleObserver` on `ON_PAUSE`/`ON_RESUME`). Compose's
+    // `AndroidView` does not wire this automatically. See `SpatialGlRenderTarget.onPause/onResume`
+    // and the host's `DisposableEffect` that observes the Activity lifecycle.
+    override fun onPause() {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onPause: pausing GL thread")
+        }
+        super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-arm the "ready" gate so `onSurfaceChanged` re-fires the host's replay callback once
+        // the surface finishes reloading. Without this, the host stays in `glReady == true` from
+        // the previous surface lifetime and `requestFrame()` would short-circuit straight into
+        // `requestFrameInternal()` against a renderer that no longer has valid GL resources yet.
+        spatialRenderer.resetSurfaceReadyGate()
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onResume: resuming GL thread and re-arming surface-ready gate")
+        }
     }
 }
 
@@ -162,6 +229,20 @@ class SpatialGlRenderTarget @JvmOverloads constructor(
 
     fun setOnViewportChanged(callback: (aspectRatio: Float) -> Unit) {
         surfaceView.setOnViewportChanged(callback)
+    }
+
+    /** Forwards to [SpatialGlSurfaceView.onPause] so the host can drive the GL thread from the
+     *  Activity's `onPause` (or via a `LifecycleObserver` on `ON_PAUSE`). See the KDoc on
+     *  [SpatialGlSurfaceView.onPause] for why this is required for correct background/foreground
+     *  behavior. */
+    fun onPause() {
+        surfaceView.onPause()
+    }
+
+    /** Forwards to [SpatialGlSurfaceView.onResume]. See [onPause] and
+     *  [SpatialGlSurfaceView.onResume]. */
+    fun onResume() {
+        surfaceView.onResume()
     }
 }
 

@@ -11,6 +11,22 @@ public interface SceneRenderHost {
     fun updateClearColor(color: com.elitec.spatial_core.render.Color4) {}
     fun requestFrame()
     fun dispose()
+
+    /**
+     * Called by the Compose host when the hosting Activity/Fragment resumes. Lets the host sync the
+     * GL thread lifecycle and re-arm any "ready" gate after a background/foreground cycle. Default
+     * no-op so test/fake implementations that don't model lifecycle still compile.
+     *
+     * Track 1 (Fix background-then-foreground bug, Core #1).
+     */
+    fun onResume() {}
+
+    /**
+     * Called by the Compose host when the hosting Activity/Fragment pauses. Default no-op.
+     *
+     * Track 1 (Fix background-then-foreground bug, Core #1).
+     */
+    fun onPause() {}
 }
 
 internal fun SceneRenderHost.renderSceneFrame(

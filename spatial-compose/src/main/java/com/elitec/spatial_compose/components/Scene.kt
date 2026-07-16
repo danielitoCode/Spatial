@@ -4,14 +4,18 @@ import android.content.Context
 import android.util.Log
 import android.view.View
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.elitec.spatial_compose.BuildConfig
 import com.elitec.spatial_compose.modifier.sceneGestureInput
 import com.elitec.spatial_compose.scene.Gestures
@@ -47,6 +51,36 @@ fun Scene(
 
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     val clearColor = remember(backgroundColor) { backgroundColor.toColor4() }
+
+    // Track 1 (Fix background-then-foreground bug, Core #1): observe the Activity/Fragment
+    // `LifecycleOwner` and forward ON_PAUSE/ON_RESUME to the render host. Without this, the
+    // `GLSurfaceView` is never told to pause its GL thread when the app is backgrounded, and on
+    // return the EGL context is in an undefined state - on devices that don't preserve the EGL
+    // context across pause, `onSurfaceCreated` does not reliably re-fire, and even when it does,
+    // no one re-pushes the still-cached `pendingNodes` to the renderer, so the 3D figures stay
+    // invisible until the user touches a slider (the bug being fixed here).
+    //
+    // We register on `DisposableEffect(renderHostHolder)` rather than via `LifecycleStartEffect`
+    // because we need this to settle BEFORE the AndroidView's `factory` runs (which creates the
+    // host) - and `factory` is not a hook Compose lets us run-after-our-DisposableEffect reliably
+    // unless we both hold the host reference and also subscribe BEFORE onCreate/RESUMED passes
+    // through. The implementation here keeps the subscription tied to the host lifetime, so the
+    // observer is removed when the host is disposed and never leaks across recompositions.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, renderHostHolder) {
+        val observer = LifecycleEventObserver { _, event ->
+            val host = renderHostHolder.host ?: return@LifecycleEventObserver
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> host.onPause()
+                Lifecycle.Event.ON_RESUME -> host.onResume()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     AndroidView(
         modifier = modifier

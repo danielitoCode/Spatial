@@ -1,6 +1,7 @@
 package com.elitec.spatial_runtime
 
-import com.elitec.spatial_camera.SpatialCamera
+
+import com.elitec.spatial_camera.camera.SpatialCamera
 import com.elitec.spatial_core.camera.CameraSnapshot
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_renderer.render.FrameScheduler

@@ -39,6 +39,27 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     // See the comment on that callback invocation below for why.
     private var surfaceReadyCallbackFired = false
 
+    /**
+     * Re-arms the `surfaceReadyCallbackFired` gate so the next `onSurfaceChanged` re-fires
+     * `onSurfaceReadyCallback`.
+     *
+     * Track 1 (Fix background-then-foreground bug, Core #1): after a background/foreground cycle,
+     * `onSurfaceCreated` runs again and resets this flag itself at line ~79, so the "first
+     * `onSurfaceChanged` of the new surface lifetime" path is already covered. This method is for
+     * the *other* half: `SpatialGlSurfaceView.onResume()` is called by the host BEFORE the GL
+     * thread finishes reloading the surface, so by the time `onSurfaceCreated` runs and resets
+     * the flag, the host might have already queried it and skipped its re-subscription path. We
+     * re-arm explicitly from `onResume()` to make both paths converge safely, with no harm done
+     * if `onSurfaceCreated` resets it a second time for the same surface lifetime
+     * (it's just a boolean flag, the second write is a no-op).
+     */
+    fun resetSurfaceReadyGate() {
+        surfaceReadyCallbackFired = false
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "resetSurfaceReadyGate: re-armed, will fire onSurfaceReadyCallback on next onSurfaceChanged")
+        }
+    }
+
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
     }
