@@ -2,6 +2,7 @@ plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
     id("com.vanniktech.maven.publish")
+    signing
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -25,6 +26,10 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.junit)
+}
+
+signing {
+    useGpgCmd()
 }
 
 mavenPublishing {

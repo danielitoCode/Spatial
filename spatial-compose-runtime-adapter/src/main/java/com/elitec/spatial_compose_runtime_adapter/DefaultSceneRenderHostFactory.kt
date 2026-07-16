@@ -26,7 +26,7 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     )
     private var pendingNodes: List<RenderableNode> = emptyList()
     private var pendingCameraSnapshot: CameraSnapshot = runtimeCamera.snapshot()
-    private var pendingClearColor: com.elitec.spatial_core.render.Color4 = com.elitec.spatial_core.render.Color4.BLACK
+    private var pendingClearColor: com.elitec.spatial_core.render.Color4 = com.elitec.spatial_core.render.Color4(0f, 0f, 0f, 0f)
 
     // Audit note (Core #1 Stability, item 1.2 follow-up): `glReady` and `queuedFrame` used to be
     // read/written as two separate, non-atomic steps (a @Volatile flag plus a nullable field). That

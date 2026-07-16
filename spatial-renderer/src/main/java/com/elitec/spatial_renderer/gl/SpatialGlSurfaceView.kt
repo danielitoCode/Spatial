@@ -31,11 +31,10 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         holder.setFormat(PixelFormat.TRANSLUCENT)
         
         // Use Z-order media overlay so the GL surface respects its position in the View hierarchy.
-        // `setZOrderOnTop(true)` would force the GL surface above ALL Compose content (including
-        // TopBars, Scaffolds, dialogs), causing the 3D scene to bleed through overlapping UI.
-        // `setZOrderMediaOverlay(true)` keeps the surface above the Window's background but below
-        // other Compose content that is positioned on top of it in the layout tree, matching
-        // how Compose's AndroidView normally participates in z-ordering.
+        // Previously we used `setZOrderOnTop(true)`, which forced the GL surface above ALL
+        // Compose content (including TopBars, Scaffolds, dialogs), breaking UI occlusion.
+        // `setZOrderMediaOverlay(true)` places the surface above the window's main surface but
+        // below its view hierarchy, allowing standard views (like a TopBar) to draw over it.
         setZOrderMediaOverlay(true)
         
         spatialRenderer.onSurfaceReadyCallback = { post { requestRender() } }
@@ -91,8 +90,11 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
      *   underlying GPU memory; this method is a best-effort *early* cleanup, not the only cleanup.
      */
     fun releaseGlResources() {
-        if (glResourcesReleased) return
         if (!isAttachedToWindow) return
+        // Track 1 (Fix background-then-foreground bug, Core #1): 
+        // We only guard the redundant entry from multiple lifecycle hooks (detach + destroy) 
+        // during a SINGLE teardown event. If we're already tearing down, skip. 
+        if (glResourcesReleased) return
         glResourcesReleased = true
 
         try {

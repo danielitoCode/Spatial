@@ -68,7 +68,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         cameraSnapshot = snapshot
     }
 
-    private var frameClearColor: Color4 = LegacyNavyClearColor
+    private var frameClearColor: Color4 = Color4(0f, 0f, 0f, 0f) // Start transparent
 
     fun updateClearColor(color: Color4) {
         frameClearColor = color
