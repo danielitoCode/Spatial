@@ -5,6 +5,7 @@ plugins {
     signing
 }
 
+extra["publishable"] = true
 
 android {
     namespace = "com.elitec.spatial_compose"

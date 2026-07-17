@@ -4,6 +4,9 @@ plugins {
     id("com.vanniktech.maven.publish")
     signing
 }
+
+extra["publishable"] = true
+
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11

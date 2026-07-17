@@ -113,6 +113,12 @@ registerVerificationTask(
     gradleTask = "publishToMavenLocal"
 )
 
+fun Project.isPublishable(): Boolean {
+
+    return extensions.extraProperties.has("publishable") &&
+            extensions.extraProperties["publishable"] == true
+
+}
 
 tasks.register("verifyArtifacts") {
 
