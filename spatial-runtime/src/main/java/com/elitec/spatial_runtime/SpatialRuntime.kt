@@ -68,7 +68,7 @@ class SpatialRuntime(
         frameTimeNanos: Long,
         nodes: List<RenderableNode>,
         cameraSnapshot: CameraSnapshot,
-        clearColor: Color4 = Color4.BLACK,
+        clearColor: Color4 = Color4.TRANSPARENT,
     ) {
         onFrame(
             snapshot = buildOrbitFrameSnapshot(
@@ -85,7 +85,7 @@ class SpatialRuntime(
     fun requestFrame(
         nodes: List<RenderableNode>,
         cameraSnapshot: CameraSnapshot,
-        clearColor: Color4 = Color4.BLACK,
+        clearColor: Color4 = Color4.TRANSPARENT,
     ) {
         frameScheduler.requestFrame { scheduledFrame ->
             renderFrame(

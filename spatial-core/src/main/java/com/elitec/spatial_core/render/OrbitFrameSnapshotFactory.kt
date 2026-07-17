@@ -51,7 +51,7 @@ fun buildOrbitFrameSnapshot(
     frameTimeNanos: Long,
     cameraSnapshot: CameraSnapshot,
     aspectRatio: Float,
-    clearColor: Color4 = Color4.BLACK,
+    clearColor: Color4 = Color4.TRANSPARENT,
     resources: StableFrameResources = StableFrameResources.empty(),
     baseOrbitDistance: Float = OrbitCamera.DEFAULT_BASE_DISTANCE,
     fovYDegrees: Float = OrbitCamera.DEFAULT_FOV_Y_DEGREES,

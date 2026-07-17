@@ -17,7 +17,7 @@ import com.elitec.spatial_renderer.BuildConfig
 
 class SpatialGlRenderer : GLSurfaceView.Renderer {
     private val meshRegistry = PrimitiveMeshRegistry()
-    private var meshBuffers: Map<String, GlMeshBuffers> = emptyMap()
+    private val meshBuffers = java.util.concurrent.ConcurrentHashMap<String, GlMeshBuffers>()
     private var programId: Int = 0
     private var nodes: List<RenderableNode> = emptyList()
     private var cameraSnapshot: CameraSnapshot = CameraSnapshot()
@@ -68,7 +68,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         cameraSnapshot = snapshot
     }
 
-    private var frameClearColor: Color4 = Color4(0f, 0f, 0f, 0f) // Start transparent
+    private var frameClearColor: Color4 = Color4.TRANSPARENT
 
     fun updateClearColor(color: Color4) {
         frameClearColor = color
@@ -83,8 +83,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         programId = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
         uniforms = UniformLocations.fromProgram(programId)
 
-        meshBuffers = PrimitiveMeshRegistry.defaultMeshes().mapValues { (_, meshData) ->
-            meshData.toGlMeshBuffers()
+        PrimitiveMeshRegistry.defaultMeshes().forEach { (meshId, meshData) ->
+            meshBuffers[meshId] = meshData.toGlMeshBuffers()
         }
 
         if (BuildConfig.DEBUG) {
@@ -179,7 +179,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         var skippedMissingBuffers = 0
 
         nodes.forEach { node ->
-            if (meshRegistry.resolveOrNull(node.meshId) == null) {
+            val meshData = meshRegistry.resolveOrNull(node.meshId)
+            if (meshData == null) {
                 skippedUnknownMeshIds++
                 if (BuildConfig.DEBUG) {
                     Log.w(TAG, "Skipping renderable with unknown primitive mesh id: ${node.meshId}")
@@ -187,7 +188,20 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
                 return@forEach
             }
 
-            val mesh = meshBuffers[node.meshId]
+            var mesh = meshBuffers[node.meshId]
+            if (mesh == null) {
+                try {
+                    val newBuffers = meshData.toGlMeshBuffers()
+                    meshBuffers[node.meshId] = newBuffers
+                    mesh = newBuffers
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "JIT uploaded GL buffers for mesh id: ${node.meshId}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to upload GL buffers for dynamic mesh id: ${node.meshId}", e)
+                }
+            }
+
             if (mesh == null) {
                 skippedMissingBuffers++
                 if (BuildConfig.DEBUG) {
@@ -265,7 +279,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
      */
     fun releaseGlResources() {
         meshBuffers.values.forEach { it.release() }
-        meshBuffers = emptyMap()
+        meshBuffers.clear()
 
         if (programId != 0) {
             GLES30.glDeleteProgram(programId)

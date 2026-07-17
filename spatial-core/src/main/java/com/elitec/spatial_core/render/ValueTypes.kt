@@ -20,6 +20,7 @@ data class Color4(
 ) {
     companion object {
         val BLACK = Color4(0f, 0f, 0f, 1f)
+        val TRANSPARENT = Color4(0f, 0f, 0f, 0f)
     }
 }
 

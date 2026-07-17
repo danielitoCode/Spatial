@@ -35,5 +35,5 @@ data class RenderFrame(
     val nodes: List<RenderableNode> = emptyList(),
     val resources: List<GpuResourceHandle> = emptyList(),
     val cameraState: CameraSnapshot = CameraSnapshot(),
-    val clearColor: Color4 = Color4.BLACK,
+    val clearColor: Color4 = Color4.TRANSPARENT,
 )

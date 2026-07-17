@@ -1,6 +1,7 @@
 package com.elitec.spatial_renderer.gl
 
 import com.elitec.spatial_geometry.MeshData
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -19,14 +20,25 @@ object PrimitiveMeshIds {
  * handle [UnknownPrimitiveMeshException] or use [resolveOrNull] to apply an explicit
  * policy such as logging and skipping the node.
  */
+
 class PrimitiveMeshRegistry(
-    private val meshes: Map<String, MeshData> = defaultMeshes(),
+    initialMeshes: Map<String, MeshData> = defaultMeshes(),
 ) {
+    private val meshes = ConcurrentHashMap<String, MeshData>(initialMeshes)
+
+    fun register(meshId: String, meshData: MeshData) {
+        meshes[meshId] = meshData
+    }
+
     fun resolve(meshId: String): MeshData = resolveOrNull(meshId) ?: throw UnknownPrimitiveMeshException(meshId)
 
-    fun resolveOrNull(meshId: String): MeshData? = meshes[meshId]
+    fun resolveOrNull(meshId: String): MeshData? {
+        return meshes[meshId] ?: com.elitec.spatial_geometry.GlobalMeshRegistry.get(meshId)
+    }
 
-    fun contains(meshId: String): Boolean = meshes.containsKey(meshId)
+    fun contains(meshId: String): Boolean {
+        return meshes.containsKey(meshId) || com.elitec.spatial_geometry.GlobalMeshRegistry.get(meshId) != null
+    }
 
     companion object {
         private val fallbackMesh: MeshData by lazy { createCube() }

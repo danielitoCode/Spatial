@@ -54,6 +54,7 @@ public fun rememberModel(model: ModelResource): MeshData {
             }
         }
 
+        com.elitec.spatial_geometry.GlobalMeshRegistry.register(model.id, loadedMesh)
         cachedModels[model.id] = loadedMesh
         state.value = loadedMesh
     }
