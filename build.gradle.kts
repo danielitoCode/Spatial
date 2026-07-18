@@ -237,40 +237,39 @@ fun Project.isPublishable(): Boolean =
 tasks.register("verifyArtifacts") {
 
     group = "verification"
-
     description = "Verifies generated publication artifacts."
 
     dependsOn("verifyPublications")
 
+    // We must not access 'subprojects' or 'project' inside doLast for Configuration Cache compatibility.
+    // Instead, we capture the necessary data (paths and names) during the configuration phase.
+    val moduleData = subprojects.filter { it.isPublishable() }.map {
+        it.path to it.layout.buildDirectory.get().asFile
+    }
+
     doLast {
-
-        val publishableModules = subprojects.filter { it.isPublishable() }
-
-        check(publishableModules.isNotEmpty()) {
+        check(moduleData.isNotEmpty()) {
             "Expected at least one publishable module, found none. " +
                 "Check that the maven-publish plugin is still applied where expected."
         }
 
-        publishableModules.forEach { module ->
-
-            val jarOutputs = module.layout.buildDirectory.dir("libs").get().asFile
-            val aarOutputs = module.layout.buildDirectory.dir("outputs/aar").get().asFile
+        moduleData.forEach { (path, buildDir) ->
+            val jarOutputs = File(buildDir, "libs")
+            val aarOutputs = File(buildDir, "outputs/aar")
 
             val hasJar = jarOutputs.listFiles()?.any { it.extension == "jar" } == true
             val hasAar = aarOutputs.listFiles()?.any { it.extension == "aar" } == true
 
             check(hasJar || hasAar) {
-                "No published artifact (.jar/.aar) found for module '${module.path}'. " +
-                    "Expected one of: ${jarOutputs.path}, ${aarOutputs.path}"
+                "No published artifact (.jar/.aar) found for module '$path'. " +
+                    "Expected to find files in: ${jarOutputs.path} or ${aarOutputs.path}"
             }
         }
 
         println("")
-        println("Publication artifacts verified for ${publishableModules.size} modules.")
+        println("Publication artifacts verified for ${moduleData.size} modules.")
         println("")
-
     }
-
 }
 
 
