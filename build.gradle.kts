@@ -39,45 +39,55 @@ subprojects {
 
     pluginManager.withPlugin("com.vanniktech.maven.publish") {
 
-        extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
+        // Deferred to afterEvaluate: configuring the mavenPublishing/signing
+        // extensions here (rather than eagerly at plugin-apply time, before
+        // the module's own build.gradle.kts and AGP have finished
+        // configuring it) avoids racing internal wiring that can finalize
+        // these properties first and throw "value for this property is
+        // final and cannot be changed any further" when we then try to set
+        // them ourselves.
+        afterEvaluate {
 
-            publishToMavenCentral()
+            extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
+
+                publishToMavenCentral()
+
+                if (isReleaseBuild) {
+                    signAllPublications()
+                }
+
+                pom {
+
+                    inceptionYear.set("2026")
+
+                    url.set("https://github.com/danielitoCode/Spatial")
+
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://opensource.org/licenses/MIT")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set("danielitocode")
+                            name.set("Daniel")
+                        }
+                    }
+
+                    scm {
+                        url.set("https://github.com/danielitoCode/Spatial")
+                        connection.set("scm:git:git://github.com/danielitoCode/Spatial.git")
+                        developerConnection.set("scm:git:ssh://github.com/danielitoCode/Spatial.git")
+                    }
+                }
+            }
 
             if (isReleaseBuild) {
-                signAllPublications()
-            }
-
-            pom {
-
-                inceptionYear.set("2026")
-
-                url.set("https://github.com/danielitoCode/Spatial")
-
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
+                extensions.configure<org.gradle.plugins.signing.SigningExtension> {
+                    useGpgCmd()
                 }
-
-                developers {
-                    developer {
-                        id.set("danielitocode")
-                        name.set("Daniel")
-                    }
-                }
-
-                scm {
-                    url.set("https://github.com/danielitoCode/Spatial")
-                    connection.set("scm:git:git://github.com/danielitoCode/Spatial.git")
-                    developerConnection.set("scm:git:ssh://github.com/danielitoCode/Spatial.git")
-                }
-            }
-        }
-
-        if (isReleaseBuild) {
-            extensions.configure<org.gradle.plugins.signing.SigningExtension> {
-                useGpgCmd()
             }
         }
     }
