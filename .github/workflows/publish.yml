@@ -1,0 +1,77 @@
+name: Publish
+
+# Responsibility: cut a new release of the library. Signs and uploads every
+# spatial-* module to Maven Central under the tagged version. Never runs on
+# a normal push, so it can never block day-to-day development the way CI
+# does — it only fires when a release is explicitly requested.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 0.1.0-alpha02). Overrides the tag."
+        required: false
+        type: string
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "Publishing version $VERSION"
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept Android SDK licenses
+        run: yes | ${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # useGpgCmd() (configured in the root build.gradle.kts publishing
+      # convention) shells out to the real gpg binary, so the key needs to
+      # land in an actual keyring with a loopback-capable agent, rather than
+      # relying on the plugin's in-memory signing inputs. This action does
+      # both in one step.
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.SPATIAL_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SPATIAL_GPG_PASSPHRASE }}
+
+      - name: Publish every module to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon publishAllModules \
+            -PVERSION_NAME=${{ steps.version.outputs.value }} \
+            -PspatialRelease=true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          generate_release_notes: true

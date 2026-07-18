@@ -5,8 +5,6 @@ plugins {
     signing
 }
 
-extra["publishable"] = true
-
 android {
     namespace = "com.elitec.spatial_compose"
     compileSdk {
@@ -60,50 +58,16 @@ dependencies {
     implementation(project(":spatial-motion"))
 }
 
-signing {
-    useGpgCmd()
-}
-
 mavenPublishing {
-
-    publishToMavenCentral()
-
-    signAllPublications()
 
     coordinates(
         groupId = "io.github.danielitocode",
         artifactId = "spatial-compose",
-        version = "0.1.0-alpha01"
+        version = project.version.toString()
     )
 
     pom {
-
         name.set("Spatial Compose")
-
         description.set("Jetpack Compose integration for Spatial")
-
-        inceptionYear.set("2026")
-
-        url.set("https://github.com/danielitoCode/Spatial")
-
-        licenses {
-            license {
-                name.set("MIT License")
-                url.set("https://opensource.org/licenses/MIT")
-            }
-        }
-
-        developers {
-            developer {
-                id.set("danielitocode")
-                name.set("Daniel")
-            }
-        }
-
-        scm {
-            url.set("https://github.com/danielitoCode/Spatial")
-            connection.set("scm:git:git://github.com/danielitoCode/Spatial.git")
-            developerConnection.set("scm:git:ssh://github.com/danielitoCode/Spatial.git")
-        }
     }
 }
