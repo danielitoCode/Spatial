@@ -23,6 +23,12 @@ val spatialVersion: String = providers.gradleProperty("VERSION_NAME").getOrElse(
  */
 val isReleaseBuild: Boolean = providers.gradleProperty("spatialRelease").getOrElse("false").toBoolean()
 
+/**
+ * Extra-properties key used to guard the subprojects{} publishing block
+ * below against running more than once per project (see its comment).
+ */
+val spatialPublishingConfiguredMarker = "spatialPublishingConfigured"
+
 allprojects {
     version = spatialVersion
 }
@@ -46,7 +52,20 @@ subprojects {
         // these properties first and throw "value for this property is
         // final and cannot be changed any further" when we then try to set
         // them ourselves.
+        //
+        // Guarded to run at most once per project: IDE syncs (observed with
+        // IntelliJ/Android Studio's phased tooling-API model fetch, combined
+        // with org.gradle.configuration-cache=true) can invoke afterEvaluate
+        // callbacks more than once within a single daemon session. Calling
+        // publishToMavenCentral()/signAllPublications() a second time throws
+        // the same "value is final" exception, since the underlying
+        // Provider is finalized after its first configuration.
         afterEvaluate {
+
+            if (extensions.extraProperties.has(spatialPublishingConfiguredMarker)) {
+                return@afterEvaluate
+            }
+            extensions.extraProperties[spatialPublishingConfiguredMarker] = true
 
             extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
 
