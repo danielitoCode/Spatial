@@ -220,7 +220,7 @@ fun ShapesContentScreen(
                                     cameraState = cameraState,
                                     contentScale = 0.4f,
                                     gestures = Gestures.orbitAndZoom(),
-                                    backgroundColor = Color.Transparent
+                                    backgroundColor = Color.Blue
                                 ) {
                                     when(shapeItem.tittle.lowercase()) {
                                         "plane" -> Element.Plane(

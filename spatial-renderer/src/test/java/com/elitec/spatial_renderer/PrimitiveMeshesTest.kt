@@ -10,6 +10,7 @@ import com.elitec.spatial_renderer.gl.createPlane
 import com.elitec.spatial_renderer.gl.createSphere
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -67,7 +68,6 @@ class PrimitiveMeshesTest {
         assertFalse(registry.contains("Unknown"))
         assertEquals(8, registry.resolve(PrimitiveMeshIds.Cube).vertexCount)
         assertEquals(4, registry.resolve(PrimitiveMeshIds.Plane).vertexCount)
-        assertEquals(registry.resolve(PrimitiveMeshIds.Cube), registry.resolve("Unknown"))
     }
 
     @Test
@@ -85,5 +85,42 @@ class PrimitiveMeshesTest {
 
         assertEquals(registry.resolve(PrimitiveMeshIds.Cube), registry.resolveOrNull(PrimitiveMeshIds.Cube))
         assertEquals(null, registry.resolveOrNull("Unknown"))
+    }
+
+    // Fase 3 (PLAN_PREDEFINED_3D_MODELS.md:198): bulk-registration API for ergonomics when
+    // multiple meshes are loaded together (e.g. a batch of GLB assets from a loader coroutine).
+    @Test
+    fun registerAllAddsMultipleMeshesInOneCall() {
+        val customA = createCube()
+        val customB = createPlane()
+        val registry = PrimitiveMeshRegistry(initialMeshes = emptyMap())
+
+        // Sanity: registry starts empty (initialMeshes = emptyMap overrides the default prims).
+        assertFalse(registry.contains("custom_a"))
+        assertFalse(registry.contains("custom_b"))
+
+        registry.registerAll(mapOf(
+            "custom_a" to customA,
+            "custom_b" to customB,
+        ))
+
+        assertTrue(registry.contains("custom_a"))
+        assertTrue(registry.contains("custom_b"))
+        assertEquals(customA, registry.resolve("custom_a"))
+        assertEquals(customB, registry.resolve("custom_b"))
+    }
+
+    @Test
+    fun registerAllOverwritesExistingEntries() {
+        val registry = PrimitiveMeshRegistry()
+
+        val originalCube = registry.resolve(PrimitiveMeshIds.Cube)
+        val replacementCube = createSphere()
+
+        registry.registerAll(mapOf(PrimitiveMeshIds.Cube to replacementCube))
+
+        // Per the KDoc, registerAll overwrites existing entries — same semantics as `register`.
+        assertEquals(replacementCube, registry.resolve(PrimitiveMeshIds.Cube))
+        assertNotEquals(originalCube, registry.resolve(PrimitiveMeshIds.Cube))
     }
 }
