@@ -30,7 +30,6 @@ dependencies {
 }
 
 mavenPublishing {
-
     coordinates(
         groupId = "io.github.danielitocode",
         artifactId = "spatial-core",

@@ -62,18 +62,14 @@ subprojects {
         // Provider is finalized after its first configuration.
         afterEvaluate {
 
-            if (extensions.extraProperties.has(spatialPublishingConfiguredMarker)) {
-                return@afterEvaluate
-            }
-            extensions.extraProperties[spatialPublishingConfiguredMarker] = true
+            // Idempotency guard: prevents double-configuration if afterEvaluate fires twice
+            // (observed during some IDE syncs with configuration cache enabled).
+            val isConfigured = project.extra.has(spatialPublishingConfiguredMarker) && 
+                               project.extra.get(spatialPublishingConfiguredMarker) == true
+            if (isConfigured) return@afterEvaluate
+            project.extra.set(spatialPublishingConfiguredMarker, true)
 
             extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
-
-                publishToMavenCentral()
-
-                if (isReleaseBuild) {
-                    signAllPublications()
-                }
 
                 pom {
 
@@ -100,6 +96,12 @@ subprojects {
                         connection.set("scm:git:git://github.com/danielitoCode/Spatial.git")
                         developerConnection.set("scm:git:ssh://github.com/danielitoCode/Spatial.git")
                     }
+                }
+
+                publishToMavenCentral()
+
+                if (isReleaseBuild) {
+                    signAllPublications()
                 }
             }
 
