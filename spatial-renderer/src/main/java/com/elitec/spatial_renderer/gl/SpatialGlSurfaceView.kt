@@ -1,6 +1,7 @@
 package com.elitec.spatial_renderer.gl
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
 import android.util.Log
@@ -13,7 +14,19 @@ import com.elitec.spatial_renderer.BuildConfig
 import com.elitec.spatial_renderer.render.RenderBackend
 import com.elitec.spatial_renderer.render.RenderFrame
 
+import android.app.Activity
 import android.graphics.PixelFormat
+
+/**
+ * Unwraps Compose/Activity `ContextWrapper` layers (e.g. `ContextThemeWrapper`) to find the
+ * underlying [Activity], if any. Returns null for non-Activity hosts (e.g. a Service context, or
+ * a preview/test harness), in which case the window-translucency fix below is simply skipped.
+ */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 class SpatialGlSurfaceView @JvmOverloads constructor(
     context: Context,
@@ -21,6 +34,10 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
 ) : GLSurfaceView(context, attrs) {
 
     private val spatialRenderer = SpatialGlRenderer()
+
+    // Guards ensureWindowTranslucentIfNeeded() so we only touch the hosting Window once, instead
+    // of on every frame that requests a transparent clear color.
+    private var windowTranslucencyEnsured = false
 
     init {
         setEGLContextClientVersion(3)
@@ -35,11 +52,37 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         // Compose content (including TopBars, Scaffolds, dialogs), breaking UI occlusion.
         // `setZOrderMediaOverlay(true)` places the surface above the window's main surface but
         // below its view hierarchy, allowing standard views (like a TopBar) to draw over it.
+        //
+        // Trade-off this introduced (fixed below, see ensureWindowTranslucentIfNeeded): a
+        // GLSurfaceView's holder format only controls its OWN compositor layer. With
+        // setZOrderOnTop(true) that layer sat above literally everything, including the window's
+        // own opaque backing, so a transparent clear color showed through to whatever was behind
+        // the app. With setZOrderMediaOverlay(true), the surface's layer sits *below* the
+        // window's own main surface - and that window is opaque by default in Android, so a
+        // transparent clear color now shows the window's opaque (black) backing instead of
+        // seeing through. Fixing this requires the hosting Activity's Window itself to be marked
+        // translucent, not just this SurfaceView's own holder format.
         setZOrderMediaOverlay(true)
         
         spatialRenderer.onSurfaceReadyCallback = { post { requestRender() } }
         setRenderer(spatialRenderer)
         renderMode = RENDERMODE_WHEN_DIRTY
+    }
+
+    /**
+     * Marks the hosting Activity's [android.view.Window] as translucent so this view's
+     * transparent pixels actually show through, instead of the window's opaque default backing.
+     *
+     * Only called when a frame actually requests a non-opaque clear color (`alpha < 1f`), so
+     * scenes with an opaque background never pay the cost of a translucent window (which disables
+     * some SurfaceFlinger compositing optimizations). Idempotent per view instance.
+     *
+     * No-op if [Context.findActivity] can't resolve an [Activity] (e.g. non-Activity host).
+     */
+    private fun ensureWindowTranslucentIfNeeded(clearColor: Color4) {
+        if (windowTranslucencyEnsured || clearColor.a >= 1f) return
+        context.findActivity()?.window?.setFormat(PixelFormat.TRANSLUCENT)
+        windowTranslucencyEnsured = true
     }
 
     fun updateScene(nodes: List<RenderableNode>) {
@@ -60,6 +103,7 @@ class SpatialGlSurfaceView @JvmOverloads constructor(
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "render(frame): enqueueing ${frame.nodes.size} nodes")
         }
+        ensureWindowTranslucentIfNeeded(frame.clearColor)
         queueEvent {
             if (BuildConfig.DEBUG) {
                 Log.d(TAG, "render(frame): GL queue received ${frame.nodes.size} nodes")
