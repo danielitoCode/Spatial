@@ -28,6 +28,49 @@ the asset pipeline, layout system, or camera sequencing code.
 
 ---
 
+## Build infrastructure alignment (2026-07-19)
+
+Separate from the Pilar 1/2/3 work above, but relevant to "ready to start
+Core #2": the project owner is building a `build-logic` included-build
+convention-plugin system (`spatial.base`, `spatial.android.library`, and
+unregistered work-in-progress plugins for Compose/publishing/quality/
+testing/documentation/binary-compatibility). This is infra, not roadmap
+work, but two real bugs were found and fixed while checking whether it was
+safe to build on:
+
+- `spatial.android.library` was registered in
+  `build-logic/plugins/build.gradle.kts` pointing at
+  `SpatialAndroidLibraryPlugin`, but that class didn't exist anywhere in
+  the codebase - applying the plugin ID would have thrown
+  `ClassNotFoundException`. Fixed by adding the missing `Plugin<Project>`
+  entry point (mirrors `SpatialBasePlugin`'s existing pattern exactly) and
+  renaming the file that actually contained `AndroidLibraryConfiguration`
+  to match its real class name.
+- `Kotlin.JVM_TOOLCHAIN` in `build-logic`'s constants was `3` - not a real
+  JDK toolchain version - while `Java.VERSION`/`Kotlin.JVM_TARGET`
+  elsewhere in the same constants package both say Java 11. Fixed to `11`.
+- `build-logic/plugins/build.gradle.kts` pinned its own AGP/Kotlin
+  Gradle-plugin classpath to `8.12.3`/`2.2.20`, while the root project's
+  `gradle/libs.versions.toml` pins `9.2.1`/`2.2.10`. A composite build
+  resolving two different AGP/Kotlin classpaths for the same overall
+  project is fragile. Aligned to match the root catalog.
+
+**Status, deliberately left as-is:** only `spatial-core` currently applies
+`spatial.base` (harmless - it only creates a `spatial` extension and
+registers base tasks, no publishing/compose/lint configuration yet).
+`PublishingConfiguration`, `TestingConfiguration`, and
+`DependencyConfiguration` inside `build-logic` are still empty stubs. No
+other module has been migrated, and `spatial.android.library` is not yet
+applied anywhere. This is intentional: migrating the other 14 modules or
+wiring publishing through `build-logic` before those stubs are finished
+would either duplicate or conflict with the existing root
+`build.gradle.kts` `subprojects{}` publishing convention (see
+`PUBLISHING.md`) - the same class of "configured twice" bug already hit
+and fixed twice in that convention. Migrate module-by-module once
+`PublishingConfiguration` is implemented, not all at once.
+
+---
+
 ## Baseline audit (2026-07-18)
 
 Findings from comparing `CORE2_PROPOSAL.md` against the actual state of

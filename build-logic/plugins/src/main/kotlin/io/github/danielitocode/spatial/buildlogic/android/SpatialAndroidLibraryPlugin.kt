@@ -1,36 +1,21 @@
 package io.github.danielitocode.spatial.buildlogic.android
 
-import com.android.build.api.dsl.LibraryExtension
-import io.github.danielitocode.spatial.buildlogic.constants.Android
+import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.configure
 
-internal class AndroidLibraryConfiguration(
-    private val project: Project
-) {
+/**
+ * Entry point for the `spatial.android.library` plugin ID registered in
+ * `build-logic/plugins/build.gradle.kts`.
+ *
+ * Mirrors [io.github.danielitocode.spatial.buildlogic.base.SpatialBasePlugin]'s pattern: this
+ * class only wires the plugin ID to its configuration logic. Requires `com.android.library` to
+ * already be applied on the target project (e.g. via `alias(libs.plugins.android.library)`),
+ * since [AndroidConfiguration] configures the `LibraryExtension` that plugin registers rather
+ * than applying `com.android.library` itself.
+ */
+class SpatialAndroidLibraryPlugin : Plugin<Project> {
 
-    fun configure() {
-
-        project.extensions.configure<LibraryExtension> {
-
-            compileSdk = Android.COMPILE_SDK
-
-            defaultConfig {
-
-                minSdk = Android.MIN_SDK
-
-                consumerProguardFiles(
-                    "consumer-rules.pro"
-                )
-            }
-
-            buildFeatures {
-
-                buildConfig = true
-            }
-
-        }
-
+    override fun apply(target: Project) {
+        AndroidConfiguration(target).configure()
     }
-
 }

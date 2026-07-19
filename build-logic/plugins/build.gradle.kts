@@ -18,8 +18,11 @@ repositories {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:8.12.3")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20")
+    // Kept in sync with gradle/libs.versions.toml (agp, kotlin) at the root project - a mismatch
+    // here means the composite build resolves a different AGP/Kotlin Gradle-plugin classpath than
+    // what each module actually applies via the version catalog, which is fragile.
+    implementation("com.android.tools.build:gradle:9.2.1")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.10")
 }
 
 gradlePlugin {
