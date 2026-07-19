@@ -39,3 +39,24 @@ gradlePlugin {
         }
     }
 }
+
+gradlePlugin {
+
+    plugins {
+
+        register("spatialAndroidLibrary") {
+
+            id = "spatial.android.library"
+
+            implementationClass =
+                "io.github.danielitocode.spatial.buildlogic.android.SpatialAndroidLibraryPlugin"
+
+            displayName = "Spatial Android Library Plugin"
+
+            description =
+                "Convention plugin for Spatial Android library modules"
+
+        }
+
+    }
+}
