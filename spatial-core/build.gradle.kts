@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.jvm)
     id("com.vanniktech.maven.publish")
     signing
+    id("spatial.base")
 }
 
 java {
