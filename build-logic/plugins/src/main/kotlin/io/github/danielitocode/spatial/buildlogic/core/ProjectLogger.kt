@@ -1,14 +1,17 @@
-package io.github.danielitocode.spatial.buildlogic.core
-
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
 
-private const val PREFIX = "[Spatial]"
+internal val Project.logger: Logger
+    get() = this.logger
 
-fun Project.log(message: String) =
-    logger.lifecycle("$PREFIX $message")
+internal fun Project.log(message: String) {
+    logger.lifecycle("[Spatial] $message")
+}
 
-fun Project.warn(message: String) =
-    logger.warn("$PREFIX $message")
+internal fun Project.warn(message: String) {
+    logger.warn("[Spatial] $message")
+}
 
-fun Project.error(message: String) =
-    logger.error("$PREFIX $message")
+internal fun Project.error(message: String) {
+    logger.error("[Spatial] $message")
+}

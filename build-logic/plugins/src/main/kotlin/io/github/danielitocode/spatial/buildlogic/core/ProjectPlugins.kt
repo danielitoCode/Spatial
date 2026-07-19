@@ -2,10 +2,13 @@ package io.github.danielitocode.spatial.buildlogic.core
 
 import org.gradle.api.Project
 
-fun Project.applyPlugin(id: String) {
-    pluginManager.apply(id)
+internal fun Project.applyPlugin(id: String) {
+
+    if (!pluginManager.hasPlugin(id)) {
+        pluginManager.apply(id)
+    }
+
 }
 
-fun Project.hasPlugin(id: String): Boolean {
-    return pluginManager.hasPlugin(id)
-}
+internal fun Project.hasPlugin(id: String): Boolean =
+    pluginManager.hasPlugin(id)

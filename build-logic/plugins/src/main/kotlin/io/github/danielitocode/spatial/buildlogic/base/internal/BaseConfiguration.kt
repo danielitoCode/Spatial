@@ -1,7 +1,7 @@
 package io.github.danielitocode.spatial.buildlogic.base.internal
 
-import io.github.danielitocode.spatial.buildlogic.base.SpatialExtension
-import io.github.danielitocode.spatial.buildlogic.core.log
+import io.github.danielitocode.spatial.buildlogic.base.BaseExtension
+import io.github.danielitocode.spatial.buildlogic.base.BaseTasks
 import org.gradle.api.Project
 
 internal class BaseConfiguration(
@@ -10,19 +10,24 @@ internal class BaseConfiguration(
 
     fun configure() {
 
-        registerExtension()
+        createExtension()
 
-        project.log("Spatial Base Plugin loaded")
+        registerTasks()
 
+        project.logger.lifecycle(
+            "Spatial Build Logic initialized for ${project.path}"
+        )
     }
 
-    private fun registerExtension() {
-
+    private fun createExtension() {
         project.extensions.create(
             "spatial",
-            SpatialExtension::class.java
+            BaseExtension::class.java
         )
+    }
 
+    private fun registerTasks() {
+        BaseTasks.register(project)
     }
 
 }

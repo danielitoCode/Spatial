@@ -1,15 +1,35 @@
 package io.github.danielitocode.spatial.buildlogic.android
 
-import org.gradle.api.Plugin
+import com.android.build.api.dsl.LibraryExtension
+import io.github.danielitocode.spatial.buildlogic.constants.Android
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
 
+internal class AndroidLibraryConfiguration(
+    private val project: Project
+) {
 
-class SpatialAndroidLibraryPlugin : Plugin<Project> {
+    fun configure() {
 
-    override fun apply(project: Project) {
+        project.extensions.configure<LibraryExtension> {
 
-        AndroidConfiguration(project)
-            .configure()
+            compileSdk = Android.COMPILE_SDK
+
+            defaultConfig {
+
+                minSdk = Android.MIN_SDK
+
+                consumerProguardFiles(
+                    "consumer-rules.pro"
+                )
+            }
+
+            buildFeatures {
+
+                buildConfig = true
+            }
+
+        }
 
     }
 

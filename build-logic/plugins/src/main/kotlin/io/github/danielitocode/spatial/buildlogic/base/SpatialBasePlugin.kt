@@ -6,8 +6,7 @@ import org.gradle.api.Project
 
 class SpatialBasePlugin : Plugin<Project> {
 
-    override fun apply(project: Project) {
-        BaseConfiguration(project).configure()
+    override fun apply(target: Project) {
+        BaseConfiguration(target).configure()
     }
-
 }
