@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
-    id("com.vanniktech.maven.publish")
-    signing
+    id("spatial.publish")
 }
 
 android {

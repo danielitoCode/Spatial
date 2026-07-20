@@ -16,6 +16,16 @@ import org.gradle.api.Project
 class SpatialAndroidLibraryPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
-        AndroidConfiguration(target).configure()
+        with(target) {
+            // Aplicar plugins base de Android y Kotlin de forma segura
+            pluginManager.apply("com.android.library")
+            
+            // Verificamos si ya existe la extensión 'kotlin' para evitar el error de duplicación
+            if (extensions.findByName("kotlin") == null) {
+                pluginManager.apply("org.jetbrains.kotlin.android")
+            }
+
+            AndroidConfiguration(this).configure()
+        }
     }
 }

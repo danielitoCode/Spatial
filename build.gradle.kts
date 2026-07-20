@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.android.library) apply false
     id("org.jetbrains.kotlin.jvm") version "2.2.10" apply false
     id("com.vanniktech.maven.publish") version "0.34.0" apply false
@@ -41,78 +42,12 @@ allprojects {
  * module-specific; everything identical across modules lives here instead
  * of being copy-pasted 15 times.
  */
-subprojects {
+// Common project-wide versioning and configuration logic is now handled via
+// convention plugins in the :build-logic project.
+//
+// Root-level tasks (like publishing all modules at once or running CI
+// verification) remain here.
 
-    pluginManager.withPlugin("com.vanniktech.maven.publish") {
-
-        // Deferred to afterEvaluate: configuring the mavenPublishing/signing
-        // extensions here (rather than eagerly at plugin-apply time, before
-        // the module's own build.gradle.kts and AGP have finished
-        // configuring it) avoids racing internal wiring that can finalize
-        // these properties first and throw "value for this property is
-        // final and cannot be changed any further" when we then try to set
-        // them ourselves.
-        //
-        // Guarded to run at most once per project: IDE syncs (observed with
-        // IntelliJ/Android Studio's phased tooling-API model fetch, combined
-        // with org.gradle.configuration-cache=true) can invoke afterEvaluate
-        // callbacks more than once within a single daemon session. Calling
-        // publishToMavenCentral()/signAllPublications() a second time throws
-        // the same "value is final" exception, since the underlying
-        // Provider is finalized after its first configuration.
-        afterEvaluate {
-
-            // Idempotency guard: prevents double-configuration if afterEvaluate fires twice
-            // (observed during some IDE syncs with configuration cache enabled).
-            val isConfigured = project.extra.has(spatialPublishingConfiguredMarker) && 
-                               project.extra.get(spatialPublishingConfiguredMarker) == true
-            if (isConfigured) return@afterEvaluate
-            project.extra.set(spatialPublishingConfiguredMarker, true)
-
-            extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
-
-                pom {
-
-                    inceptionYear.set("2026")
-
-                    url.set("https://github.com/danielitoCode/Spatial")
-
-                    licenses {
-                        license {
-                            name.set("MIT License")
-                            url.set("https://opensource.org/licenses/MIT")
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id.set("danielitocode")
-                            name.set("Daniel")
-                        }
-                    }
-
-                    scm {
-                        url.set("https://github.com/danielitoCode/Spatial")
-                        connection.set("scm:git:git://github.com/danielitoCode/Spatial.git")
-                        developerConnection.set("scm:git:ssh://github.com/danielitoCode/Spatial.git")
-                    }
-                }
-
-                publishToMavenCentral()
-
-                if (isReleaseBuild) {
-                    signAllPublications()
-                }
-            }
-
-            if (isReleaseBuild) {
-                extensions.configure<org.gradle.plugins.signing.SigningExtension> {
-                    useGpgCmd()
-                }
-            }
-        }
-    }
-}
 
 /**
  * Registers a root task that depends on the same task

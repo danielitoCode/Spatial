@@ -1,28 +1,10 @@
 plugins {
-    alias(libs.plugins.android.library)
-    id("com.vanniktech.maven.publish")
-    signing
+    id("spatial.android.library")
+    id("spatial.publish")
 }
 
 android {
     namespace = "com.elitec.spatial_runtime"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
-
-    defaultConfig {
-        minSdk = 24
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
 }
 
 dependencies {
@@ -42,7 +24,6 @@ dependencies {
 }
 
 mavenPublishing {
-
     coordinates(
         groupId = "io.github.danielitocode",
         artifactId = "spatial-runtime",

@@ -1,26 +1,8 @@
 plugins {
-    id("java-library")
-    alias(libs.plugins.jetbrains.kotlin.jvm)
-    id("com.vanniktech.maven.publish")
-    signing
-    id("spatial.base")
+    id("spatial.jvm.library")
+    id("spatial.publish")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
-    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
-    }
-
-}
 dependencies {
     // Core expone contratos puros. Solo depende de tipos matemáticos y unidades.
     implementation(project(":spatial-math"))

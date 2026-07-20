@@ -12,6 +12,6 @@ object Kotlin {
 
     const val ALL_WARNINGS_AS_ERRORS = false
 
-    const val JVM_TOOLCHAIN = 11
+    const val JVM_TOOLCHAIN = 17
 
 }

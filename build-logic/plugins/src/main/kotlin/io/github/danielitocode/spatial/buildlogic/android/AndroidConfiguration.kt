@@ -14,13 +14,12 @@ internal class AndroidConfiguration(
 
         JavaConfiguration(project).configure()
 
-        ComposeConfiguration(project).configure()
-
         LintConfiguration(project).configure()
 
         TestingConfiguration(project).configure()
 
-        PublishingConfiguration(project).configure()
+        // Publishing and Compose are now opt-in via their own plugins
+        // to maintain module purity.
 
         DependencyConfiguration(project).configure()
     }
