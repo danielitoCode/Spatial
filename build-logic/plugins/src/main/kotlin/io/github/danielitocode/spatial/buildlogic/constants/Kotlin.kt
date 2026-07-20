@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 object Kotlin {
 
-    val JVM_TARGET = JvmTarget.JVM_11
+    val JVM_TARGET = JvmTarget.JVM_17
 
     const val LANGUAGE_VERSION = "2.2"
 

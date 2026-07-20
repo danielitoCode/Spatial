@@ -4,6 +4,6 @@ import org.gradle.api.JavaVersion
 
 object Java {
 
-    val VERSION = JavaVersion.VERSION_11
+    val VERSION = JavaVersion.VERSION_17
 
 }
