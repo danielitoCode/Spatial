@@ -5,9 +5,6 @@ plugins {
 
 android {
     namespace = "com.elitec.spatial_renderer"
-    buildFeatures {
-        buildConfig = true
-    }
 }
 
 dependencies {
