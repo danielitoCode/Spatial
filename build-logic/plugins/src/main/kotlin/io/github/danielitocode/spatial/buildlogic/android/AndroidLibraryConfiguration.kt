@@ -4,7 +4,6 @@ import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import io.github.danielitocode.spatial.buildlogic.constants.Android
 import org.gradle.api.Project
-import java.io.File
 
 internal class AndroidLibraryConfiguration(
     private val project: Project
@@ -18,8 +17,8 @@ internal class AndroidLibraryConfiguration(
             extension.defaultConfig {
                 minSdk = Android.MIN_SDK
                 
-                // Buscamos el archivo de forma segura usando el layout del proyecto
-                val proguardFile = File(project.projectDir, "consumer-rules.pro")
+                // Usamos project.file() que resuelve rutas absolutas correctamente respecto al módulo
+                val proguardFile = project.file("consumer-rules.pro")
                 if (proguardFile.exists()) {
                     consumerProguardFiles(proguardFile)
                 }
