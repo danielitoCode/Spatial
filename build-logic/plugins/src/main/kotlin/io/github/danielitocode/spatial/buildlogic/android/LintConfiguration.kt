@@ -10,7 +10,7 @@ internal class LintConfiguration(
 ) {
 
     fun configure() {
-        val extension = project.extensions.getByName("android")
+        val extension = project.extensions.findByName("android")
         
         when (extension) {
             is LibraryExtension -> {

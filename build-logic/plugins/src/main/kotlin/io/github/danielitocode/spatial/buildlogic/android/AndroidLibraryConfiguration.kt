@@ -4,8 +4,6 @@ import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import io.github.danielitocode.spatial.buildlogic.constants.Android
 import org.gradle.api.Project
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.kotlin.dsl.withType
 
 internal class AndroidLibraryConfiguration(
     private val project: Project
