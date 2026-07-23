@@ -3,11 +3,7 @@ package io.github.danielitocode.spatial.buildlogic.android
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import io.github.danielitocode.spatial.buildlogic.constants.Java
-import io.github.danielitocode.spatial.buildlogic.constants.Kotlin
 import org.gradle.api.Project
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.kotlin.dsl.assign
-import org.gradle.kotlin.dsl.withType
 
 internal class JavaConfiguration(
     private val project: Project
@@ -29,10 +25,6 @@ internal class JavaConfiguration(
                     targetCompatibility = Java.VERSION
                 }
             }
-        }
-
-        project.tasks.withType<JavaCompile>().configureEach {
-            options.release = Kotlin.JVM_TOOLCHAIN
         }
     }
 }

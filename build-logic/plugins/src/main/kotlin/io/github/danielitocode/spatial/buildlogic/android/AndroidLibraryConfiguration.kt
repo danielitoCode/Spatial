@@ -33,9 +33,5 @@ internal class AndroidLibraryConfiguration(
                 buildConfig = true
             }
         }
-
-        project.tasks.withType<JavaCompile>().configureEach {
-            options.release.set(io.github.danielitocode.spatial.buildlogic.constants.Kotlin.JVM_TOOLCHAIN)
-        }
     }
 }

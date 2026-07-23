@@ -29,10 +29,6 @@ class SpatialJvmLibraryPlugin : Plugin<Project> {
                 }
             }
 
-            tasks.withType<JavaCompile>().configureEach {
-                options.release = Kotlin.JVM_TOOLCHAIN
-            }
-
             extensions.configure<KotlinJvmProjectExtension> {
                 jvmToolchain(Kotlin.JVM_TOOLCHAIN)
                 compilerOptions {
