@@ -1,36 +1,41 @@
 package io.github.danielitocode.spatial.buildlogic.android
 
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import io.github.danielitocode.spatial.buildlogic.constants.Android
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.configure
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.kotlin.dsl.withType
 
 internal class AndroidLibraryConfiguration(
     private val project: Project
 ) {
 
     fun configure() {
-
-        project.extensions.configure<LibraryExtension> {
-
-            compileSdk = Android.COMPILE_SDK
-
-            defaultConfig {
-
+        val extension = project.extensions.findByName("android")
+        
+        if (extension is LibraryExtension) {
+            extension.compileSdk = Android.COMPILE_SDK
+            extension.defaultConfig {
                 minSdk = Android.MIN_SDK
-
-                consumerProguardFiles(
-                    "consumer-rules.pro"
-                )
+                consumerProguardFiles("consumer-rules.pro")
             }
-
-            buildFeatures {
-
+            extension.buildFeatures {
                 buildConfig = true
             }
-
+        } else if (extension is ApplicationExtension) {
+            extension.compileSdk = Android.COMPILE_SDK
+            extension.defaultConfig {
+                minSdk = Android.MIN_SDK
+                targetSdk = Android.TARGET_SDK
+            }
+            extension.buildFeatures {
+                buildConfig = true
+            }
         }
 
+        project.tasks.withType<JavaCompile>().configureEach {
+            options.release.set(io.github.danielitocode.spatial.buildlogic.constants.Kotlin.JVM_TOOLCHAIN)
+        }
     }
-
 }

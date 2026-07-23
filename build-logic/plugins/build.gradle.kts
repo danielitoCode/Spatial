@@ -59,6 +59,20 @@ gradlePlugin {
 
         }
 
+        register("spatialAndroidApplication") {
+
+            id = "spatial.android.application"
+
+            implementationClass =
+                "io.github.danielitocode.spatial.buildlogic.android.SpatialAndroidApplicationPlugin"
+
+            displayName = "Spatial Android Application Plugin"
+
+            description =
+                "Convention plugin for Spatial Android application modules"
+
+        }
+
         register("spatialAndroidLibraryCompose") {
 
             id = "spatial.android.library.compose"

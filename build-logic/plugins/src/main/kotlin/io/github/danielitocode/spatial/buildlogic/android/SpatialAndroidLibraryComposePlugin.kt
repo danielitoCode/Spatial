@@ -6,7 +6,9 @@ import org.gradle.api.Project
 class SpatialAndroidLibraryComposePlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
-            pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+            if (!pluginManager.hasPlugin("org.jetbrains.kotlin.plugin.compose")) {
+                pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+            }
             ComposeConfiguration(this).configure()
         }
     }

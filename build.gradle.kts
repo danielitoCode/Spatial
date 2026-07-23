@@ -32,6 +32,10 @@ val spatialPublishingConfiguredMarker = "spatialPublishingConfigured"
 
 allprojects {
     version = spatialVersion
+
+    tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+        options.release.set(17)
+    }
 }
 
 /**

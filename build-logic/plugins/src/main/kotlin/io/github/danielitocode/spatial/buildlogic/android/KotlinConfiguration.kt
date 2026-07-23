@@ -2,6 +2,7 @@ package io.github.danielitocode.spatial.buildlogic.android
 
 import io.github.danielitocode.spatial.buildlogic.constants.Kotlin
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.assign
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.gradle.kotlin.dsl.configure
 
@@ -16,6 +17,10 @@ internal class KotlinConfiguration(
             jvmToolchain(
                 Kotlin.JVM_TOOLCHAIN
             )
+
+            compilerOptions {
+                jvmTarget = Kotlin.JVM_TARGET
+            }
 
         }
 

@@ -1,29 +1,10 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id("spatial.android.library")
     id("spatial.publish")
 }
 
 android {
     namespace = "com.elitec.spatial_compose_runtime_adapter"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
-
-    defaultConfig {
-        minSdk = 24
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    buildFeatures {
-        buildConfig = true
-    }
 }
 
 dependencies {
