@@ -32,6 +32,13 @@ val spatialPublishingConfiguredMarker = "spatialPublishingConfigured"
 
 allprojects {
     version = spatialVersion
+
+    // Aseguramos que los módulos Android NO usen la opción release que causa conflicto en el CI
+    tasks.withType<JavaCompile>().configureEach {
+        if (project.pluginManager.hasPlugin("com.android.library") || project.pluginManager.hasPlugin("com.android.application")) {
+            options.release.set(null as Int?)
+        }
+    }
 }
 
 /**

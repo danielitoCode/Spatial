@@ -26,5 +26,7 @@ internal class JavaConfiguration(
                 }
             }
         }
+        
+        // NO añadir options.release aquí, ya se maneja globalmente de forma segura en el root build.gradle.kts
     }
 }
