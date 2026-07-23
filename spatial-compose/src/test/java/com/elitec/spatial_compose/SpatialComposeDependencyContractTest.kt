@@ -1,8 +1,8 @@
 package com.elitec.spatial_compose
 
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
+import kotlin.io.path.readText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -13,7 +13,7 @@ class SpatialComposeDependencyContractTest {
     @Test
     fun `spatial compose depends only on allowed framework modules`() {
         val buildFile = spatialComposeBuildFile()
-        val source = Files.readString(buildFile)
+        val source = buildFile.readText()
         val projectDependencies = Regex("project\\(\\\":([^\\\"]+)\\\"\\)")
             .findAll(source)
             .map { it.groupValues[1] }

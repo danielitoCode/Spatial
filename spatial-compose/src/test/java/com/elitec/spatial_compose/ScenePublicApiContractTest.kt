@@ -1,8 +1,8 @@
 package com.elitec.spatial_compose
 
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
+import kotlin.io.path.readText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -42,7 +42,7 @@ class ScenePublicApiContractTest {
         )
         val sourcePath = candidates.firstOrNull { it.exists() }
             ?: error("Scene3D.kt not found from ${Path.of("").toAbsolutePath()}")
-        return Files.readString(sourcePath)
+        return sourcePath.readText()
     }
 
     // Fase 4 (PLAN_PREDEFINED_3D_MODELS.md:205) follow-up: the "documented compose source api"
@@ -63,7 +63,7 @@ class ScenePublicApiContractTest {
         )
         val sourcePath = candidates.firstOrNull { it.exists() }
             ?: error("$fileName not found from ${Path.of("").toAbsolutePath()}")
-        return Files.readString(sourcePath)
+        return sourcePath.readText()
     }
 
     private companion object {

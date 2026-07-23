@@ -1,9 +1,9 @@
 package com.elitec.spatial_core.scene
 
 import com.elitec.spatial_core.render.FrameSnapshot
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.exists
+import kotlin.io.path.readText
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,7 +26,7 @@ class LightingScopeContractTest {
 
     @Test
     fun `readme documents flat color materials and deferred lighting`() {
-        val readme = Files.readString(repoRoot().resolve("readme.md"))
+        val readme = repoRoot().resolve("readme.md").readText()
 
         assertTrue(readme.contains("Flat-color material rendering (no active lighting/shading in Core #1)"))
         assertTrue(readme.contains("Core #1 keeps lighting as contracts only."))
