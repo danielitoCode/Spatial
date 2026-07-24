@@ -24,6 +24,9 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 
+    // Frontera oficial Core #1: Compose consume únicamente contratos de core para evitar acoplar UI a backends de bajo nivel.
+    // Option B: :spatial-compose-runtime-adapter actúa como puente entre Compose y el runtime/backend de renderizado.
+    //   La app depende de :spatial-compose-runtime-adapter; este módulo no declara esa dependencia para mantener la frontera.
     implementation(project(":spatial-core"))
     implementation(project(":spatial-geometry"))
     implementation(project(":spatial-gesture"))
