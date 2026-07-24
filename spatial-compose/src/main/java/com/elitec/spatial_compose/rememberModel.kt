@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.elitec.spatial_compose.ModelResource.Companion.unwrapResId
 import com.elitec.spatial_geometry.GltfBinaryParser
 import com.elitec.spatial_geometry.MeshData
@@ -26,7 +26,7 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 public fun rememberModel(model: ModelResource): MeshData {
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val cachedModels = LocalModelCache.current
 
     // 1. Check cache first
@@ -45,7 +45,7 @@ public fun rememberModel(model: ModelResource): MeshData {
         val loadedMesh = withContext(Dispatchers.IO) {
             try {
                 val resId = unwrapResId(model)
-                context.resources.openRawResource(resId).use { inputStream ->
+                resources.openRawResource(resId).use { inputStream ->
                     GltfBinaryParser.parse(inputStream)
                 }
             } catch (e: Exception) {
