@@ -17,12 +17,14 @@ internal class LintConfiguration(
                 extension.lint {
                     abortOnError = Lint.ABORT_ON_ERROR
                     warningsAsErrors = Lint.WARNINGS_AS_ERRORS
+                    baseline = project.file("lint-baseline.xml")
                 }
             }
             is ApplicationExtension -> {
                 extension.lint {
                     abortOnError = Lint.ABORT_ON_ERROR
                     warningsAsErrors = Lint.WARNINGS_AS_ERRORS
+                    baseline = project.file("lint-baseline.xml")
                 }
             }
         }
