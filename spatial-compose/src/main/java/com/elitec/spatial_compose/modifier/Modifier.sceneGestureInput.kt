@@ -12,12 +12,12 @@ import com.elitec.spatial_compose.scene.SceneGestureInputState
 import com.elitec.spatial_compose.scene.SceneGestures
 import com.elitec.spatial_compose.scene.SceneNode
 import com.elitec.spatial_compose.state.CameraState
-import com.elitec.spatial_compose.components.Scene
 
 /**
- * Internal host-injection entry point for compose module tests.
- * Runtime callers use the public [Scene] overload; renderer infrastructure stays outside the
- * source-level public API.
+ * Internal host-injection entry point for scene orbit / pinch gestures.
+ *
+ * Task 2.1: pairs pointer DOWN/UP with [CameraState.beginGestureInteraction] /
+ * [CameraState.endGestureInteraction] so auto-rotate yields during user orbit.
  */
 internal fun Modifier.sceneGestureInput(
     cameraState: CameraState,
@@ -32,6 +32,7 @@ internal fun Modifier.sceneGestureInput(
         pointerInteropFilter { event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    cameraState.beginGestureInteraction()
                     gestureState.onDown(event.x, event.y)
                     true
                 }
@@ -56,6 +57,7 @@ internal fun Modifier.sceneGestureInput(
                     true
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
+                    cameraState.beginGestureInteraction()
                     gestureState.onPointerDown(
                         pointers = event.pointerPositions(),
                         zoomEnabled = gestures.zoomEnabled,
@@ -72,6 +74,7 @@ internal fun Modifier.sceneGestureInput(
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     gestureState.reset()
+                    cameraState.endGestureInteraction()
                     true
                 }
                 else -> true
