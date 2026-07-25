@@ -22,22 +22,32 @@
     const hash = window.location.hash.replace('#', '');
     if (hash === 'examples' || hash === 'playground' || hash === 'docs' || hash === 'roadmap') {
       currentRoute = hash;
-    } else if (hash === 'home' || hash === '' || hash === 'installation' || hash === 'preview') {
+    } else {
       currentRoute = 'home';
     }
   }
 
   $effect(() => {
+    // Initial check
     updateRouteFromHash();
-    const handleHashChange = () => updateRouteFromHash();
+
+    const handleHashChange = () => {
+      updateRouteFromHash();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   });
 
+  // Direct navigation helper that only updates the hash
   function handleNavigate(targetRoute: string) {
-    currentRoute = targetRoute as Route;
-    window.location.hash = targetRoute;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.location.hash === `#${targetRoute}`) {
+      // If hash is same, hashchange won't fire, so scroll manually
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.location.hash = targetRoute;
+    }
   }
 </script>
 

@@ -9,11 +9,12 @@
   let { activeRoute = 'home', onNavigate }: Props = $props();
 
   function navigate(e: MouseEvent, targetRoute: string) {
-    e.preventDefault();
+    // If it's a standard link, we don't necessarily need to prevent default
+    // as long as the hashchange listener is active.
+    // However, for the 'Open Studio' button which has no href, we need manual nav.
     if (onNavigate) {
+      e.preventDefault();
       onNavigate(targetRoute);
-    } else {
-      window.location.hash = targetRoute;
     }
   }
 </script>

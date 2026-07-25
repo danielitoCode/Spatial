@@ -1,26 +1,4 @@
-/* Theme config - STDF integration */
-@plugin "stdf/theme" {
-  name: "spatial-theme";
-
-  color-primary: oklch(0.85 0.15 170); /* #19E6D2 */
-  color-dark: oklch(0.12 0.03 250); /* #0A0E17 */
-
-  color-bg-base: oklch(0.06 0.02 260); /* #05070D */
-  color-bg-surface: oklch(0.1 0.02 260); /* #0A0E17 */
-  color-bg-overlay: oklch(0.14 0.03 260); /* #101624 */
-
-  color-text-primary: oklch(0.92 0.02 250); /* #E1E2EC */
-  color-text-dark: oklch(0.98 0.01 250); /* #F5F7FF */
-
-  color-success: oklch(0.85 0.15 170);
-  color-warning: oklch(0.8 0.15 85);
-  color-error: oklch(0.65 0.2 25);
-  color-info: oklch(0.7 0.15 220);
-
-  radius-box: 0.75rem;
-  radius-form: 0.5rem;
-  radius-small: 0.375rem;
-}
+@import "tailwindcss";
 
 :root {
   --color-space-bg: #05070D;
@@ -42,8 +20,13 @@
   color-scheme: dark;
 }
 
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular;
+}
+
 body {
-  background-color: var(--color-space-bg, #05070D);
+  background-color: #05070D;
   color: #e1e2ec;
   font-family: var(--font-inter, 'Inter', sans-serif);
   -webkit-font-smoothing: antialiased;
@@ -53,13 +36,12 @@ body {
 }
 
 .spatial-gradient-text {
-  background: linear-gradient(135deg, #19E6D2 0%, #159FE8 48%, #8B5CF6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, #19E6D2 0%, #159FE8 48%, #8B5CF6 100%);
 }
 
 .spatial-gradient-bg {
-  background: linear-gradient(135deg, #19E6D2 0%, #159FE8 48%, #8B5CF6 100%);
+  background-image: linear-gradient(135deg, #19E6D2 0%, #159FE8 48%, #8B5CF6 100%);
 }
 
 .glass-panel {

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Grid, Col, Row } from 'svelte-layouts';
   import PlaygroundCanvas from './PlaygroundCanvas.svelte';
   import PlaygroundControls from './PlaygroundControls.svelte';
   import ComposeGenerator from './ComposeGenerator.svelte';
@@ -16,7 +15,7 @@
   let autoRotate = $state(true);
 
   function handleApplyPreset(p: any) {
-    // Already handled via bindings, but could add global effects here
+    // Handled via bindings
   }
 </script>
 
@@ -35,27 +34,25 @@
       </p>
     </div>
 
-    <!-- Main Studio Layout using svelte-layouts -->
-    <Grid cols={12} gap="2rem">
+    <!-- Main Studio Layout using standard Tailwind grid -->
+    <div class="grid grid-cols-12 gap-8">
       <!-- 3D Canvas Viewport -->
-      <Col span={12} spanLg={7}>
-        <div class="h-[500px]">
-          <PlaygroundCanvas
-            {shape}
-            {color}
-            {emissive}
-            {metalness}
-            {roughness}
-            {wireframe}
-            {lightIntensity}
-            {lightColor}
-            {autoRotate}
-          />
-        </div>
-      </Col>
+      <div class="col-span-12 lg:col-span-7 h-[500px]">
+        <PlaygroundCanvas
+          {shape}
+          {color}
+          {emissive}
+          {metalness}
+          {roughness}
+          {wireframe}
+          {lightIntensity}
+          {lightColor}
+          {autoRotate}
+        />
+      </div>
 
       <!-- Controls Panel -->
-      <Col span={12} spanLg={5}>
+      <div class="col-span-12 lg:col-span-5">
         <PlaygroundControls
           bind:shape
           bind:color
@@ -68,20 +65,18 @@
           bind:autoRotate
           onApplyPreset={handleApplyPreset}
         />
-      </Col>
+      </div>
 
       <!-- Generated Code Export -->
-      <Col span={12}>
-        <div class="mt-8">
-          <ComposeGenerator
-            {shape}
-            {color}
-            {metalness}
-            {roughness}
-            {wireframe}
-          />
-        </div>
-      </Col>
-    </Grid>
+      <div class="col-span-12 mt-8">
+        <ComposeGenerator
+          {shape}
+          {color}
+          {metalness}
+          {roughness}
+          {wireframe}
+        />
+      </div>
+    </div>
   </div>
 </div>

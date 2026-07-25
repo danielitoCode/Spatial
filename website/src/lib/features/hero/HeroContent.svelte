@@ -9,11 +9,9 @@
   let { onNavigate }: Props = $props();
 
   function navigate(e: MouseEvent, targetRoute: string) {
-    e.preventDefault();
     if (onNavigate) {
+      e.preventDefault();
       onNavigate(targetRoute);
-    } else {
-      window.location.hash = targetRoute;
     }
   }
 </script>

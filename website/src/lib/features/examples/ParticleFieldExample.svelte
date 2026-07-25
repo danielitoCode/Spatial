@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Canvas, T, useTask } from '@threlte/core';
-  import { Bloom } from '@threlte/extras';
   import * as THREE from 'three';
   import GlassPanel from '../../components/GlassPanel.svelte';
   import GradientText from '../../components/GradientText.svelte';

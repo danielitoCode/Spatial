@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Row, Col, Grid } from 'svelte-layouts';
   import SpatialButton from '../../components/SpatialButton.svelte';
 
   interface Props {
@@ -103,26 +102,22 @@
       </div>
     </div>
 
-    <Grid cols={2} gap="1rem">
-      <Col>
-        <div class="space-y-2">
-          <div class="flex justify-between font-mono text-[10px]">
-            <span class="text-[#A6B0C3]">Metalness</span>
-            <span>{metalness.toFixed(2)}</span>
-          </div>
-          <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="w-full accent-[#19E6D2]" />
+    <div class="grid grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <div class="flex justify-between font-mono text-[10px]">
+          <span class="text-[#A6B0C3]">Metalness</span>
+          <span>{metalness.toFixed(2)}</span>
         </div>
-      </Col>
-      <Col>
-        <div class="space-y-2">
-          <div class="flex justify-between font-mono text-[10px]">
-            <span class="text-[#A6B0C3]">Roughness</span>
-            <span>{roughness.toFixed(2)}</span>
-          </div>
-          <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="w-full accent-[#19E6D2]" />
+        <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="w-full accent-[#19E6D2]" />
+      </div>
+      <div class="space-y-2">
+        <div class="flex justify-between font-mono text-[10px]">
+          <span class="text-[#A6B0C3]">Roughness</span>
+          <span>{roughness.toFixed(2)}</span>
         </div>
-      </Col>
-    </Grid>
+        <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="w-full accent-[#19E6D2]" />
+      </div>
+    </div>
   </section>
 
   <!-- Rendering Toggles -->
