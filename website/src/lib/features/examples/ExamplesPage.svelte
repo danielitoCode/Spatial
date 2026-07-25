@@ -2,6 +2,7 @@
   import ModelViewerExample from './ModelViewerExample.svelte';
   import ParticleFieldExample from './ParticleFieldExample.svelte';
   import PhysicsSimExample from './PhysicsSimExample.svelte';
+  import InstancedMeshExample from './InstancedMeshExample.svelte';
   import GradientText from '../../components/GradientText.svelte';
 </script>
 
@@ -23,6 +24,7 @@
     <!-- Examples Stack -->
     <div class="space-y-10">
       <ModelViewerExample />
+      <InstancedMeshExample />
       <ParticleFieldExample />
       <PhysicsSimExample />
     </div>

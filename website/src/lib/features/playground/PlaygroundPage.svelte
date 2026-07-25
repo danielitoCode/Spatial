@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Grid, Col, Row } from 'svelte-layouts';
   import PlaygroundCanvas from './PlaygroundCanvas.svelte';
   import PlaygroundControls from './PlaygroundControls.svelte';
   import ComposeGenerator from './ComposeGenerator.svelte';
@@ -14,15 +15,15 @@
   let lightColor = $state('#19E6D2');
   let autoRotate = $state(true);
 
-  function handleApplyPreset(p: string) {
-    // Handled in PlaygroundControls
+  function handleApplyPreset(p: any) {
+    // Already handled via bindings, but could add global effects here
   }
 </script>
 
 <div class="py-16 bg-[#05070D] min-h-[85vh]">
-  <div class="max-w-7xl mx-auto px-6 space-y-10">
+  <div class="max-w-7xl mx-auto px-6">
     <!-- Header -->
-    <div class="text-center max-w-3xl mx-auto">
+    <div class="text-center max-w-3xl mx-auto mb-16">
       <div class="inline-block px-3.5 py-1 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 text-[#8B5CF6] font-mono text-xs font-semibold tracking-wider mb-4">
         3D SCENE STUDIO
       </div>
@@ -34,25 +35,27 @@
       </p>
     </div>
 
-    <!-- Main Studio Layout -->
-    <div class="grid lg:grid-cols-12 gap-8">
+    <!-- Main Studio Layout using svelte-layouts -->
+    <Grid cols={12} gap="2rem">
       <!-- 3D Canvas Viewport -->
-      <div class="lg:col-span-7 h-[450px]">
-        <PlaygroundCanvas
-          {shape}
-          {color}
-          {emissive}
-          {metalness}
-          {roughness}
-          {wireframe}
-          {lightIntensity}
-          {lightColor}
-          {autoRotate}
-        />
-      </div>
+      <Col span={12} spanLg={7}>
+        <div class="h-[500px]">
+          <PlaygroundCanvas
+            {shape}
+            {color}
+            {emissive}
+            {metalness}
+            {roughness}
+            {wireframe}
+            {lightIntensity}
+            {lightColor}
+            {autoRotate}
+          />
+        </div>
+      </Col>
 
       <!-- Controls Panel -->
-      <div class="lg:col-span-5">
+      <Col span={12} spanLg={5}>
         <PlaygroundControls
           bind:shape
           bind:color
@@ -65,16 +68,20 @@
           bind:autoRotate
           onApplyPreset={handleApplyPreset}
         />
-      </div>
-    </div>
+      </Col>
 
-    <!-- Generated Code Export -->
-    <ComposeGenerator
-      {shape}
-      {color}
-      {metalness}
-      {roughness}
-      {wireframe}
-    />
+      <!-- Generated Code Export -->
+      <Col span={12}>
+        <div class="mt-8">
+          <ComposeGenerator
+            {shape}
+            {color}
+            {metalness}
+            {roughness}
+            {wireframe}
+          />
+        </div>
+      </Col>
+    </Grid>
   </div>
 </div>

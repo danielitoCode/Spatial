@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { Row, Col, Grid } from 'svelte-layouts';
+  import SpatialButton from '../../components/SpatialButton.svelte';
+
   interface Props {
     shape: 'box' | 'sphere' | 'torus' | 'cylinder';
     color: string;
@@ -26,10 +29,10 @@
   }: Props = $props();
 
   const presets = [
-    { name: 'Cyberpunk Neon', shape: 'torus', color: '#19E6D2', emissive: '#8B5CF6', metalness: 0.8, roughness: 0.1 },
-    { name: 'Chrome Metallic', shape: 'sphere', color: '#e1e2ec', emissive: '#000000', metalness: 0.95, roughness: 0.05 },
-    { name: 'Space Emerald', shape: 'box', color: '#10B981', emissive: '#064E3B', metalness: 0.7, roughness: 0.3 },
-    { name: 'Solar Flame', shape: 'cylinder', color: '#F25933', emissive: '#7C2D12', metalness: 0.4, roughness: 0.4 }
+    { name: 'Cyber Neon', shape: 'torus', color: '#19E6D2', emissive: '#8B5CF6', metalness: 0.8, roughness: 0.1 },
+    { name: 'Pure Chrome', shape: 'sphere', color: '#e1e2ec', emissive: '#000000', metalness: 0.95, roughness: 0.05 },
+    { name: 'Emerald', shape: 'box', color: '#10B981', emissive: '#064E3B', metalness: 0.7, roughness: 0.3 },
+    { name: 'Solar', shape: 'cylinder', color: '#F25933', emissive: '#7C2D12', metalness: 0.4, roughness: 0.4 }
   ];
 
   function applyPreset(p: typeof presets[0]) {
@@ -41,56 +44,58 @@
   }
 </script>
 
-<div class="bg-[#0A0E17] p-6 rounded-2xl border border-[#1C2638] flex flex-col gap-6 text-xs text-[#e1e2ec]">
-  <!-- Presets Bar -->
-  <div>
-    <span class="block text-[#6F7A90] font-mono mb-2">QUICK PRESETS</span>
-    <div class="grid grid-cols-2 gap-2">
+<div class="glass-panel p-6 rounded-3xl flex flex-col gap-8 text-xs">
+  <!-- Presets -->
+  <section class="space-y-3">
+    <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Quick Presets</span>
+    <div class="grid grid-cols-2 gap-3">
       {#each presets as p}
         <button
           onclick={() => applyPreset(p)}
-          class="px-3 py-2 bg-[#101624] hover:bg-[#19E6D2]/10 border border-[#1C2638] hover:border-[#19E6D2]/40 rounded-lg text-left font-semibold transition-colors"
+          class="p-3 bg-[#101624] hover:bg-[#19E6D2]/5 border border-[#1C2638] hover:border-[#19E6D2]/30 rounded-2xl text-left transition-all group"
         >
-          {p.name}
+          <div class="font-bold text-[#e1e2ec] group-hover:text-[#19E6D2]">{p.name}</div>
+          <div class="text-[9px] text-[#6F7A90] font-mono mt-1 uppercase">{p.shape} • PBR</div>
         </button>
       {/each}
     </div>
-  </div>
+  </section>
 
-  <!-- Shape Selector -->
-  <div>
-    <span class="block text-[#6F7A90] font-mono mb-2">3D GEOMETRY</span>
-    <div class="grid grid-cols-4 gap-2">
+  <!-- Geometry -->
+  <section class="space-y-3">
+    <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Geometry</span>
+    <div class="flex p-1 bg-[#101624] rounded-2xl border border-[#1C2638]">
       {#each ['box', 'sphere', 'torus', 'cylinder'] as s}
         <button
           onclick={() => (shape = s as any)}
-          class="py-2 rounded-lg font-mono capitalize border transition-all {shape === s
-            ? 'bg-[#19E6D2] text-[#00201c] font-bold border-[#19E6D2]'
-            : 'bg-[#101624] text-[#bacac6] border-[#1C2638] hover:text-white'}"
+          class="flex-1 py-2.5 rounded-xl font-mono capitalize transition-all {shape === s
+            ? 'bg-[#19E6D2] text-[#00201c] font-black shadow-lg shadow-[#19E6D2]/20'
+            : 'text-[#6F7A90] hover:text-[#e1e2ec]'}"
         >
           {s}
         </button>
       {/each}
     </div>
-  </div>
+  </section>
 
-  <!-- Material Pickers -->
-  <div class="space-y-4 pt-2 border-t border-[#1C2638]">
-    <span class="block text-[#6F7A90] font-mono">MATERIAL & SHADING</span>
+  <!-- Material -->
+  <section class="space-y-4 pt-2">
+    <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Material Properties</span>
 
-    <div>
+    <div class="space-y-2">
       <div class="flex justify-between font-mono mb-1">
-        <span>Primary Color</span>
-        <span class="text-[#19E6D2]">{color}</span>
+        <span class="text-[#A6B0C3]">Albedo Color</span>
+        <span class="text-[#19E6D2] font-bold">{color}</span>
       </div>
-      <div class="flex gap-2 items-center">
-        <input type="color" bind:value={color} class="w-8 h-8 rounded bg-transparent cursor-pointer border-0" />
-        <div class="flex gap-1.5">
-          {#each ['#19E6D2', '#159FE8', '#8B5CF6', '#F25933', '#E1E2EC'] as c}
+      <div class="flex gap-3 items-center bg-[#101624] p-3 rounded-2xl border border-[#1C2638]">
+        <div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#1C2638]">
+          <input type="color" bind:value={color} class="absolute -inset-2 w-[200%] h-[200%] cursor-pointer bg-transparent border-0" />
+        </div>
+        <div class="flex gap-2 flex-1">
+          {#each ['#19E6D2', '#159FE8', '#8B5CF6', '#F25933'] as c}
             <button
               onclick={() => (color = c)}
-              aria-label="Set color {c}"
-              class="w-5 h-5 rounded-full border border-white/20"
+              class="w-6 h-6 rounded-full border border-white/10 transition-transform active:scale-90"
               style="background-color: {c}"
             ></button>
           {/each}
@@ -98,33 +103,63 @@
       </div>
     </div>
 
-    <div>
-      <div class="flex justify-between font-mono mb-1">
-        <span>Metalness</span>
-        <span>{metalness.toFixed(2)}</span>
+    <Grid cols={2} gap="1rem">
+      <Col>
+        <div class="space-y-2">
+          <div class="flex justify-between font-mono text-[10px]">
+            <span class="text-[#A6B0C3]">Metalness</span>
+            <span>{metalness.toFixed(2)}</span>
+          </div>
+          <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="w-full accent-[#19E6D2]" />
+        </div>
+      </Col>
+      <Col>
+        <div class="space-y-2">
+          <div class="flex justify-between font-mono text-[10px]">
+            <span class="text-[#A6B0C3]">Roughness</span>
+            <span>{roughness.toFixed(2)}</span>
+          </div>
+          <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="w-full accent-[#19E6D2]" />
+        </div>
+      </Col>
+    </Grid>
+  </section>
+
+  <!-- Rendering Toggles -->
+  <section class="grid grid-cols-2 gap-4 pt-4 border-t border-[#1C2638]">
+    <label class="flex flex-col gap-2 p-4 bg-[#101624] rounded-2xl border border-[#1C2638] cursor-pointer hover:border-[#19E6D2]/40 transition-colors">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-[#e1e2ec]">Wireframe</span>
+        <input type="checkbox" bind:checked={wireframe} class="accent-[#19E6D2] w-4 h-4 rounded" />
       </div>
-      <input type="range" min="0" max="1" step="0.05" bind:value={metalness} class="w-full accent-[#19E6D2]" />
-    </div>
+      <span class="text-[9px] text-[#6F7A90] font-mono leading-none">DEBUG_MESH_GRID</span>
+    </label>
 
-    <div>
-      <div class="flex justify-between font-mono mb-1">
-        <span>Roughness</span>
-        <span>{roughness.toFixed(2)}</span>
+    <label class="flex flex-col gap-2 p-4 bg-[#101624] rounded-2xl border border-[#1C2638] cursor-pointer hover:border-[#19E6D2]/40 transition-colors">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-[#e1e2ec]">Auto Orbit</span>
+        <input type="checkbox" bind:checked={autoRotate} class="accent-[#19E6D2] w-4 h-4 rounded" />
       </div>
-      <input type="range" min="0" max="1" step="0.05" bind:value={roughness} class="w-full accent-[#19E6D2]" />
-    </div>
-  </div>
-
-  <!-- Toggles -->
-  <div class="space-y-3 pt-2 border-t border-[#1C2638]">
-    <div class="flex justify-between items-center">
-      <span class="font-mono">Wireframe Mode</span>
-      <input type="checkbox" bind:checked={wireframe} class="accent-[#19E6D2] w-4 h-4 cursor-pointer" />
-    </div>
-
-    <div class="flex justify-between items-center">
-      <span class="font-mono">Auto Rotation</span>
-      <input type="checkbox" bind:checked={autoRotate} class="accent-[#19E6D2] w-4 h-4 cursor-pointer" />
-    </div>
-  </div>
+      <span class="text-[9px] text-[#6F7A90] font-mono leading-none">CINEMATIC_VIEW</span>
+    </label>
+  </section>
 </div>
+
+<style>
+  input[type="range"] {
+    -webkit-appearance: none;
+    background: #1C2638;
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: #19E6D2;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(25, 230, 210, 0.4);
+  }
+</style>
