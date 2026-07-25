@@ -14,6 +14,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    // ActivityScenario for CubeRendersOnFirstFrameTest (GLSurfaceView needs a real window)
+    androidTestImplementation("androidx.test:core:1.6.1")
 
     // Renderer solo depende de bloques de bajo nivel (math/material/light), nunca de core/scene/compose.
     implementation(project(":spatial-math"))
