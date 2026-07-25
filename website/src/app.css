@@ -1,0 +1,93 @@
+/* Theme config - STDF integration */
+@plugin "stdf/theme" {
+  name: "spatial-theme";
+
+  color-primary: oklch(0.85 0.15 170); /* #19E6D2 */
+  color-dark: oklch(0.12 0.03 250); /* #0A0E17 */
+
+  color-bg-base: oklch(0.06 0.02 260); /* #05070D */
+  color-bg-surface: oklch(0.1 0.02 260); /* #0A0E17 */
+  color-bg-overlay: oklch(0.14 0.03 260); /* #101624 */
+
+  color-text-primary: oklch(0.92 0.02 250); /* #E1E2EC */
+  color-text-dark: oklch(0.98 0.01 250); /* #F5F7FF */
+
+  color-success: oklch(0.85 0.15 170);
+  color-warning: oklch(0.8 0.15 85);
+  color-error: oklch(0.65 0.2 25);
+  color-info: oklch(0.7 0.15 220);
+
+  radius-box: 0.75rem;
+  radius-form: 0.5rem;
+  radius-small: 0.375rem;
+}
+
+:root {
+  --color-space-bg: #05070D;
+  --color-space-surface: #0A0E17;
+  --color-space-surface-elevated: #101624;
+  --color-space-container: #1D1F26;
+  --color-space-container-high: #272A31;
+  --color-space-border: #1C2638;
+  --color-space-silver: #A6B0C3;
+  --color-space-muted: #6F7A90;
+  
+  --color-spatial-primary: #19E6D2;
+  --color-spatial-secondary: #159FE8;
+  --color-spatial-tertiary: #8B5CF6;
+  --color-spatial-accent: #F25933;
+
+  --font-inter: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-space-bg, #05070D);
+  color: #e1e2ec;
+  font-family: var(--font-inter, 'Inter', sans-serif);
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.spatial-gradient-text {
+  background: linear-gradient(135deg, #19E6D2 0%, #159FE8 48%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.spatial-gradient-bg {
+  background: linear-gradient(135deg, #19E6D2 0%, #159FE8 48%, #8B5CF6 100%);
+}
+
+.glass-panel {
+  background: rgba(10, 14, 23, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(28, 38, 56, 0.6);
+}
+
+.glow-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-hover:hover {
+  box-shadow: 0 0 24px rgba(25, 230, 210, 0.25);
+  transform: translateY(-4px);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
