@@ -11,20 +11,28 @@ internal class LintConfiguration(
 
     fun configure() {
         val extension = project.extensions.findByName("android")
-        
+        val baselineFile = project.file("lint-baseline.xml")
+
         when (extension) {
             is LibraryExtension -> {
                 extension.lint {
                     abortOnError = Lint.ABORT_ON_ERROR
                     warningsAsErrors = Lint.WARNINGS_AS_ERRORS
-                    baseline = project.file("lint-baseline.xml")
+                    // Only apply the baseline when the file is already committed in the repo.
+                    // This avoids a hard lint failure ("baseline file not found") on modules
+                    // that have no pre-existing warnings to suppress.
+                    if (baselineFile.exists()) {
+                        baseline = baselineFile
+                    }
                 }
             }
             is ApplicationExtension -> {
                 extension.lint {
                     abortOnError = Lint.ABORT_ON_ERROR
                     warningsAsErrors = Lint.WARNINGS_AS_ERRORS
-                    baseline = project.file("lint-baseline.xml")
+                    if (baselineFile.exists()) {
+                        baseline = baselineFile
+                    }
                 }
             }
         }

@@ -38,10 +38,26 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | ${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
 
+      - name: Install Android SDK 36 and build-tools
+        # ubuntu-latest ships older SDK versions. compileSdk 36 and
+        # build-tools 36.0.0 must be installed explicitly or the Android
+        # Gradle Plugin will fail at configuration time with "SDK not found".
+        run: |
+          ${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            > /dev/null
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Verify repository (build + test + publishToMavenLocal + artifact checks)
         # spatialRelease is intentionally left unset here: signAllPublications()
         # never runs in CI, so no signing key is required for this workflow.
-        run: ./gradlew --no-daemon verifyRepository
+        # --no-configuration-cache: avoids non-deterministic CC failures from
+        # tasks that capture subproject references during configuration.
+        env:
+          GRADLE_OPTS: "-Dfile.encoding=UTF-8 -Xmx4g -Xms512m"
+        run: |
+          ./gradlew --no-daemon --no-configuration-cache verifyRepository
+

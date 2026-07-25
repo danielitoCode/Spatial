@@ -32,13 +32,6 @@ val spatialPublishingConfiguredMarker = "spatialPublishingConfigured"
 
 allprojects {
     version = spatialVersion
-
-    // Aseguramos que los módulos Android NO usen la opción release que causa conflicto en el CI
-    tasks.withType<JavaCompile>().configureEach {
-        if (project.pluginManager.hasPlugin("com.android.library") || project.pluginManager.hasPlugin("com.android.application")) {
-            options.release.set(null as Int?)
-        }
-    }
 }
 
 /**
@@ -64,21 +57,27 @@ fun registerAggregateTask(
     name: String,
     group: String,
     description: String,
-    subTask: String
+    subTask: String,
+    // The :app module is a demo application, not a publishable library.
+    // It requires an Android emulator for instrumented tests which are not
+    // available in the CI environment, so we exclude it from aggregate tasks.
+    excludedModules: Set<String> = setOf(":app")
 ) = tasks.register(name) {
 
     this.group = group
     this.description = description
 
-    subprojects.forEach { project ->
+    subprojects
+        .filter { it.path !in excludedModules }
+        .forEach { project ->
 
-        dependsOn(
-            project.tasks.matching {
-                it.name == subTask
-            }
-        )
+            dependsOn(
+                project.tasks.matching {
+                    it.name == subTask
+                }
+            )
 
-    }
+        }
 }
 
 
