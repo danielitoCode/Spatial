@@ -7,10 +7,9 @@ import com.elitec.spatial_compose.scene.SceneNode
 /**
  * Maps a one-finger drag in screen pixels to yaw/pitch degrees.
  *
- * Task 2.1 (device feedback):
- * - **Yaw** uses inverted [dx] so dragging right rotates the figure with the finger
- *   (turntable feel), not against it.
- * - **Pitch** uses inverted [dy] so dragging up raises the camera / looks from higher.
+ * Task 2.1 (device feedback — turntable UX):
+ * - **Yaw** uses inverted [dx] so dragging right rotates the figure with the finger.
+ * - **Pitch** uses raw [dy] so dragging down pitches with the finger (not against it).
  */
 internal fun resolveOrbitGestureDelta(
     dx: Float,
@@ -28,8 +27,8 @@ internal fun resolveOrbitGestureDelta(
     return OrbitGestureDeltaDegrees(
         // Finger right (dx > 0) → negative yaw so the object appears to follow the drag.
         yawDegrees = ((-dx) * degreesPerPixel).coerceIn(-MaxOrbitDegreesPerStep, MaxOrbitDegreesPerStep),
-        // Screen Y grows downward; invert so finger-up → positive pitch delta.
-        pitchDegrees = ((-dy) * degreesPerPixel).coerceIn(-MaxOrbitDegreesPerStep, MaxOrbitDegreesPerStep),
+        // Finger down (dy > 0) → positive pitch so the object follows the vertical drag.
+        pitchDegrees = (dy * degreesPerPixel).coerceIn(-MaxOrbitDegreesPerStep, MaxOrbitDegreesPerStep),
     )
 }
 

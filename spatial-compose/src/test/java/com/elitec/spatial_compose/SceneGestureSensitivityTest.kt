@@ -32,7 +32,6 @@ class SceneGestureSensitivityTest {
             viewportSize = IntSize(1080, 1080),
         )
 
-        // Yaw sign is inverted for turntable UX; compare magnitudes so damping still holds.
         assertTrue(
             "Expected zooming in to reduce orbit yaw |delta|, but |${zoomedInDelta.yawDegrees}| was not less than |${normalZoomDelta.yawDegrees}|",
             abs(zoomedInDelta.yawDegrees) < abs(normalZoomDelta.yawDegrees),
@@ -87,9 +86,9 @@ class SceneGestureSensitivityTest {
             sensitivity = GestureSensitivity.Adaptive,
         )
 
-        // Turntable convention: -dx * 0.25 = -10; finger-up (-dy) → +5 pitch.
+        // Turntable: -dx * 0.25 = -10; dy * 0.25 = -5 (finger up).
         assertEquals(-10f, fixedDelta.yawDegrees, 0.0001f)
-        assertEquals(5f, fixedDelta.pitchDegrees, 0.0001f)
+        assertEquals(-5f, fixedDelta.pitchDegrees, 0.0001f)
         assertTrue(
             "Fixed sensitivity should stay sharper than adaptive for this tiny zoomed scene",
             abs(fixedDelta.yawDegrees) > abs(adaptiveDelta.yawDegrees),

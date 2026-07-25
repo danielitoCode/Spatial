@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Task 2.1 — orbit gesture: pixel deltas, yaw/pitch inversion, single-pointer tracking.
+ * Task 2.1 — orbit gesture: pixel deltas, turntable signs, single-pointer tracking.
  */
 class OrbitGestureTask21Test {
 
@@ -50,7 +50,7 @@ class OrbitGestureTask21Test {
     }
 
     @Test
-    fun `resolveOrbitGestureDelta inverts yaw for finger-right and pitch for finger-up`() {
+    fun `resolveOrbitGestureDelta turntable signs for finger right and finger up`() {
         val delta = resolveOrbitGestureDelta(
             dx = 10f, // finger right
             dy = -20f, // finger up
@@ -61,8 +61,8 @@ class OrbitGestureTask21Test {
         )
         // -dx * 0.25 = -2.5 → figure follows drag to the right
         assertEquals(-2.5f, delta.yawDegrees, 0.01f)
-        // -dy * 0.25 = 5 → positive pitch when finger goes up
-        assertEquals(5f, delta.pitchDegrees, 0.01f)
+        // dy * 0.25 = -5 → finger up pitches the figure upward with the drag
+        assertEquals(-5f, delta.pitchDegrees, 0.01f)
     }
 
     @Test
