@@ -9,6 +9,7 @@ import com.elitec.spatial_compose.shapes.PrimitiveShape
 import com.elitec.spatial_units.meters
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
+import kotlin.math.abs
 import org.junit.Test
 
 class SceneGestureSensitivityTest {
@@ -31,9 +32,10 @@ class SceneGestureSensitivityTest {
             viewportSize = IntSize(1080, 1080),
         )
 
+        // Yaw sign is inverted for turntable UX; compare magnitudes so damping still holds.
         assertTrue(
-            "Expected zooming in to reduce orbit yaw delta, but ${zoomedInDelta.yawDegrees} was not less than ${normalZoomDelta.yawDegrees}",
-            zoomedInDelta.yawDegrees < normalZoomDelta.yawDegrees,
+            "Expected zooming in to reduce orbit yaw |delta|, but |${zoomedInDelta.yawDegrees}| was not less than |${normalZoomDelta.yawDegrees}|",
+            abs(zoomedInDelta.yawDegrees) < abs(normalZoomDelta.yawDegrees),
         )
     }
 
@@ -54,9 +56,9 @@ class SceneGestureSensitivityTest {
             viewportSize = IntSize(1080, 1080),
         )
 
-        assertTrue("Yaw delta should be capped for small scenes", delta.yawDegrees <= 32f)
-        assertTrue("Pitch delta should be capped for small scenes", delta.pitchDegrees <= 32f)
-        assertTrue("Tiny scene sensitivity should dampen large drags", delta.yawDegrees < 80f)
+        assertTrue("Yaw delta should be capped for small scenes", abs(delta.yawDegrees) <= 32f)
+        assertTrue("Pitch delta should be capped for small scenes", abs(delta.pitchDegrees) <= 32f)
+        assertTrue("Tiny scene sensitivity should dampen large drags", abs(delta.yawDegrees) < 80f)
     }
 
     @Test
@@ -85,11 +87,12 @@ class SceneGestureSensitivityTest {
             sensitivity = GestureSensitivity.Adaptive,
         )
 
-        assertEquals(10f, fixedDelta.yawDegrees, 0.0001f)
-        assertEquals(-5f, fixedDelta.pitchDegrees, 0.0001f)
+        // Turntable convention: -dx * 0.25 = -10; finger-up (-dy) → +5 pitch.
+        assertEquals(-10f, fixedDelta.yawDegrees, 0.0001f)
+        assertEquals(5f, fixedDelta.pitchDegrees, 0.0001f)
         assertTrue(
             "Fixed sensitivity should stay sharper than adaptive for this tiny zoomed scene",
-            fixedDelta.yawDegrees > adaptiveDelta.yawDegrees,
+            abs(fixedDelta.yawDegrees) > abs(adaptiveDelta.yawDegrees),
         )
     }
 }
