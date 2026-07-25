@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Task 2.1 — orbit gesture: pixel deltas, pitch inversion, single-pointer tracking.
+ * Task 2.1 — orbit gesture: pixel deltas, yaw/pitch inversion, single-pointer tracking.
  */
 class OrbitGestureTask21Test {
 
@@ -25,7 +25,6 @@ class OrbitGestureTask21Test {
             orbitEnabled = true,
             zoomEnabled = false,
         )
-        // First move after down with same coords: dx/dy 0 is fine; second move must track.
         val second = state.onMove(
             pointers = listOf(PointerPosition(30f, 40f)),
             orbitEnabled = true,
@@ -51,17 +50,18 @@ class OrbitGestureTask21Test {
     }
 
     @Test
-    fun `resolveOrbitGestureDelta inverts pitch for finger-up`() {
+    fun `resolveOrbitGestureDelta inverts yaw for finger-right and pitch for finger-up`() {
         val delta = resolveOrbitGestureDelta(
-            dx = 10f,
-            dy = -20f, // finger moved up on screen
+            dx = 10f, // finger right
+            dy = -20f, // finger up
             cameraZoom = 1f,
             sceneNodes = emptyList(),
             viewportSize = IntSize(400, 400),
             sensitivity = GestureSensitivity.Fixed(0.25f),
         )
-        assertEquals(2.5f, delta.yawDegrees, 0.01f)
-        // -dy * 0.25 = 20 * 0.25 = 5 → positive pitch when finger goes up
+        // -dx * 0.25 = -2.5 → figure follows drag to the right
+        assertEquals(-2.5f, delta.yawDegrees, 0.01f)
+        // -dy * 0.25 = 5 → positive pitch when finger goes up
         assertEquals(5f, delta.pitchDegrees, 0.01f)
     }
 
@@ -74,7 +74,9 @@ class OrbitGestureTask21Test {
             sceneNodes = emptyList(),
             sensitivity = GestureSensitivity.Fixed(1f),
         )
-        assertTrue(delta.yawDegrees <= 32f)
+        assertTrue(delta.yawDegrees >= -32f)
         assertTrue(delta.pitchDegrees >= -32f)
+        assertTrue(delta.yawDegrees <= 32f)
+        assertTrue(delta.pitchDegrees <= 32f)
     }
 }
