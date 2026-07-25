@@ -1,10 +1,9 @@
 package com.elitec.spatial_compose.components
 
-import android.content.Context
 import android.util.Log
-import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,20 +51,7 @@ fun Scene(
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     val clearColor = remember(backgroundColor) { backgroundColor.toColor4() }
 
-    // Track 1 (Fix background-then-foreground bug, Core #1): observe the Activity/Fragment
-    // `LifecycleOwner` and forward ON_PAUSE/ON_RESUME to the render host. Without this, the
-    // `GLSurfaceView` is never told to pause its GL thread when the app is backgrounded, and on
-    // return the EGL context is in an undefined state - on devices that don't preserve the EGL
-    // context across pause, `onSurfaceCreated` does not reliably re-fire, and even when it does,
-    // no one re-pushes the still-cached `pendingNodes` to the renderer, so the 3D figures stay
-    // invisible until the user touches a slider (the bug being fixed here).
-    //
-    // We register on `DisposableEffect(renderHostHolder)` rather than via `LifecycleStartEffect`
-    // because we need this to settle BEFORE the AndroidView's `factory` runs (which creates the
-    // host) - and `factory` is not a hook Compose lets us run-after-our-DisposableEffect reliably
-    // unless we both hold the host reference and also subscribe BEFORE onCreate/RESUMED passes
-    // through. The implementation here keeps the subscription tied to the host lifetime, so the
-    // observer is removed when the host is disposed and never leaks across recompositions.
+    // Forward Activity pause/resume to GLSurfaceView so background → foreground recreates cleanly.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, renderHostHolder) {
         val observer = LifecycleEventObserver { _, event ->
@@ -89,12 +75,14 @@ fun Scene(
         factory = { context ->
             renderHostFactory.create(context).also { host ->
                 renderHostHolder.host = host
-                // Safe even though the GL surface is not guaranteed ready yet: the render host
-                // (SpatialRuntimeSceneRenderHost) queues this first frame internally and replays it
-                // once `onSurfaceCreated` fires, instead of touching GL before it's ready. See the
-                // item 1.2 audit notes in CORE1_STABILITY.md for the full mechanism and its
-                // known limitations (single-slot coalescer, not a real queue).
-                host.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
+                // Device-closure task 1.2: on the first composition, Element DisposableEffects have
+                // not yet added nodes to the SnapshotStateList, so renderableNodes is often empty
+                // here. Enqueueing that empty frame only lengthens a clear-only first paint.
+                // SideEffect / update below push the real scene once nodes exist; the host still
+                // queues safely if GL is not ready.
+                if (renderableNodes.isNotEmpty()) {
+                    host.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
+                }
             }.view
         },
         onRelease = {
@@ -104,6 +92,14 @@ fun Scene(
             renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
         },
     )
+
+    // After effects apply SceneElement nodes, this composition pass has a non-empty graph.
+    // Guarantee a frame request even if AndroidView's update block is skipped in edge cases.
+    SideEffect {
+        if (renderableNodes.isNotEmpty()) {
+            renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
+        }
+    }
 }
 
 private fun androidx.compose.ui.graphics.Color.toColor4(): com.elitec.spatial_core.render.Color4 {
