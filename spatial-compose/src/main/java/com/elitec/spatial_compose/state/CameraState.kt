@@ -1,6 +1,5 @@
 package com.elitec.spatial_compose.state
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -48,8 +47,41 @@ class CameraState internal constructor(
     var source: CameraUpdateSource by mutableStateOf(CameraUpdateSource.Gesture)
         private set
 
+    /** True while a scene pointer gesture is active (DOWN…UP). */
+    private var gesturePointerActive: Boolean by mutableStateOf(false)
+
+    /**
+     * Monotonic nanos after which auto-rotate may resume following a gesture.
+     * Prevents autoRotate from fighting the last user orbit for a short cooldown.
+     */
+    private var autoRotateResumeNanos: Long by mutableLongStateOf(0L)
+
     init {
         syncFromRuntime()
+    }
+
+    /**
+     * Call from scene gesture input on ACTION_DOWN / pointer down.
+     * Task 2.1: pauses auto-rotate so orbit/pinch is not overridden every frame.
+     */
+    fun beginGestureInteraction() {
+        gesturePointerActive = true
+    }
+
+    /**
+     * Call on ACTION_UP / CANCEL. Starts a short cooldown before auto-rotate resumes.
+     */
+    fun endGestureInteraction() {
+        gesturePointerActive = false
+        autoRotateResumeNanos = System.nanoTime() + AUTO_ROTATE_COOLDOWN_NANOS
+    }
+
+    /**
+     * Whether [autoRotate] should skip this frame.
+     * Suppressed while the user is dragging and briefly after release.
+     */
+    fun isAutoRotateSuppressed(nowNanos: Long = System.nanoTime()): Boolean {
+        return gesturePointerActive || nowNanos < autoRotateResumeNanos
     }
 
     fun orbitTo(
@@ -163,8 +195,6 @@ class CameraState internal constructor(
 
     fun snapshot(): CameraSnapshot {
         // Read Compose state properties to register state observation in the calling scope.
-        // Without reading these, calls to snapshot() read directly from the non-state cameraRuntime,
-        // meaning Compose never detects camera changes and the scene remains frozen.
         val currentVersion = version
         val currentYaw = yaw
         val currentPitch = pitch
@@ -181,13 +211,16 @@ class CameraState internal constructor(
         source = snapshot.source
     }
 
-    private fun Angle.coercePitch(): Angle = toDegrees().coerceIn(MIN_PITCH_DEGREES, MAX_PITCH_DEGREES).deg
+    private fun Angle.coercePitch(): Angle =
+        toDegrees().coerceIn(MIN_PITCH_DEGREES, MAX_PITCH_DEGREES).deg
 
     private companion object {
         const val MIN_PITCH_DEGREES = CameraSnapshot.MIN_PITCH_DEGREES
         const val MAX_PITCH_DEGREES = CameraSnapshot.MAX_PITCH_DEGREES
         const val MIN_ZOOM = CameraSnapshot.MIN_ZOOM
         const val MAX_ZOOM = CameraSnapshot.MAX_ZOOM
+        /** ~350ms cooldown after gesture ends before auto-rotate resumes. */
+        const val AUTO_ROTATE_COOLDOWN_NANOS = 350_000_000L
     }
 }
 
