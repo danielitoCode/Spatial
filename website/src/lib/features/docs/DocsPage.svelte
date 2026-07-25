@@ -93,5 +93,28 @@
         </GlassPanel>
       </div>
     </div>
+
+    <!-- AI Assistant -->
+    <div class="space-y-6 pt-12">
+      <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-[#e1e2ec] flex items-center gap-2">
+          <span class="material-symbols-outlined text-[#8B5CF6]">smart_toy</span>
+          4. Spatial AI Assistant
+        </h2>
+        <span class="px-2 py-0.5 bg-[#8B5CF6]/10 rounded border border-[#8B5CF6]/30 text-[10px] text-[#8B5CF6] font-mono font-bold tracking-widest">BETA</span>
+      </div>
+      <p class="text-sm text-[#bacac6]">
+        Have questions? Our specialized AI assistant has been trained on the Spatial Knowledge Base and can help you with code implementation, debugging, and best practices.
+      </p>
+
+      <GlassPanel class="overflow-hidden rounded-3xl border border-[#1C2638] bg-[#05070D]">
+        <iframe
+          src="https://udify.app/chatbot/XZWJsDVSqxQtNsHH"
+          style="width: 100%; height: 100%; min-height: 700px"
+          frameborder="0"
+          allow="microphone">
+        </iframe>
+      </GlassPanel>
+    </div>
   </div>
 </div>
