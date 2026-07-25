@@ -1,77 +1,137 @@
 # Core #1 Stability Plan
 
-> **Status:** Finalized / Stable | **Last Updated:** 2026-07-09  
-> **Owner:** Agent Session | **Purpose:** Track and resolve all blockers for a stable Core #1 release.
+> **Status:** Device closure in progress | **Last Updated:** 2026-07-25  
+> **Canonical tracker:** this file (`roadmap/CORE1_STABILITY.md`)  
+> **Owner:** Project owner (on-device evidence) + agents (code/docs)  
+> **Purpose:** Track blockers and **device-verified** closure for Core #1 before Core #2.
 
-Este documento sirve como referencia canónica para el esfuerzo de estabilización del Core #1. Se han resuelto todos los cuellos de botella críticos en el pipeline de renderizado, la programación de frames y la gestión del ciclo de vida.
-
----
-
-## Filosofía de Estabilidad
-
-- Lo simple primero, lo complejo después.
-- No marcar una casilla como completa hasta que la corrección esté confirmada, probada y verificada.
-- Si una corrección introduce una regresión, se revierte y se actualiza la nota.
+**Rule:** code/docs can say "implemented"; only **on-device evidence** can mark device items **Done**.
 
 ---
 
-## Fase 1: Bloqueadores Críticos (Completado)
+## Philosophy
 
-### 1.0 Vincular `FrameSnapshot.clearColor` en `SpatialGlRenderer`
-- [X] **Hecho**
-- **Solución:** Se propagó el color de fondo desde Compose hasta OpenGL. Se añadió `GLES30.glClear` para asegurar que el buffer se limpie realmente con el color solicitado en cada frame.
-
-### 1.1 Reemplazar `ChoreographerFrameScheduler` síncrono
-- [X] **Hecho**
-- **Solución:** Implementación asíncrona real alineada con VSYNC usando `android.view.Choreographer`. Se añadió `ImmediateFrameScheduler` para tests unitarios.
-
-### 1.2 Corregir condición de carrera del primer frame
-- [X] **Hecho**
-- **Solución:** El Host de renderizado ahora encola las peticiones de frame hasta que la superficie GL está lista (`glReady`), evitando el "flash negro" inicial.
-
-### 1.3 Sanitizar el ciclo de vida de `releaseGlResources`
-- [X] **Hecho**
-- **Solución:** Se añadieron guardas `isAttachedToWindow` y bloques `try/catch` de defensa en profundidad para evitar crashes durante rotaciones rápidas o salida de la app.
+- Simple first, complex later.
+- Do not mark a checkbox complete until the fix is committed, tested, and **verified on device** when the item requires GPU/lifecycle.
+- If a fix introduces a regression, revert it and update the notes.
+- Append-only changelog at the bottom.
 
 ---
 
-## Fase 2: Robustez de Contrato (Completado)
+## Device closure plan (active)
 
-### 2.0 Completar datos de `FrameSnapshot`
-- [X] **Hecho**
-- **Solución:** Se implementó `Mat4Math` (Kotlin puro) para calcular matrices de vista y proyección reales en el Snapshot, permitiendo que la API pública exponga datos veraces.
+### Task 1.1 — Cubo visible en el primer frame (automatizado)
 
-### 2.1 Cachear matriz de proyección
-- [X] **Hecho**
-- **Solución:** La matriz de proyección solo se recalcula cuando cambia el tamaño del Viewport, optimizando el uso de CPU.
+| Sub-step | Status | Notes |
+|----------|--------|-------|
+| 1.1.1 Locate/create `CubeRendersOnFirstFrameTest` | **Done (code)** | `spatial-renderer/src/androidTest/.../CubeRendersOnFirstFrameTest.kt` |
+| 1.1.2 Flow: surface ready → first `onDrawFrame` → `glReadPixels` | **Done (code)** | Capture only first frame after valid viewport |
+| 1.1.3 Distinctive clear vs cube color | **Done (code)** | Magenta clear `Color4(1,0,1,1)` vs white cube |
+| 1.1.4 Run `connectedDebugAndroidTest` on device/emulator | **Pending owner** | See command below |
+| 1.1.5 Repeat ×3 cold starts | **Pending owner** | Same test, process kill between runs preferred |
 
-### 2.2 Coalescencia de peticiones de frame (Backpressure)
-- [X] **Hecho**
-- **Solución:** El scheduler ahora garantiza que solo se procese la *última* petición de frame recibida antes del pulso VSYNC, evitando saturación por gestos rápidos.
+**Command:**
+
+```bash
+./gradlew :spatial-renderer:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.elitec.spatial_renderer.gl.CubeRendersOnFirstFrameTest
+```
+
+**Evidence template (fill when 1.1.4–1.1.5 pass):**
+
+```text
+- [ ] **Done (on-device)** for first-frame cube
+- Evidence: connectedDebugAndroidTest PASS ×3
+- Device: <model / API / emulator>
+- Date: YYYY-MM-DD
+- Run by: <name>
+```
+
+### Task 1.2 — Manual cold start (app)
+
+Pending after 1.1: force-stop app → open → cube visible without persistent black frame; ×5.
+
+### Task 2.x — Orbit / pinch / bg-fg / recomposition
+
+Pending after 1.x.
 
 ---
 
-## Fase 3: Pruebas de Estabilidad Finales (Completado)
+## Phase 1: Critical blockers (code)
 
-### 3.1 Test de estrés de ciclo de vida
-- [X] **Verificado**
-- **Resultado:** El test instrumentado `GlLifecycleStressTest` confirmó estabilidad tras 50 ciclos rápidos de recreación de contexto.
+### 1.0 Wire `FrameSnapshot.clearColor` into `SpatialGlRenderer`
+- [X] **Done (code)**
 
-### 3.2 Test de estabilidad de cámara en límites
-- [X] **Verificado**
-- **Resultado:** `CameraStabilityTest` confirmó que el motor no produce NaNs ni crashes al mirar directamente a los polos o usar zooms extremos.
+### 1.1 Replace synchronous `ChoreographerFrameScheduler`
+- [X] **Done (code)**
 
----
+### 1.2 Fix first-frame race condition
+- [X] **Done (code)**
 
-## Registro de Cambios Final (Core #1)
-
-| Fecha | Cambio |
-|-------|--------|
-| 2026-07-03 | Creación del plan de estabilidad. |
-| 2026-07-05 | Implementación de VSYNC y corrección de concurrencia. |
-| 2026-07-08 | Solución de bugs de renderizado (glClear) y persistencia de nodos en recomposición. |
-| 2026-07-09 | Soporte de colores Compose/Material, transparencia y cierre oficial de Core #1. |
+### 1.3 Sanitize `releaseGlResources` lifecycle
+- [X] **Done (code)**
 
 ---
 
-**Cierre de Core #1:** El motor se declara **ESTABLE** y listo para la expansión hacia el Core #2.
+## Phase 2: Contract robustness (code)
+
+### 2.0 Complete `FrameSnapshot` data
+- [X] **Done (code)**
+
+### 2.1 Cache projection matrix
+- [X] **Done (code)**
+
+### 2.2 Frame request backpressure / coalescing
+- [X] **Done (code)** — instrumented `FrameCoalescingTest` present; still prefer on-device confirmation under load.
+
+### 2.3 Validate camera snapshot / zoom guards
+- [X] **Done (code)** — JVM `CameraStabilityTest` / zoom guards.
+
+---
+
+## Phase 3: Completeness & device gates
+
+### 3.0 Expand `MeshDrawMode`
+- [X] **Done (code)**
+
+### 3.1 Document matrix rotation convention
+- [X] **Done (code)** — numerically corrected KDoc + regression test.
+
+### 3.2 Integration test: `cube_is_visible_on_first_frame`
+- [ ] **Done (on-device)** — **blocked on owner evidence**
+- **Code ready (2026-07-25):** hardened instrumented test + `FirstFrameTestActivity` so `GLSurfaceView` attaches to a real window.
+- **Path:** `spatial-renderer/src/androidTest/java/com/elitec/spatial_renderer/gl/CubeRendersOnFirstFrameTest.kt`
+- **Not Done until:** PASS on device/emulator (task 1.1.4–1.1.5).
+
+### 3.3 Lifecycle stress (device)
+- [ ] **Done (on-device)** — `GlLifecycleStressTest` exists; checkbox only after owner run.
+
+---
+
+## Regression checklist (device only)
+
+- [ ] App launches without blank/black first frame
+- [ ] Cube visible on first frame (task 1.1 + manual)
+- [ ] Orbit gesture works smoothly
+- [ ] Pinch zoom works without crash
+- [ ] Rotating the device does not crash
+- [ ] Backgrounding and foregrounding does not crash
+- [ ] Recomposition with `cameraState` does not black-screen
+
+---
+
+## Core #1 device closure summary
+
+- **Status:** OPEN — code path for first-frame test hardened; awaiting on-device PASS
+- **Ready for Core #2:** NO until device checklist above is signed off
+
+---
+
+## Changelog
+
+| Date | Agent / owner | Change |
+|------|---------------|--------|
+| 2026-07-03 | Initial | Stability plan created |
+| 2026-07-05–09 | Agents | Phase 1–3 code fixes, audits, instrumented tests authored |
+| 2026-07-09 | Docs | roadmap file briefly marked "Finalized" without full device evidence |
+| 2026-07-25 | Grok | **Task 1.1:** hardened `CubeRendersOnFirstFrameTest` (Activity-hosted surface, magenta clear, first-frame-only capture); added `FirstFrameTestActivity` + androidTest manifest; this file becomes canonical tracker for **device** closure; 3.2 remains unchecked until owner runs connectedAndroidTest |
