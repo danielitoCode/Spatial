@@ -47,13 +47,34 @@
 - Run by: <name>
 ```
 
-### Task 1.2 — Manual cold start (app)
+### Task 1.2 — Manual cold start (app) + code hardening
 
-Pending after 1.1: force-stop app → open → cube visible without persistent black frame; ×5.
+**Goal:** Force-stop → open app → 3D content visible without a **persistent** black/empty frame; rotation does not crash.
+
+| Sub-step | Status | Notes |
+|----------|--------|-------|
+| 1.2.1 Skip empty factory enqueue | **Done (code)** | `Scene` factory only calls `renderSceneFrame` when `renderableNodes` non-empty |
+| 1.2.2 SideEffect re-push after graph fills | **Done (code)** | Ensures frame after `DisposableEffect` adds elements |
+| 1.2.3 Surface-ready fallback to pending nodes | **Done (code)** | Host paints `pendingNodes` if queue was empty at ready |
+| 1.2.4 **M1** Force-stop → open | **Pending owner** | Cube/shape visible; no stuck black surface |
+| 1.2.5 **M2** Repeat ×5 | **Pending owner** | Same behavior each cold start |
+| 1.2.6 **M3** Rotate landscape ↔ portrait | **Pending owner** | No crash; content returns |
+
+**Manual path in app:** open playground → shapes section (cards with `Scene` + Cube/Sphere/Plane).
+
+**Evidence template:**
+
+```text
+- [ ] **Done (on-device)** task 1.2
+- Evidence: M1–M3 checklist OK
+- Device: <model / API>
+- Date: YYYY-MM-DD
+- Run by: <name>
+```
 
 ### Task 2.x — Orbit / pinch / bg-fg / recomposition
 
-Pending after 1.x.
+Pending after 1.x device evidence.
 
 ---
 
@@ -66,7 +87,8 @@ Pending after 1.x.
 - [X] **Done (code)**
 
 ### 1.2 Fix first-frame race condition
-- [X] **Done (code)**
+- [X] **Done (code)** — queue until `glReady`
+- **2026-07-25 follow-up (device closure 1.2):** empty-first-composition enqueue avoided; surface-ready falls back to `pendingNodes`.
 
 ### 1.3 Sanitize `releaseGlResources` lifecycle
 - [X] **Done (code)**
@@ -99,9 +121,8 @@ Pending after 1.x.
 
 ### 3.2 Integration test: `cube_is_visible_on_first_frame`
 - [ ] **Done (on-device)** — **blocked on owner evidence**
-- **Code ready (2026-07-25):** hardened instrumented test + `FirstFrameTestActivity` so `GLSurfaceView` attaches to a real window.
-- **Path:** `spatial-renderer/src/androidTest/java/com/elitec/spatial_renderer/gl/CubeRendersOnFirstFrameTest.kt`
-- **Not Done until:** PASS on device/emulator (task 1.1.4–1.1.5).
+- **Code ready (2026-07-25):** hardened instrumented test + `FirstFrameTestActivity`.
+- **Path:** `spatial-renderer/src/androidTest/.../CubeRendersOnFirstFrameTest.kt`
 
 ### 3.3 Lifecycle stress (device)
 - [ ] **Done (on-device)** — `GlLifecycleStressTest` exists; checkbox only after owner run.
@@ -111,7 +132,7 @@ Pending after 1.x.
 ## Regression checklist (device only)
 
 - [ ] App launches without blank/black first frame
-- [ ] Cube visible on first frame (task 1.1 + manual)
+- [ ] Cube visible on first frame (task 1.1 + manual 1.2)
 - [ ] Orbit gesture works smoothly
 - [ ] Pinch zoom works without crash
 - [ ] Rotating the device does not crash
@@ -122,7 +143,7 @@ Pending after 1.x.
 
 ## Core #1 device closure summary
 
-- **Status:** OPEN — code path for first-frame test hardened; awaiting on-device PASS
+- **Status:** OPEN — 1.1 test + 1.2 cold-start code ready; awaiting on-device PASS
 - **Ready for Core #2:** NO until device checklist above is signed off
 
 ---
@@ -134,4 +155,5 @@ Pending after 1.x.
 | 2026-07-03 | Initial | Stability plan created |
 | 2026-07-05–09 | Agents | Phase 1–3 code fixes, audits, instrumented tests authored |
 | 2026-07-09 | Docs | roadmap file briefly marked "Finalized" without full device evidence |
-| 2026-07-25 | Grok | **Task 1.1:** hardened `CubeRendersOnFirstFrameTest` (Activity-hosted surface, magenta clear, first-frame-only capture); added `FirstFrameTestActivity` + androidTest manifest; this file becomes canonical tracker for **device** closure; 3.2 remains unchecked until owner runs connectedAndroidTest |
+| 2026-07-25 | Grok | **Task 1.1:** hardened `CubeRendersOnFirstFrameTest`; canonical device tracker |
+| 2026-07-25 | Grok | **Task 1.2:** cold-start hardening — no empty factory enqueue; `SideEffect` re-push; surface-ready fallback to `pendingNodes`; manual M1–M3 checklist in tracker |

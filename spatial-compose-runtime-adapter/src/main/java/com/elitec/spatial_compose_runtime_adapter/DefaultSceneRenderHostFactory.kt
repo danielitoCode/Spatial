@@ -26,14 +26,11 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     )
     private var pendingNodes: List<RenderableNode> = emptyList()
     private var pendingCameraSnapshot: CameraSnapshot = runtimeCamera.snapshot()
-    private var pendingClearColor: com.elitec.spatial_core.render.Color4 = com.elitec.spatial_core.render.Color4(0f, 0f, 0f, 0f)
+    private var pendingClearColor: com.elitec.spatial_core.render.Color4 =
+        com.elitec.spatial_core.render.Color4(0f, 0f, 0f, 0f)
 
-    // Audit note (Core #1 Stability, item 1.2 follow-up): `glReady` and `queuedFrame` used to be
-    // read/written as two separate, non-atomic steps (a @Volatile flag plus a nullable field). That
-    // allowed a genuine lost-frame race: the GL thread could flip `glReady` to true and drain a null
-    // `queuedFrame` *between* this thread's `if (!glReady)` check and its `queuedFrame = { ... }`
-    // assignment, so the just-queued frame would never be replayed. All access to both fields is now
-    // funneled through `readyLock` so the check-then-act sequence is atomic on both sides.
+    // Audit note (Core #1 Stability, item 1.2): `glReady` and `queuedFrame` are funneled through
+    // `readyLock` so check-then-act is atomic between UI and GL ready callback threads.
     private val readyLock = Any()
     private var glReady = false
     private var queuedFrame: (() -> Unit)? = null
@@ -43,11 +40,22 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     init {
         runtime.onInitialize()
         renderTarget.setOnSurfaceReady {
-            val frameToReplay = synchronized(readyLock) {
+            // Device-closure task 1.2 (cold start):
+            // 1) Replay the last queued requestFrame if any.
+            // 2) If nothing was queued (e.g. factory skipped empty scene, or race) but Compose has
+            //    already pushed nodes into pending*, still paint them — avoids a stuck clear-only
+            //    surface until the user touches a control.
+            val frameToReplay: (() -> Unit)?
+            val fallbackPending: Boolean
+            synchronized(readyLock) {
                 glReady = true
-                queuedFrame.also { queuedFrame = null }
+                frameToReplay = queuedFrame.also { queuedFrame = null }
+                fallbackPending = frameToReplay == null && pendingNodes.isNotEmpty()
             }
-            frameToReplay?.invoke()
+            when {
+                frameToReplay != null -> frameToReplay.invoke()
+                fallbackPending -> requestFrameInternal()
+            }
         }
         renderTarget.setOnViewportChanged { aspectRatio ->
             runtime.updateViewport(aspectRatio)
@@ -55,22 +63,8 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     }
 
     /**
-     * Called by the Compose host when the hosting Activity resumes (see the `LifecycleObserver`
-     * wired in `Scene` for the entry point).
-     *
-     * Track 1 (Fix background-then-foreground bug, Core #1): after a background/foreground cycle,
-     * the EGL context may be torn down and recreated by the system. `SpatialGlSurfaceView.onResume`
-     * re-arms the "ready" gate so the next `onSurfaceChanged` re-fires `onSurfaceReadyCallback`. We
-     * mirror that here: drop `glReady` back to `false` so any `requestFrame()` calls that land on
-     * us BEFORE `onSurfaceReady` re-fires (e.g. from a Compose recomposition driven by the resume)
-     * are correctly queued instead of falling through `requestFrameInternal()` against a renderer
-     * whose `programId == 0` / `meshBuffers` are being rebuilt on the GL thread at the same moment.
-     *
-     * Critically, we do NOT touch `pendingNodes`/`pendingCameraSnapshot`/`pendingClearColor` here.
-     * Those survive across the background/foreground boundary (Compose's `SnapshotStateList` in
-     * `rememberSceneGraph` is not disposed on background), so the queued frame will re-push the
-     * exact same scene state and the screen will repaint with the user's 3D figures still present,
-     * instead of the bug-reported "figures 3D disappear".
+     * Called by the Compose host when the hosting Activity resumes.
+     * Re-arms glReady so frames queue until the surface is ready again after backgrounding.
      */
     override fun onResume() {
         synchronized(readyLock) {
@@ -109,11 +103,8 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
                 "requestFrame: pendingNodes.size=${pendingNodes.size}, cameraSnapshot=$pendingCameraSnapshot",
             )
         }
-        // Capture a snapshot of the current pending data NOW, before any recomposition can overwrite
-        // pendingNodes/pendingCameraSnapshot between this call and onSurfaceReady's replay.
-        // Previously the closure read pendingNodes lazily at execution time: if onSurfaceCreated
-        // triggered a Compose recomposition that produced an empty node list before the queued frame
-        // fired, the replay would render 0 nodes even though 17 were pending at enqueue time.
+        // Snapshot pending data at enqueue time so surface-ready replay does not observe a later
+        // empty list from an intermediate recomposition.
         val capturedNodes = pendingNodes
         val capturedCamera = pendingCameraSnapshot
         val capturedClearColor = pendingClearColor
