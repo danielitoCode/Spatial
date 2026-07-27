@@ -1,5 +1,6 @@
 package com.elitec.spatial_compose
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -22,7 +23,7 @@ import kotlinx.coroutines.withContext
  * While loading, it returns a simple fallback triangle to prevent GPU rendering errors.
  *
  * @param model The [ModelResource] to load (e.g., from [ModelResource.fromRawResource]).
- * @return The loaded [MeshData] (or a fallback triangle while loading).
+ * @return The loaded [MeshData], [MeshData.FallbackTriangle] while loading, or [MeshData.ErrorMesh] after a failed load.
  */
 @Composable
 public fun rememberModel(model: ModelResource): MeshData {
@@ -33,33 +34,35 @@ public fun rememberModel(model: ModelResource): MeshData {
     cachedModels[model.id]?.let { return it }
 
     // 2. If not in cache, setup loading state
-    val state = remember(model.id) { mutableStateOf(MeshData.FallbackTriangle) }
+    val state = remember(model.id) { mutableStateOf<ModelLoadState>(ModelLoadState.Loading) }
 
     LaunchedEffect(model.id) {
         // Check again in coroutine in case another composition beat us to it
         if (cachedModels.containsKey(model.id)) {
-            state.value = cachedModels.getValue(model.id)
+            state.value = ModelLoadState.Loaded(cachedModels.getValue(model.id))
             return@LaunchedEffect
         }
 
-        val loadedMesh = withContext(Dispatchers.IO) {
+        val loadState = withContext(Dispatchers.IO) {
             try {
                 val resId = unwrapResId(model)
                 resources.openRawResource(resId).use { inputStream ->
-                    GltfBinaryParser.parse(inputStream)
+                    ModelLoadState.Loaded(GltfBinaryParser.parse(inputStream))
                 }
             } catch (e: Exception) {
-                // TODO: Provide a recognizable error mesh (e.g. red cube) in the future
-                MeshData.FallbackTriangle
+                Log.e("rememberModel", "Failed to load model ${model.id}", e)
+                ModelLoadState.Error(MeshData.ErrorMesh, e)
             }
         }
 
+        val loadedMesh = loadState.mesh
+
         com.elitec.spatial_geometry.GlobalMeshRegistry.register(model.id, loadedMesh)
         cachedModels[model.id] = loadedMesh
-        state.value = loadedMesh
+        state.value = loadState
     }
 
-    return state.value
+    return state.value.mesh
 }
 
 /**
@@ -67,3 +70,19 @@ public fun rememberModel(model: ModelResource): MeshData {
  * This prevents re-parsing the same GLB file on every recomposition or activity recreation.
  */
 internal val LocalModelCache = staticCompositionLocalOf { mutableMapOf<String, MeshData>() }
+
+/** Internal state kept so failures are distinguishable from in-flight loading. */
+internal sealed interface ModelLoadState {
+    val mesh: MeshData
+
+    data object Loading : ModelLoadState {
+        override val mesh: MeshData = MeshData.FallbackTriangle
+    }
+
+    data class Loaded(override val mesh: MeshData) : ModelLoadState
+
+    data class Error(
+        override val mesh: MeshData,
+        val cause: Throwable,
+    ) : ModelLoadState
+}

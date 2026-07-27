@@ -68,5 +68,27 @@ data class MeshData(
             vertices = floatArrayOf(0f, 1f, 0f, -1f, -1f, 0f, 1f, -1f, 0f),
             indices = intArrayOf(0, 1, 2)
         )
+
+        /**
+         * A distinguishable mesh registered when model loading fails.
+         *
+         * This must not match [FallbackTriangle], so renderers and diagnostics can tell an
+         * invalid model apart from a model that is still loading.
+         */
+        val ErrorMesh: MeshData = MeshData(
+            vertices = floatArrayOf(
+                -1f, 1f, 0f,
+                -0.33f, 0.33f, 0f,
+                0.33f, 1f, 0f,
+                1f, 0.33f, 0f,
+                0.33f, -0.33f, 0f,
+                1f, -1f, 0f,
+                0.33f, -1f, 0f,
+                -0.33f, -0.33f, 0f,
+                -1f, -1f, 0f,
+                -0.33f, 0.33f, 0f,
+            ),
+            indices = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 8),
+        )
     }
 }
