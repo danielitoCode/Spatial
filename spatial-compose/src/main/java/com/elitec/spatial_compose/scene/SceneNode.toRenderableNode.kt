@@ -15,6 +15,6 @@ internal fun SceneNode.toRenderableNode(): RenderableNode = when (this) {
         meshId = meshId,
         modelMatrix = modifier.toModelMatrix(),
         // Models use a default white material so the GLB's own vertex colors or future textures show correctly.
-        material = MaterialData(r = 1f, g = 1f, b = 1f, a = 1f),
+        material = modifier.material ?: MaterialData(r = 1f, g = 1f, b = 1f, a = 1f),
     )
 }
