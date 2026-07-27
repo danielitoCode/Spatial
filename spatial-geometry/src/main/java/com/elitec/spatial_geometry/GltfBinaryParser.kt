@@ -96,41 +96,39 @@ public object GltfBinaryParser : MeshLoader {
         val bufferViews = root.getArrayOrNull("bufferViews")
             ?: throw IllegalArgumentException("No bufferViews found in glTF")
 
-        // 1. Read Positions
-        val posAccessor = accessors.list.getOrNull(posAccessorIdx) as? JsonValue.JsonObject
-            ?: throw IllegalArgumentException("Invalid POSITION accessor index: $posAccessorIdx")
+        // 1. Read vertex attributes
+        val vertices = readFloatAccessor(
+            accessorIndex = posAccessorIdx,
+            accessors = accessors,
+            bufferViews = bufferViews,
+            bin = bin,
+            expectedType = "VEC3",
+            attributeName = "POSITION"
+        )
 
-        val posBufferViewIdx = posAccessor.getIntOrNull("bufferView")
-            ?: throw IllegalArgumentException("POSITION accessor has no bufferView")
-        val posBufferView = bufferViews.list.getOrNull(posBufferViewIdx) as? JsonValue.JsonObject
-            ?: throw IllegalArgumentException("Invalid bufferView index in POSITION accessor: $posBufferViewIdx")
+        val normalAccessorIdx = attributes.getIntOrNull("NORMAL")
+        val normals = normalAccessorIdx?.let {
+            readFloatAccessor(
+                accessorIndex = it,
+                accessors = accessors,
+                bufferViews = bufferViews,
+                bin = bin,
+                expectedType = "VEC3",
+                attributeName = "NORMAL"
+            )
+        } ?: floatArrayOf()
 
-        val posCount = posAccessor.getIntOrNull("count") ?: 0
-        val posType = posAccessor.getStringOrNull("type") ?: "VEC3"
-        val posComponentType = posAccessor.getIntOrNull("componentType") ?: 5126 // FLOAT
-        val posByteOffset = posAccessor.getIntOrNull("byteOffset") ?: 0
-
-        val posBvByteOffset = posBufferView.getIntOrNull("byteOffset") ?: 0
-        val posBvByteStride = posBufferView.getIntOrNull("byteStride") ?: 0
-
-        if (posType != "VEC3") {
-            throw IllegalArgumentException("POSITION accessor must be VEC3, was $posType")
-        }
-        if (posComponentType != 5126) {
-            throw IllegalArgumentException("POSITION accessor componentType must be 5126 (FLOAT), was $posComponentType")
-        }
-
-        val vertices = FloatArray(posCount * 3)
-        val posStart = posBvByteOffset + posByteOffset
-        val posStride = if (posBvByteStride > 0) posBvByteStride else 12 // 3 * 4 bytes
-
-        for (i in 0 until posCount) {
-            val offset = posStart + i * posStride
-            bin.position(offset)
-            vertices[i * 3 + 0] = bin.float
-            vertices[i * 3 + 1] = bin.float
-            vertices[i * 3 + 2] = bin.float
-        }
+        val texCoordAccessorIdx = attributes.getIntOrNull("TEXCOORD_0")
+        val texCoords = texCoordAccessorIdx?.let {
+            readFloatAccessor(
+                accessorIndex = it,
+                accessors = accessors,
+                bufferViews = bufferViews,
+                bin = bin,
+                expectedType = "VEC2",
+                attributeName = "TEXCOORD_0"
+            )
+        } ?: floatArrayOf()
 
         // 2. Read Indices
         val indices: IntArray
@@ -180,8 +178,61 @@ public object GltfBinaryParser : MeshLoader {
         return MeshData(
             vertices = vertices,
             indices = indices,
-            drawMode = MeshDrawMode.Triangles
+            drawMode = MeshDrawMode.Triangles,
+            normals = normals,
+            texCoords = texCoords
         )
+    }
+
+    internal fun readFloatAccessor(
+        accessorIndex: Int,
+        accessors: JsonValue.JsonArray,
+        bufferViews: JsonValue.JsonArray,
+        bin: ByteBuffer,
+        expectedType: String,
+        attributeName: String,
+    ): FloatArray {
+        val accessor = accessors.list.getOrNull(accessorIndex) as? JsonValue.JsonObject
+            ?: throw IllegalArgumentException("Invalid $attributeName accessor index: $accessorIndex")
+
+        val bufferViewIdx = accessor.getIntOrNull("bufferView")
+            ?: throw IllegalArgumentException("$attributeName accessor has no bufferView")
+        val bufferView = bufferViews.list.getOrNull(bufferViewIdx) as? JsonValue.JsonObject
+            ?: throw IllegalArgumentException("Invalid bufferView index in $attributeName accessor: $bufferViewIdx")
+
+        val count = accessor.getIntOrNull("count") ?: 0
+        val type = accessor.getStringOrNull("type") ?: expectedType
+        val componentType = accessor.getIntOrNull("componentType") ?: 5126 // FLOAT
+        val byteOffset = accessor.getIntOrNull("byteOffset") ?: 0
+
+        if (type != expectedType) {
+            throw IllegalArgumentException("$attributeName accessor must be $expectedType, was $type")
+        }
+        if (componentType != 5126) {
+            throw IllegalArgumentException("$attributeName accessor componentType must be 5126 (FLOAT), was $componentType")
+        }
+
+        val componentCount = when (expectedType) {
+            "VEC2" -> 2
+            "VEC3" -> 3
+            else -> throw IllegalArgumentException("Unsupported FLOAT accessor type for $attributeName: $expectedType")
+        }
+        val componentByteSize = 4
+        val packedByteSize = componentCount * componentByteSize
+        val bufferViewByteOffset = bufferView.getIntOrNull("byteOffset") ?: 0
+        val bufferViewByteStride = bufferView.getIntOrNull("byteStride") ?: 0
+        val start = bufferViewByteOffset + byteOffset
+        val stride = if (bufferViewByteStride > 0) bufferViewByteStride else packedByteSize
+
+        val values = FloatArray(count * componentCount)
+        for (i in 0 until count) {
+            val elementOffset = start + i * stride
+            for (component in 0 until componentCount) {
+                bin.position(elementOffset + component * componentByteSize)
+                values[i * componentCount + component] = bin.float
+            }
+        }
+        return values
     }
 }
 

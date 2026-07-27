@@ -17,6 +17,8 @@ data class MeshData(
     val vertices: FloatArray,
     val indices: IntArray = intArrayOf(),
     val drawMode: MeshDrawMode = MeshDrawMode.Triangles,
+    val normals: FloatArray = floatArrayOf(),
+    val texCoords: FloatArray = floatArrayOf(),
 ) {
     init {
         require(vertices.size % CoordinatesPerVertex == 0) {
@@ -24,6 +26,12 @@ data class MeshData(
         }
         require(indices.all { it >= 0 && it < vertexCount }) {
             "Mesh indices must reference existing vertices."
+        }
+        require(normals.isEmpty() || normals.size == vertexCount * CoordinatesPerNormal) {
+            "Mesh normals must be empty or packed as x/y/z triples for every vertex."
+        }
+        require(texCoords.isEmpty() || texCoords.size == vertexCount * CoordinatesPerTexCoord) {
+            "Mesh texture coordinates must be empty or packed as u/v pairs for every vertex."
         }
     }
 
@@ -36,18 +44,24 @@ data class MeshData(
         if (other !is MeshData) return false
         return vertices.contentEquals(other.vertices) &&
                 indices.contentEquals(other.indices) &&
-                drawMode == other.drawMode
+                drawMode == other.drawMode &&
+                normals.contentEquals(other.normals) &&
+                texCoords.contentEquals(other.texCoords)
     }
 
     override fun hashCode(): Int {
         var result = vertices.contentHashCode()
         result = 31 * result + indices.contentHashCode()
         result = 31 * result + drawMode.hashCode()
+        result = 31 * result + normals.contentHashCode()
+        result = 31 * result + texCoords.contentHashCode()
         return result
     }
 
     companion object {
         const val CoordinatesPerVertex = 3
+        const val CoordinatesPerNormal = 3
+        const val CoordinatesPerTexCoord = 2
 
         /** A simple 1x1 triangle used as a fallback while real models are loading. */
         val FallbackTriangle: MeshData = MeshData(
