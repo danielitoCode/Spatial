@@ -2,7 +2,9 @@ package com.elitec.spatial_compose.core
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import com.elitec.spatial_compose.ModelResource
 import com.elitec.spatial_compose.modifier.Modifier3D
+import com.elitec.spatial_compose.scene.ModelSceneElement
 import com.elitec.spatial_compose.scene.SceneElement
 import com.elitec.spatial_compose.shapes.PrimitiveShape
 
@@ -21,5 +23,10 @@ object Element {
     @Composable
     fun Plane(modifier: Modifier3D = Modifier3D.Default) {
         SceneElement(shape = PrimitiveShape.Plane, modifier = modifier)
+    }
+
+    @Composable
+    fun Model(model: ModelResource, modifier: Modifier3D = Modifier3D.Default) {
+        ModelSceneElement(model = model, modifier = modifier)
     }
 }

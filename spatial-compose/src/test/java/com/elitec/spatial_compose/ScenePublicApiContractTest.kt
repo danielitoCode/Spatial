@@ -21,6 +21,12 @@ class ScenePublicApiContractTest {
         assertFalse(Regex("\\bfun\\s+(cube|sphere|plane|element)\\s*\\(").containsMatchIn(sceneBuilderBody))
     }
 
+    @Test
+    fun `core element surface declares model helper`() {
+        val source = elementSource()
+
+        assertTrue(Regex("\\bfun\\s+Model\\s*\\(").containsMatchIn(source))
+    }
 
     @Test
     fun `documented compose source api stays intentionally small`() {
@@ -33,6 +39,16 @@ class ScenePublicApiContractTest {
             .toSet()
 
         assertEquals(expectedPublicSymbols, publicSymbols)
+    }
+
+    private fun elementSource(): String {
+        val candidates = listOf(
+            Path.of("src/main/java/com/elitec/spatial_compose/core/Element.kt"),
+            Path.of("spatial-compose/src/main/java/com/elitec/spatial_compose/core/Element.kt"),
+        )
+        val sourcePath = candidates.firstOrNull { it.exists() }
+            ?: error("Element.kt not found from ${Path.of("").toAbsolutePath()}")
+        return sourcePath.readText()
     }
 
     private fun scene3DSource(): String {
