@@ -3,7 +3,7 @@
   import InternalPlaygroundScene from './InternalPlaygroundScene.svelte';
 
   interface Props {
-    shape?: 'box' | 'sphere' | 'torus' | 'cylinder';
+    shape?: 'box' | 'sphere' | 'torus' | 'cylinder' | 'plane';
     color?: string;
     emissive?: string;
     metalness?: number;
@@ -23,13 +23,16 @@
     roughness = 0.2,
     wireframe = false,
     lightIntensity = 10,
-    lightColor = '#19E6D2',
+    lightColor = '#ffffff',
     autoRotate = true,
     rotationSpeed = 1
   }: Props = $props();
 </script>
 
-<div class="relative w-full h-full min-h-[400px] bg-[#05070D] rounded-[2rem] overflow-hidden border border-[#1C2638] shadow-2xl">
+<div class="relative w-full h-full min-h-[400px] bg-[#05070D] rounded-[3rem] overflow-hidden border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] group">
+  <!-- Subtle Vignette -->
+  <div class="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]"></div>
+
   <Canvas>
     <InternalPlaygroundScene
       {shape}
@@ -45,24 +48,36 @@
     />
   </Canvas>
 
-  <!-- Overlay HUD -->
-  <div class="absolute top-6 left-6 flex flex-col gap-1">
-    <div class="bg-[#19E6D2]/10 backdrop-blur-md px-3 py-1 rounded-full border border-[#19E6D2]/30 text-[10px] font-black text-[#19E6D2] tracking-widest uppercase">
-      Spatial Studio v1.0
-    </div>
-    <div class="text-[9px] font-mono text-[#6F7A90] ml-1">
-      RENDER_ENGINE: OPENGL_ES_3.0_EMULATED
+  <!-- Overlay HUD - Top Left -->
+  <div class="absolute top-8 left-8 flex flex-col gap-2 z-20 pointer-events-none">
+    <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_#19E6D2]"></div>
+        <div class="bg-black/60 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10 shadow-lg shadow-black/40 flex items-center gap-4">
+            <span class="text-[10px] font-black text-white tracking-[0.3em] uppercase">Studio View</span>
+            <div class="w-px h-3 bg-white/20"></div>
+            <span class="text-[9px] font-mono text-primary uppercase font-bold tracking-widest">{shape}</span>
+        </div>
     </div>
   </div>
 
-  <div class="absolute bottom-6 left-6 right-6 flex justify-between items-end pointer-events-none">
-    <div class="bg-[#0A0E17]/60 backdrop-blur-sm p-3 rounded-2xl border border-[#1C2638] pointer-events-auto">
-       <div class="text-[9px] font-mono text-[#6F7A90] mb-1 uppercase tracking-tighter">Viewport Settings</div>
-       <div class="flex gap-2">
-          <div class="w-2 h-2 rounded-full bg-[#19E6D2] animate-pulse"></div>
-          <div class="w-2 h-2 rounded-full bg-[#8B5CF6]"></div>
-          <div class="w-2 h-2 rounded-full bg-[#F25933]"></div>
-       </div>
+  <!-- Diagnostic Info - Bottom Right -->
+  <div class="absolute bottom-8 right-8 z-20 pointer-events-none opacity-40 group-hover:opacity-100 transition-opacity duration-700">
+    <div class="bg-black/40 backdrop-blur-md p-4 rounded-3xl border border-white/5 text-[9px] font-mono text-silver/60 space-y-1 shadow-2xl">
+      <div class="flex justify-between gap-8 uppercase tracking-widest">
+        <span>Draw_Calls</span>
+        <span class="text-white font-bold">12</span>
+      </div>
+      <div class="flex justify-between gap-8 uppercase tracking-widest">
+        <span>Shader_Engine</span>
+        <span class="text-white font-bold">GLES_3.0_PBR</span>
+      </div>
+      <div class="flex justify-between gap-8 uppercase tracking-widest">
+        <span>Geometry_Ref</span>
+        <span class="text-primary font-black">SPATIAL_GEN_{shape.toUpperCase()}</span>
+      </div>
     </div>
   </div>
+
+  <!-- Ambient Environment Reflection Overlay (Fake) -->
+  <div class="absolute inset-0 pointer-events-none opacity-10 mix-blend-overlay bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent_50%)]"></div>
 </div>

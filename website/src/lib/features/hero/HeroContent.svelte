@@ -16,25 +16,31 @@
   }
 </script>
 
-<div class="relative z-10 max-w-7xl mx-auto px-6 text-center md:text-left pt-12 pb-24">
-  <div class="max-w-3xl">
-    <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-6 text-[#e1e2ec]">
-      Build <GradientText>3D experiences</GradientText> for Android.
+<div class="relative z-10 max-w-7xl mx-auto px-6 text-center md:text-left pt-20 pb-32">
+  <div class="max-w-3xl space-y-8">
+    <div class="inline-flex items-center gap-3 bg-white/5 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10 shadow-2xl animate-float">
+       <span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_#19E6D2]"></span>
+       <span class="text-[10px] font-black text-silver/80 tracking-[0.25em] uppercase">Core #1 Architecture Ready</span>
+    </div>
+
+    <h1 class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] text-white">
+      Build <GradientText class="italic">cinematic</GradientText><br/>
+      3D for Android.
     </h1>
 
-    <p class="text-lg md:text-xl text-[#bacac6] mb-10 leading-relaxed font-normal">
-      A technical premium 3D rendering library designed for Kotlin and Jetpack Compose. Performance-first, declarative by nature.
+    <p class="text-lg md:text-xl text-silver/60 max-w-xl leading-relaxed font-medium">
+      A technical premium 3D rendering library designed for Kotlin and Jetpack Compose. Performance-first, declarative by nature, and cinematic by design.
     </p>
 
-    <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+    <div class="flex flex-col sm:flex-row gap-5 justify-center md:justify-start pt-4">
       <SpatialButton
         variant="primary"
         size="lg"
         href="#playground"
         onclick={(e: MouseEvent) => navigate(e, 'playground')}
       >
-        Start Building (Playground)
-        <span class="material-symbols-outlined text-xl">rocket_launch</span>
+        OPEN STUDIO
+        <span class="material-symbols-outlined text-lg">rocket_launch</span>
       </SpatialButton>
 
       <SpatialButton
@@ -43,15 +49,29 @@
         href="#examples"
         onclick={(e: MouseEvent) => navigate(e, 'examples')}
       >
-        View 3D Examples
-        <span class="material-symbols-outlined text-xl">code</span>
+        EXPLORE MODELS
+        <span class="material-symbols-outlined text-lg">view_in_ar</span>
       </SpatialButton>
+    </div>
+
+    <!-- Tech Badges -->
+    <div class="flex flex-wrap items-center gap-6 pt-8 opacity-40">
+        <div class="flex items-center gap-2 grayscale brightness-200">
+            <img src="/spatial_icon_cleaned.svg" class="w-5 h-5 opacity-80" alt="GLES 3.0" />
+            <span class="text-[10px] font-black tracking-widest uppercase text-white">OpenGL ES 3.0+</span>
+        </div>
+        <div class="w-px h-3 bg-white/20"></div>
+        <span class="text-[10px] font-black tracking-widest uppercase text-white">Jetpack Compose 1.7</span>
+        <div class="w-px h-3 bg-white/20"></div>
+        <span class="text-[10px] font-black tracking-widest uppercase text-white">Kotlin 2.2</span>
     </div>
   </div>
 </div>
 
 <!-- Scroll Indicator -->
-<div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce flex flex-col items-center gap-1 text-[#6F7A90]">
-  <span class="text-[10px] uppercase tracking-widest font-mono font-semibold">Discover</span>
-  <span class="material-symbols-outlined text-sm">expand_more</span>
+<div class="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-silver/30 group cursor-pointer transition-colors hover:text-primary">
+  <span class="text-[9px] uppercase tracking-[0.4em] font-black">Scroll</span>
+  <div class="w-5 h-8 border-2 border-current rounded-full flex justify-center pt-1.5">
+    <div class="w-1 h-1.5 bg-current rounded-full animate-bounce"></div>
+  </div>
 </div>

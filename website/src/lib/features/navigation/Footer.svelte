@@ -11,57 +11,104 @@
       onNavigate(targetRoute);
     }
   }
+
+  const socials = [
+    { id: 'twitter', icon: 'https://cdn.simpleicons.org/x/19E6D2', link: '#' },
+    { id: 'github', icon: 'https://cdn.simpleicons.org/github/19E6D2', link: 'https://github.com/danielitoCode/Spatial' },
+    { id: 'discord', icon: 'https://cdn.simpleicons.org/discord/19E6D2', link: '#' }
+  ];
 </script>
 
-<footer class="w-full py-16 bg-[#0A0E17] border-t border-[#1C2638]">
-  <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10">
-    <div class="space-y-4">
-      <div class="flex items-center gap-3">
-        <img
-          src="https://lh3.googleusercontent.com/aida/AP1WRLv8F0fCCHN7e9LktQfoO8E1ON9THH6khQGintz1XEJCdZTC9Yb7Y_q-_IEbF2st7ODPfsZU4Ce9CodkEjF-TNdXzi3akxZGnaWt3f1q3cm4iTqBlW02RL_i_6K5nMVx0pHBbFEXju9i1p5YXcabu4ZCi5nxDAE6LF9t9bl_E0_MWCc8fzfaDe1gc2kj16KzruP_XNGR0SUvy8sqz6e--iN8P3OTmmdFH0vg8Udje7qcLeBUACKH1CEr55gv"
-          alt="Spatial Logo"
-          class="w-8 h-8 object-contain"
-        />
-        <span class="font-extrabold text-xl text-[#e1e2ec]">SPATIAL</span>
+<footer class="w-full pt-32 pb-12 bg-[#05070D] border-t border-white/5 relative overflow-hidden">
+  <!-- Dynamic Background Ambient -->
+  <div class="absolute -bottom-48 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 bg-primary/5 blur-[150px] rounded-full pointer-events-none opacity-50"></div>
+  <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+  <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-16 relative z-10">
+    <!-- Brand Pillar -->
+    <div class="md:col-span-4 space-y-8">
+      <div class="flex items-center gap-4 group cursor-pointer" onclick={(e) => navigate(e, 'home')}>
+        <div class="relative w-12 h-12">
+            <div class="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
+            <img src="/spatial_icon_cleaned.svg" alt="Spatial" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:rotate-12" />
+        </div>
+        <div class="flex flex-col">
+            <span class="font-black text-2xl text-white tracking-tighter italic uppercase leading-none">SPATIAL</span>
+            <span class="text-[9px] font-mono text-primary font-black uppercase tracking-[0.3em] mt-1">Dev_System</span>
+        </div>
       </div>
-      <p class="font-mono text-xs text-[#6F7A90] tracking-widest uppercase">3D RENDERING LIBRARY</p>
-      <p class="text-sm text-[#6F7A90] leading-relaxed">
-        Empowering Android developers with cinematic graphics and technical precision.
+
+      <p class="text-sm text-silver/40 leading-relaxed font-medium max-w-xs">
+        The ultimate declarative 3D framework for Android developers. Cinematic rendering, reactive state, and professional performance out of the box.
       </p>
+
+      <!-- Fixed Social Icons (Consistent with theme) -->
+      <div class="flex items-center gap-4">
+        {#each socials as social}
+          <a
+            href={social.link}
+            target="_blank"
+            rel="noreferrer"
+            class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:border-primary/40 hover:bg-primary/10 transition-all duration-500 group shadow-lg"
+          >
+             <img src={social.icon} alt={social.id} class="w-5 h-5 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+          </a>
+        {/each}
+      </div>
     </div>
 
-    <div>
-      <h4 class="font-mono text-xs font-semibold text-[#e1e2ec] uppercase tracking-wider mb-4">Library</h4>
-      <ul class="space-y-2.5 text-sm text-[#6F7A90]">
-        <li><a href="#docs" onclick={(e) => navigate(e, 'docs')} class="hover:text-[#19E6D2] transition-colors">Documentation</a></li>
-        <li><a href="#examples" onclick={(e) => navigate(e, 'examples')} class="hover:text-[#19E6D2] transition-colors">Showcase & Examples</a></li>
-        <li><a href="#playground" onclick={(e) => navigate(e, 'playground')} class="hover:text-[#19E6D2] transition-colors">3D Playground Studio</a></li>
+    <!-- Navigation Hub -->
+    <div class="md:col-span-2 md:col-start-6 space-y-6">
+      <h4 class="text-[10px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-2">
+          <div class="w-1 h-1 bg-primary rounded-full"></div>
+          Platform
+      </h4>
+      <ul class="space-y-4 text-sm font-bold">
+        <li><a href="#home" onclick={(e) => navigate(e, 'home')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Home</a></li>
+        <li><a href="#docs" onclick={(e) => navigate(e, 'docs')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Documentation</a></li>
+        <li><a href="#examples" onclick={(e) => navigate(e, 'examples')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Examples</a></li>
       </ul>
     </div>
 
-    <div>
-      <h4 class="font-mono text-xs font-semibold text-[#e1e2ec] uppercase tracking-wider mb-4">Community</h4>
-      <ul class="space-y-2.5 text-sm text-[#6F7A90]">
-        <li><a href="https://discord.gg" target="_blank" rel="noreferrer" class="hover:text-[#19E6D2] transition-colors">Discord</a></li>
-        <li><a href="https://stackoverflow.com" target="_blank" rel="noreferrer" class="hover:text-[#19E6D2] transition-colors">Stack Overflow</a></li>
-        <li><a href="#roadmap" onclick={(e) => navigate(e, 'roadmap')} class="hover:text-[#19E6D2] transition-colors">Project Roadmap</a></li>
+    <div class="md:col-span-2 space-y-6">
+      <h4 class="text-[10px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-2">
+          <div class="w-1 h-1 bg-secondary rounded-full"></div>
+          Ecosystem
+      </h4>
+      <ul class="space-y-4 text-sm font-bold">
+        <li><a href="#playground" onclick={(e) => navigate(e, 'playground')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Studio</a></li>
+        <li><a href="#roadmap" onclick={(e) => navigate(e, 'roadmap')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Roadmap</a></li>
+        <li><a href="https://github.com/danielitoCode/Spatial" target="_blank" rel="noreferrer" class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>GitHub</a></li>
       </ul>
     </div>
 
-    <div>
-      <h4 class="font-mono text-xs font-semibold text-[#e1e2ec] uppercase tracking-wider mb-4">Legal</h4>
-      <ul class="space-y-2.5 text-sm text-[#6F7A90]">
-        <li><a href="#home" onclick={(e) => navigate(e, 'home')} class="hover:text-[#19E6D2] transition-colors">Privacy Policy</a></li>
-        <li><a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer" class="hover:text-[#19E6D2] transition-colors">License (Apache 2.0)</a></li>
-      </ul>
+    <!-- Newsletter / Beta -->
+    <div class="md:col-span-3 space-y-6">
+      <h4 class="text-[10px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-2">
+          <div class="w-1 h-1 bg-tertiary rounded-full"></div>
+          Developer Beta
+      </h4>
+      <div class="glass-panel p-5 rounded-[2rem] border border-white/5 bg-white/[0.02] space-y-4 shadow-xl">
+        <p class="text-[11px] text-silver/60 leading-relaxed font-medium">Join the <span class="text-white font-bold">Spatial Cloud</span> early access list for advanced shader debugging tools.</p>
+        <div class="relative group">
+          <input type="email" placeholder="dev@spatial.io" class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-silver/20" />
+          <button class="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary text-[#00201c] rounded-xl text-[10px] font-black uppercase hover:scale-[1.02] active:scale-95 transition-all">Join</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="mt-12 pt-8 border-t border-[#1C2638]/50 max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-[#6F7A90] font-mono">
-    <span>© 2026 SPATIAL. ALL RIGHTS RESERVED.</span>
-    <div class="flex gap-6">
-      <a href="https://x.com" target="_blank" rel="noreferrer" class="hover:text-[#19E6D2] transition-colors">Twitter / X</a>
-      <a href="https://linkedin.com" target="_blank" rel="noreferrer" class="hover:text-[#19E6D2] transition-colors">LinkedIn</a>
+  <!-- Bottom Legal Bar -->
+  <div class="mt-24 pt-8 border-t border-white/5 max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-6 text-[10px] text-silver/20 font-mono uppercase tracking-[0.2em] font-black">
+    <div class="flex items-center gap-6">
+        <span>© 2026 SPATIAL ENGINE</span>
+        <div class="w-px h-3 bg-white/5"></div>
+        <span>MIT LICENSE</span>
+    </div>
+    <div class="flex gap-10">
+      <a href="#" class="hover:text-primary transition-colors tracking-widest">Security</a>
+      <a href="#" class="hover:text-primary transition-colors tracking-widest">Privacy</a>
+      <a href="#" class="hover:text-primary transition-colors tracking-widest">Terms</a>
     </div>
   </div>
 </footer>

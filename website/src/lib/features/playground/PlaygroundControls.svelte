@@ -28,10 +28,10 @@
   }: Props = $props();
 
   const presets = [
-    { name: 'Cyber Neon', shape: 'torus', color: '#19E6D2', emissive: '#8B5CF6', metalness: 0.8, roughness: 0.1 },
-    { name: 'Pure Chrome', shape: 'sphere', color: '#e1e2ec', emissive: '#000000', metalness: 0.95, roughness: 0.05 },
-    { name: 'Emerald', shape: 'box', color: '#10B981', emissive: '#064E3B', metalness: 0.7, roughness: 0.3 },
-    { name: 'Solar', shape: 'cylinder', color: '#F25933', emissive: '#7C2D12', metalness: 0.4, roughness: 0.4 }
+    { name: 'Neon Void', shape: 'torus', color: '#19E6D2', emissive: '#8B5CF6', metalness: 0.8, roughness: 0.1 },
+    { name: 'Liquid Metal', shape: 'sphere', color: '#E6EDF3', emissive: '#000000', metalness: 0.98, roughness: 0.02 },
+    { name: 'Jade Glass', shape: 'box', color: '#10B981', emissive: '#064E3B', metalness: 0.5, roughness: 0.1 },
+    { name: 'Magma Core', shape: 'cylinder', color: '#F25933', emissive: '#7C2D12', metalness: 0.4, roughness: 0.4 }
   ];
 
   function applyPreset(p: typeof presets[0]) {
@@ -40,6 +40,7 @@
     emissive = p.emissive;
     metalness = p.metalness;
     roughness = p.roughness;
+    onApplyPreset(p.name);
   }
 
   const shapes: Array<'box' | 'sphere' | 'torus' | 'cylinder' | 'plane'> = [
@@ -47,130 +48,172 @@
   ];
 </script>
 
-<div class="glass-panel p-6 rounded-3xl flex flex-col gap-8 text-xs">
-  <!-- Presets -->
-  <section class="space-y-3">
-    <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Quick Presets</span>
-    <div class="grid grid-cols-2 gap-3">
-      {#each presets as p}
-        <button
-          onclick={() => applyPreset(p)}
-          class="p-3 bg-[#101624] hover:bg-[#19E6D2]/5 border border-[#1C2638] hover:border-[#19E6D2]/30 rounded-2xl text-left transition-all group"
-        >
-          <div class="font-bold text-[#e1e2ec] group-hover:text-[#19E6D2]">{p.name}</div>
-          <div class="text-[9px] text-[#6F7A90] font-mono mt-1 uppercase">{p.shape} • PBR</div>
-        </button>
-      {/each}
-    </div>
-  </section>
-
-  <!-- Geometry -->
-  <section class="space-y-3">
-    <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Geometry</span>
-    <div class="flex flex-wrap p-1 bg-[#101624] rounded-2xl border border-[#1C2638]">
-      {#each shapes as s}
-        <button
-          onclick={() => (shape = s)}
-          class="flex-1 min-w-[60px] py-2.5 rounded-xl font-mono capitalize transition-all {shape === s
-            ? 'bg-[#19E6D2] text-[#00201c] font-black shadow-lg shadow-[#19E6D2]/20'
-            : 'text-[#6F7A90] hover:text-[#e1e2ec]'}"
-        >
-          {s}
-        </button>
-      {/each}
-    </div>
-  </section>
-
-  <!-- Material -->
-  <section class="space-y-4 pt-2">
-    <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Material Properties</span>
-
-    <div class="space-y-2">
-      <div class="flex justify-between font-mono mb-1">
-        <span class="text-[#A6B0C3]">Albedo Color</span>
-        <span class="text-[#19E6D2] font-bold">{color}</span>
+<div class="glass-panel p-1 rounded-[2.5rem] bg-white/[0.02] border-white/5">
+  <div class="bg-[#0D1117] rounded-[2.2rem] p-6 space-y-8 shadow-2xl">
+    <!-- Presets Section -->
+    <section class="space-y-4">
+      <div class="flex items-center gap-2 px-1">
+        <div class="w-1 h-3 bg-primary rounded-full"></div>
+        <span class="text-[10px] font-black text-white uppercase tracking-widest">Global Presets</span>
       </div>
-      <div class="flex gap-3 items-center bg-[#101624] p-3 rounded-2xl border border-[#1C2638]">
-        <div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#1C2638]">
-          <input type="color" bind:value={color} class="absolute -inset-2 w-[200%] h-[200%] cursor-pointer bg-transparent border-0" />
+      <div class="grid grid-cols-2 gap-2.5">
+        {#each presets as p}
+          <button
+            onclick={() => applyPreset(p)}
+            class="group p-3 bg-white/[0.03] hover:bg-primary/[0.08] border border-white/[0.05] hover:border-primary/30 rounded-2xl text-left transition-all duration-300"
+          >
+            <div class="font-bold text-silver group-hover:text-primary text-[11px] transition-colors">{p.name}</div>
+            <div class="text-[8px] text-silver/40 font-mono mt-0.5 uppercase tracking-tighter">{p.shape} · Cinematic</div>
+          </button>
+        {/each}
+      </div>
+    </section>
+
+    <!-- Geometry Selector -->
+    <section class="space-y-4">
+       <div class="flex items-center gap-2 px-1">
+        <div class="w-1 h-3 bg-secondary rounded-full"></div>
+        <span class="text-[10px] font-black text-white uppercase tracking-widest">Base Geometry</span>
+      </div>
+      <div class="flex p-1.5 bg-black/40 rounded-2xl border border-white/5">
+        {#each shapes as s}
+          <button
+            onclick={() => (shape = s)}
+            class="flex-1 py-2 rounded-xl text-[10px] font-bold capitalize transition-all duration-500 {shape === s
+              ? 'bg-primary text-black shadow-lg shadow-primary/30 scale-[1.02]'
+              : 'text-silver/50 hover:text-silver/80'}"
+          >
+            {s}
+          </button>
+        {/each}
+      </div>
+    </section>
+
+    <!-- Material Props -->
+    <section class="space-y-6 pt-2">
+      <div class="flex items-center gap-2 px-1">
+        <div class="w-1 h-3 bg-tertiary rounded-full"></div>
+        <span class="text-[10px] font-black text-white uppercase tracking-widest">Material Engine</span>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Color -->
+        <div class="bg-white/[0.02] p-4 rounded-3xl border border-white/[0.05]">
+          <div class="flex justify-between items-center mb-4 px-1">
+            <span class="text-[11px] font-bold text-silver">Albedo Base</span>
+            <span class="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20 tracking-tighter">{color}</span>
+          </div>
+          <div class="flex gap-3 items-center">
+            <div class="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-white/10 shadow-lg shadow-black/40">
+              <input type="color" bind:value={color} class="absolute -inset-4 w-[200%] h-[200%] cursor-pointer bg-transparent border-0" />
+            </div>
+            <div class="flex-1 grid grid-cols-5 gap-2">
+              {#each ['#19E6D2', '#159FE8', '#8B5CF6', '#F25933', '#E6EDF3'] as c}
+                <button
+                  onclick={() => (color = c)}
+                  class="aspect-square rounded-xl border border-white/5 transition-all hover:scale-110 active:scale-90 {color === c ? 'ring-2 ring-primary ring-offset-4 ring-offset-[#0D1117] scale-105 shadow-xl' : 'opacity-60 hover:opacity-100'}"
+                  style="background-color: {c}"
+                ></button>
+              {/each}
+            </div>
+          </div>
         </div>
-        <div class="flex gap-2 flex-1">
-          {#each ['#19E6D2', '#159FE8', '#8B5CF6', '#F25933'] as c}
-            <button
-              onclick={() => (color = c)}
-              aria-label="Set color to {c}"
-              class="w-6 h-6 rounded-full border border-white/10 transition-transform active:scale-90"
-              style="background-color: {c}"
-            ></button>
-          {/each}
+
+        <!-- Sliders -->
+        <div class="grid grid-cols-1 gap-4">
+          <div class="bg-white/[0.02] p-4 rounded-3xl border border-white/[0.05] space-y-3">
+            <div class="flex justify-between font-mono text-[10px] font-black uppercase tracking-widest">
+              <span class="text-silver/50 italic">Metallicity</span>
+              <span class="text-primary">{Math.round(metalness * 100)}%</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="custom-range" aria-label="Metalness" />
+          </div>
+
+          <div class="bg-white/[0.02] p-4 rounded-3xl border border-white/[0.05] space-y-3">
+            <div class="flex justify-between font-mono text-[10px] font-black uppercase tracking-widest">
+              <span class="text-silver/50 italic">Surface Roughness</span>
+              <span class="text-primary">{Math.round(roughness * 100)}%</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="custom-range" aria-label="Roughness" />
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="grid grid-cols-2 gap-4">
-      <div class="space-y-2">
-        <div class="flex justify-between font-mono text-[10px]">
-          <span class="text-[#A6B0C3]">Metalness</span>
-          <span>{metalness.toFixed(2)}</span>
+    <!-- Toggles Grid -->
+    <section class="grid grid-cols-2 gap-3">
+      <label class="flex flex-col gap-2 p-4 bg-white/[0.02] hover:bg-white/[0.05] rounded-3xl border border-white/[0.05] cursor-pointer group transition-all duration-300">
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-black text-silver group-hover:text-white uppercase tracking-tighter">Wireframe</span>
+          <input type="checkbox" bind:checked={wireframe} class="custom-checkbox" />
         </div>
-        <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="w-full accent-[#19E6D2]" aria-label="Metalness" />
-      </div>
-      <div class="space-y-2">
-        <div class="flex justify-between font-mono text-[10px]">
-          <span class="text-[#A6B0C3]">Roughness</span>
-          <span>{roughness.toFixed(2)}</span>
+        <div class="h-0.5 w-6 bg-primary/20 rounded-full group-hover:w-full transition-all duration-500"></div>
+      </label>
+
+      <label class="flex flex-col gap-2 p-4 bg-white/[0.02] hover:bg-white/[0.05] rounded-3xl border border-white/[0.05] cursor-pointer group transition-all duration-300">
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-black text-silver group-hover:text-white uppercase tracking-tighter">Auto Orbit</span>
+          <input type="checkbox" bind:checked={autoRotate} class="custom-checkbox" />
         </div>
-        <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="w-full accent-[#19E6D2]" aria-label="Roughness" />
-      </div>
-    </div>
-  </section>
-
-  <!-- Rendering Toggles -->
-  <section class="grid grid-cols-2 gap-4 pt-4 border-t border-[#1C2638]">
-    <label class="flex flex-col gap-2 p-4 bg-[#101624] rounded-2xl border border-[#1C2638] cursor-pointer hover:border-[#19E6D2]/40 transition-colors">
-      <div class="flex justify-between items-center">
-        <span class="font-bold text-[#e1e2ec]">Wireframe</span>
-        <input type="checkbox" bind:checked={wireframe} class="accent-[#19E6D2] w-4 h-4 rounded" />
-      </div>
-      <span class="text-[9px] text-[#6F7A90] font-mono leading-none">DEBUG_MESH_GRID</span>
-    </label>
-
-    <label class="flex flex-col gap-2 p-4 bg-[#101624] rounded-2xl border border-[#1C2638] cursor-pointer hover:border-[#19E6D2]/40 transition-colors">
-      <div class="flex justify-between items-center">
-        <span class="font-bold text-[#e1e2ec]">Auto Orbit</span>
-        <input type="checkbox" bind:checked={autoRotate} class="accent-[#19E6D2] w-4 h-4 rounded" />
-      </div>
-      <span class="text-[9px] text-[#6F7A90] font-mono leading-none">CINEMATIC_VIEW</span>
-    </label>
-  </section>
+        <div class="h-0.5 w-6 bg-primary/20 rounded-full group-hover:w-full transition-all duration-500"></div>
+      </label>
+    </section>
+  </div>
 </div>
 
 <style>
-  input[type="range"] {
+  .custom-range {
     appearance: none;
     -webkit-appearance: none;
-    background: #1C2638;
+    background: #1D2128;
     height: 4px;
-    border-radius: 2px;
+    border-radius: 99px;
+    width: 100%;
+    cursor: pointer;
   }
 
-  input[type="range"]::-webkit-slider-thumb {
+  .custom-range::-webkit-slider-thumb {
     -webkit-appearance: none;
-    height: 14px;
-    width: 14px;
+    height: 18px;
+    width: 18px;
     border-radius: 50%;
-    background: #19E6D2;
+    background: #E6EDF3;
+    border: 4px solid #19E6D2;
+    box-shadow: 0 0 15px rgba(25, 230, 210, 0.5);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .custom-range::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+
+  .custom-checkbox {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #1D2128;
+    border: 2px solid #30363D;
+    border-radius: 6px;
     cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .custom-checkbox:checked {
+    background: #19E6D2;
+    border-color: #19E6D2;
     box-shadow: 0 0 10px rgba(25, 230, 210, 0.4);
   }
 
-  input[type="range"]::-moz-range-thumb {
-    height: 14px;
-    width: 14px;
-    border-radius: 50%;
-    background: #19E6D2;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 0 10px rgba(25, 230, 210, 0.4);
+  .custom-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: black;
+    font-weight: 900;
+    font-size: 10px;
   }
 </style>

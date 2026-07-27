@@ -4,11 +4,18 @@
   interface Props {
     class?: string;
     glow?: boolean;
+    elevated?: boolean;
     children?: Snippet;
     [key: string]: any;
   }
 
-  let { class: className = '', glow = false, children, ...restProps }: Props = $props();
+  let {
+    class: className = '',
+    glow = false,
+    elevated = false,
+    children,
+    ...restProps
+  }: Props = $props();
 
   let panelRef = $state<HTMLElement | null>(null);
 
@@ -25,10 +32,17 @@
 <div
   bind:this={panelRef}
   onmousemove={handleMouseMove}
-  class="glass-panel rounded-xl {glow ? 'glow-hover' : ''} {className}"
+  class="{elevated ? 'glass-panel-elevated' : 'glass-panel'} rounded-2xl transition-all duration-500 {glow ? 'glow-hover' : ''} {className}"
   {...restProps}
 >
-  {@render children?.()}
+  <!-- Spot reflection effect -->
+  <div class="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover:opacity-100"
+       style="background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(25, 230, 210, 0.06), transparent 40%);">
+  </div>
+
+  <div class="relative z-10">
+    {@render children?.()}
+  </div>
 </div>
 
 <style>

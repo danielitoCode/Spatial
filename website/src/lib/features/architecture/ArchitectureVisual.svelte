@@ -1,17 +1,34 @@
 <script lang="ts">
-  import GlassPanel from '../../components/GlassPanel.svelte';
+  import { Canvas } from '@threlte/core';
+  import InternalArchitectureScene from './InternalArchitectureScene.svelte';
 </script>
 
-<GlassPanel class="relative aspect-square rounded-2xl border border-[#1C2638] bg-[#0A0E17] overflow-hidden group">
-  <div class="absolute inset-0 bg-gradient-to-tr from-[#19E6D2]/10 via-transparent to-[#8B5CF6]/10"></div>
-
-  <div class="absolute inset-0 flex items-center justify-center">
-    <div class="w-64 h-64 border-2 border-dashed border-[#1C2638] rounded-full animate-spin-slow flex items-center justify-center">
-      <div class="w-44 h-44 border border-[#19E6D2]/30 rounded-xl flex items-center justify-center bg-[#101624]/40 backdrop-blur-sm">
-        <span class="material-symbols-outlined text-7xl text-[#19E6D2] group-hover:scale-110 transition-transform duration-500" style="font-variation-settings: 'FILL' 1;">
-          hexagon
-        </span>
+<div class="relative aspect-square w-full rounded-[3rem] border border-white/5 bg-[#0D1117] overflow-hidden group shadow-2xl min-h-[400px]">
+  <!-- Technical HUD Overlays -->
+  <div class="absolute top-8 left-8 z-20 pointer-events-none opacity-60">
+      <div class="flex items-center gap-2 mb-1">
+          <div class="w-1 h-3 bg-primary rounded-full"></div>
+          <span class="text-[10px] font-black text-white uppercase tracking-widest leading-none">Architecture_Stack</span>
       </div>
-    </div>
+      <div class="text-[8px] font-mono text-silver/40 ml-3">MODEL_TYPE: LAYERED_HIERARCHY</div>
   </div>
-</GlassPanel>
+
+  <div class="absolute bottom-8 right-8 z-20 pointer-events-none opacity-40">
+      <div class="text-[8px] font-mono text-primary text-right uppercase tracking-[0.4em]">system_active</div>
+      <div class="flex gap-1 justify-end mt-1">
+          <div class="w-1 h-1 bg-white/20 rounded-full animate-pulse"></div>
+          <div class="w-1 h-1 bg-white/20 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+          <div class="w-1 h-1 bg-white/20 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+      </div>
+  </div>
+
+  <!-- 3D Canvas -->
+  <div class="absolute inset-0 w-full h-full">
+    <Canvas>
+      <InternalArchitectureScene />
+    </Canvas>
+  </div>
+
+  <!-- Vignette -->
+  <div class="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)]"></div>
+</div>

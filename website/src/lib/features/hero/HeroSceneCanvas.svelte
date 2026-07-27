@@ -1,10 +1,4 @@
-<script lang="ts">
-  import { Canvas } from '@threlte/core';
-  import Hero3DScene from './Hero3DScene.svelte';
-</script>
-
-<div class="absolute inset-0 w-full h-full opacity-60 pointer-events-none">
-  <Canvas>
-    <Hero3DScene />
-  </Canvas>
+<!-- HeroSceneCanvas is now empty as the background is global in App.svelte -->
+<div class="absolute inset-0 pointer-events-none opacity-40">
+    <!-- Placeholder for Hero-specific effects if needed -->
 </div>
