@@ -1,50 +1,10 @@
 <script lang="ts">
-  import { Canvas, T, useTask } from '@threlte/core';
-  import * as THREE from 'three';
+  import { Canvas } from '@threlte/core';
+  import InternalInstancedMeshScene from './InternalInstancedMeshScene.svelte';
   import GlassPanel from '../../components/GlassPanel.svelte';
   import GradientText from '../../components/GradientText.svelte';
 
   let count = 40;
-  let meshRef = $state<THREE.InstancedMesh | undefined>(undefined);
-
-  const tempObject = new THREE.Object3D();
-  const tempColor = new THREE.Color();
-
-  // Create grid of positions
-  const instances = $derived.by(() => {
-    const data = [];
-    const size = Math.sqrt(count);
-    for (let i = 0; i < count; i++) {
-      data.push({
-        position: [
-          (i % size - size / 2) * 2,
-          (Math.floor(i / size) - size / 2) * 2,
-          Math.sin(i * 0.5) * 2
-        ],
-        color: i % 2 === 0 ? '#19E6D2' : '#8B5CF6'
-      });
-    }
-    return data;
-  });
-
-  /*useTask((delta) => {
-    if (!meshRef) return;
-    const time = Date.now() * 0.001;
-    const size = Math.sqrt(count);
-
-    for (let i = 0; i < count; i++) {
-      const x = i % size - size / 2;
-      const y = Math.floor(i / size) - size / 2;
-
-      const wave = Math.sin(x * 0.5 + time) * Math.cos(y * 0.5 + time);
-
-      tempObject.position.set(x * 1.5, y * 1.5, wave * 2);
-      tempObject.rotation.set(time * 0.5, time * 0.3, 0);
-      tempObject.updateMatrix();
-      meshRef.setMatrixAt(i, tempObject.matrix);
-    }
-    meshRef.instanceMatrix.needsUpdate = true;
-  });*/
 </script>
 
 <GlassPanel class="p-6 rounded-2xl bg-[#0A0E17] border border-[#1C2638] flex flex-col gap-6 overflow-hidden">
@@ -60,14 +20,7 @@
 
   <div class="h-96 relative bg-[#05070D] rounded-xl overflow-hidden border border-[#1C2638]">
     <Canvas>
-      <T.PerspectiveCamera makeDefault position={[0, 0, 12]} fov={50} />
-      <T.AmbientLight intensity={0.5} />
-      <T.DirectionalLight position={[10, 10, 10]} intensity={2} />
-
-      <T.InstancedMesh bind:ref={meshRef} args={[undefined, undefined, count]}>
-        <T.BoxGeometry args={[0.8, 0.8, 0.8]} />
-        <T.MeshStandardMaterial color="#19E6D2" metalness={0.8} roughness={0.1} />
-      </T.InstancedMesh>
+      <InternalInstancedMeshScene {count} />
     </Canvas>
 
     <div class="absolute bottom-4 right-4 flex flex-col items-end gap-2">
