@@ -1,6 +1,6 @@
 # Core #1 Stability Plan
 
-> **Status:** Point 1 closed; Task 2.1 code ready | **Last Updated:** 2026-07-25  
+> **Status:** Point 1 + Task 2.1 CLOSED; Task 2.2 in progress | **Last Updated:** 2026-07-27  
 > **Canonical tracker:** this file (`roadmap/CORE1_STABILITY.md`)  
 > **Owner:** Project owner (on-device evidence) + agents (code/docs)
 
@@ -25,25 +25,35 @@
 | 1.2.1–1.2.3 code | **Done** |
 | 1.2.4–1.2.6 M1–M3 | **Done (on-device)** — force-stop + rotation OK |
 
-### Task 2.1 — Orbit gesture (smooth, no fight with autoRotate)
+### Task 2.1 — Orbit gesture — **CLOSED**
 
 | Sub-step | Status | Notes |
 |----------|--------|-------|
-| 2.1.1 Pause autoRotate during pointer gesture + cooldown | **Done (code)** | `CameraState.begin/endGestureInteraction` |
-| 2.1.2 autoRotate ticks use Animation source | **Done (code)** | Does not outrank Gesture in runtime |
-| 2.1.3 Natural pitch (invert screen dy) | **Done (code)** | `resolveOrbitGestureDelta` |
-| 2.1.4 Unit tests | **Done (code)** | `OrbitGestureTask21Test` |
-| 2.1.5 **Manual on device** | **Pending owner** | Drag orbit on Shapes with autoRotate on; camera follows finger without fighting |
+| 2.1.1 Pause autoRotate during pointer gesture + cooldown | **Done** | `CameraState.begin/endGestureInteraction` |
+| 2.1.2 autoRotate ticks use Animation source | **Done** | Does not outrank Gesture |
+| 2.1.3 Turntable signs (yaw `-dx`, pitch `+dy`) | **Done** | Iterated with device feedback |
+| 2.1.4 Unit tests | **Done** | `OrbitGestureTask21Test` |
+| 2.1.5 **Manual on device** | **Done (on-device)** | Owner: horizontal follows finger; vertical fixed to `+dy` (finger down → figure follows) |
 
-**Manual check:**
-1. Open Shapes (autoRotate active).
-2. Drag horizontally on a Scene preview → yaw follows finger; autoRotate pauses while dragging.
-3. After release, autoRotate resumes after ~0.35s.
-4. Drag vertically → pitch feels natural (finger up → view from higher).
+### Task 2.2 — Pinch zoom (no crash, coherent scale)
 
-### Task 2.2+ — Pinch / bg-fg / recomposition
+| Sub-step | Status | Notes |
+|----------|--------|-------|
+| 2.2.1 Pipeline already wired (`OrbitAndZoom` → `zoomBy`) | **Done (code)** | `Gestures.orbitAndZoom()` in Shapes/Main |
+| 2.2.2 Unit tests scale + two-finger state | **Done (code)** | `PinchZoomTask22Test` |
+| 2.2.3 Pinch pauses autoRotate (same gesture gate) | **Done (code)** | `beginGestureInteraction` on POINTER_DOWN |
+| 2.2.4 **Manual on device** | **Pending owner** | Two-finger pinch in / out on Shapes; no crash; zoom changes |
 
-Pending after 2.1 device sign-off.
+**Manual check (2.2.4):**
+1. Open Shapes (or Main playground) with `Gestures.orbitAndZoom()`.
+2. Two fingers **pinch out** → scene zooms in (objects larger).
+3. Two fingers **pinch in** → scene zooms out.
+4. During pinch, autoRotate does not fight; after release, resumes after cooldown.
+5. Repeat 3× without crash / black screen.
+
+### Task 2.3+ — bg→fg / recomposition
+
+Pending after 2.2 device sign-off.
 
 ---
 
@@ -51,7 +61,7 @@ Pending after 2.1 device sign-off.
 
 - [X] App launches without blank/black first frame
 - [X] Cube visible on first frame
-- [ ] Orbit gesture works smoothly (task 2.1)
+- [X] Orbit gesture works smoothly (task 2.1)
 - [ ] Pinch zoom works without crash
 - [X] Rotating the device does not crash
 - [ ] Backgrounding and foregrounding does not crash
@@ -62,7 +72,8 @@ Pending after 2.1 device sign-off.
 ## Core #1 device closure summary
 
 - **Point 1:** CLOSED on device
-- **Task 2.1:** code ready; awaiting manual orbit verification
+- **Task 2.1:** CLOSED on device
+- **Task 2.2:** code + unit tests ready; awaiting pinch manual verification
 - **Ready for Core #2:** NO
 
 ---
@@ -72,4 +83,5 @@ Pending after 2.1 device sign-off.
 | Date | Agent / owner | Change |
 |------|---------------|--------|
 | 2026-07-25 | Owner | Point 1 closed (1.1 suite + 1.2 manual) |
-| 2026-07-25 | Grok | **Task 2.1:** autoRotate yields to orbit; pitch invert; unit tests; tracker |
+| 2026-07-25 | Grok | Task 2.1 code: autoRotate yield; turntable signs; tests |
+| 2026-07-27 | Owner + Grok | **2.1.5 CLOSED** (device orbit signs OK); start **2.2** pinch tests + tracker |
