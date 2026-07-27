@@ -1,6 +1,6 @@
 # Core #1 Stability Plan
 
-> **Status:** Point 1 + Task 2.1 CLOSED; Task 2.2 in progress | **Last Updated:** 2026-07-27  
+> **Status:** Point 1 + 2.1 CLOSED; 2.2 pending device; **Task 2.3 in progress** | **Last Updated:** 2026-07-27  
 > **Canonical tracker:** this file (`roadmap/CORE1_STABILITY.md`)  
 > **Owner:** Project owner (on-device evidence) + agents (code/docs)
 
@@ -29,31 +29,37 @@
 
 | Sub-step | Status | Notes |
 |----------|--------|-------|
-| 2.1.1 Pause autoRotate during pointer gesture + cooldown | **Done** | `CameraState.begin/endGestureInteraction` |
-| 2.1.2 autoRotate ticks use Animation source | **Done** | Does not outrank Gesture |
-| 2.1.3 Turntable signs (yaw `-dx`, pitch `+dy`) | **Done** | Iterated with device feedback |
-| 2.1.4 Unit tests | **Done** | `OrbitGestureTask21Test` |
-| 2.1.5 **Manual on device** | **Done (on-device)** | Owner: horizontal follows finger; vertical fixed to `+dy` (finger down → figure follows) |
+| 2.1.1–2.1.4 code/tests | **Done** | autoRotate yield + turntable signs |
+| 2.1.5 Manual on device | **Done (on-device)** | Horizontal + vertical follow finger |
 
-### Task 2.2 — Pinch zoom (no crash, coherent scale)
+### Task 2.2 — Pinch zoom
 
 | Sub-step | Status | Notes |
 |----------|--------|-------|
-| 2.2.1 Pipeline already wired (`OrbitAndZoom` → `zoomBy`) | **Done (code)** | `Gestures.orbitAndZoom()` in Shapes/Main |
-| 2.2.2 Unit tests scale + two-finger state | **Done (code)** | `PinchZoomTask22Test` |
-| 2.2.3 Pinch pauses autoRotate (same gesture gate) | **Done (code)** | `beginGestureInteraction` on POINTER_DOWN |
-| 2.2.4 **Manual on device** | **Pending owner** | Two-finger pinch in / out on Shapes; no crash; zoom changes |
+| 2.2.1–2.2.3 code/tests | **Done (code)** | `PinchZoomTask22Test` |
+| 2.2.4 **Manual on device** | **Pending owner** | Pinch in/out on Shapes 3× |
 
-**Manual check (2.2.4):**
-1. Open Shapes (or Main playground) with `Gestures.orbitAndZoom()`.
-2. Two fingers **pinch out** → scene zooms in (objects larger).
-3. Two fingers **pinch in** → scene zooms out.
-4. During pinch, autoRotate does not fight; after release, resumes after cooldown.
-5. Repeat 3× without crash / black screen.
+### Task 2.3 — Background → foreground + recomposition with camera
 
-### Task 2.3+ — bg→fg / recomposition
+| Sub-step | Status | Notes |
+|----------|--------|-------|
+| 2.3.1 Lifecycle ON_PAUSE / ON_RESUME → host | **Done (code)** | `Scene.kt` `LifecycleEventObserver` |
+| 2.3.2 GLSurfaceView onPause/onResume + surface-ready gate | **Done (code)** | `SpatialGlSurfaceView` |
+| 2.3.3 Host queues last scene on resume for surface-ready replay | **Done (code)** | `SpatialRuntimeSceneRenderHost.onResume` |
+| 2.3.4 Camera snapshot observes Compose state (recomposition) | **Done (code)** | `CameraState.snapshot()` reads version/yaw/pitch/zoom |
+| 2.3.5 **Manual bg→fg on device** | **Pending owner** | See checklist below |
+| 2.3.6 **Manual recomposition + camera on device** | **Pending owner** | Orbit then leave composition / rotate |
 
-Pending after 2.2 device sign-off.
+**Manual check (2.3.5 — background → foreground):**
+1. Open Shapes; confirm figures visible + autoRotate.
+2. Press Home (app to background) for ~5s.
+3. Return via recents → figures visible again (no permanent black/empty GL).
+4. Repeat 3× (also once with screen off/on if possible).
+
+**Manual check (2.3.6 — recomposition + camera):**
+1. Orbit the shape (change yaw/pitch).
+2. Rotate device or navigate away and back to Shapes if applicable.
+3. Camera orientation should persist or recover without black screen; scene still draws.
 
 ---
 
@@ -73,7 +79,8 @@ Pending after 2.2 device sign-off.
 
 - **Point 1:** CLOSED on device
 - **Task 2.1:** CLOSED on device
-- **Task 2.2:** code + unit tests ready; awaiting pinch manual verification
+- **Task 2.2:** code ready; device pinch still pending
+- **Task 2.3:** code hardened; awaiting bg→fg + recomposition device checks
 - **Ready for Core #2:** NO
 
 ---
@@ -82,6 +89,7 @@ Pending after 2.2 device sign-off.
 
 | Date | Agent / owner | Change |
 |------|---------------|--------|
-| 2026-07-25 | Owner | Point 1 closed (1.1 suite + 1.2 manual) |
-| 2026-07-25 | Grok | Task 2.1 code: autoRotate yield; turntable signs; tests |
-| 2026-07-27 | Owner + Grok | **2.1.5 CLOSED** (device orbit signs OK); start **2.2** pinch tests + tracker |
+| 2026-07-25 | Owner | Point 1 closed |
+| 2026-07-25 | Grok | Task 2.1 code |
+| 2026-07-27 | Owner + Grok | 2.1.5 CLOSED; 2.2 pinch tests |
+| 2026-07-27 | Grok | **Task 2.3:** resume frame pre-queue + tracker/checklists |

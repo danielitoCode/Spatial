@@ -40,11 +40,9 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
     init {
         runtime.onInitialize()
         renderTarget.setOnSurfaceReady {
-            // Device-closure task 1.2 (cold start):
+            // Device-closure task 1.2 / 2.3:
             // 1) Replay the last queued requestFrame if any.
-            // 2) If nothing was queued (e.g. factory skipped empty scene, or race) but Compose has
-            //    already pushed nodes into pending*, still paint them — avoids a stuck clear-only
-            //    surface until the user touches a control.
+            // 2) If nothing was queued but Compose already pushed nodes into pending*, still paint.
             val frameToReplay: (() -> Unit)?
             val fallbackPending: Boolean
             synchronized(readyLock) {
@@ -64,15 +62,29 @@ public class SpatialRuntimeSceneRenderHost(context: Context) : SceneRenderHost {
 
     /**
      * Called by the Compose host when the hosting Activity resumes.
-     * Re-arms glReady so frames queue until the surface is ready again after backgrounding.
+     *
+     * Task 2.3: re-arm glReady and **pre-queue** the last known scene so the surface-ready
+     * callback always has a frame to replay even if Compose does not recompose on resume.
      */
     override fun onResume() {
         synchronized(readyLock) {
             glReady = false
+            if (pendingNodes.isNotEmpty()) {
+                val nodes = pendingNodes
+                val camera = pendingCameraSnapshot
+                val clear = pendingClearColor
+                queuedFrame = {
+                    runtime.requestFrame(
+                        nodes = nodes,
+                        cameraSnapshot = camera,
+                        clearColor = clear,
+                    )
+                }
+            }
         }
         renderTarget.onResume()
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "onResume: glReady gate re-armed, GL thread resume dispatched")
+            Log.d(TAG, "onResume: glReady re-armed, pending scene queued for surface-ready replay")
         }
     }
 
