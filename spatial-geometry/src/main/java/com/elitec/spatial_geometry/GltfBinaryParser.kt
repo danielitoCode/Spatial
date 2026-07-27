@@ -72,6 +72,11 @@ public object GltfBinaryParser : MeshLoader {
         if (meshes.list.isEmpty()) {
             throw IllegalArgumentException("Meshes array is empty")
         }
+        if (meshes.list.size > 1) {
+            throw IllegalArgumentException(
+                unsupportedMeshPrimitiveCountMessage("meshes", meshes.list.size)
+            )
+        }
         val firstMesh = meshes.list[0] as? JsonValue.JsonObject
             ?: throw IllegalArgumentException("Invalid mesh entry")
 
@@ -79,6 +84,11 @@ public object GltfBinaryParser : MeshLoader {
             ?: throw IllegalArgumentException("No primitives found in mesh")
         if (primitives.list.isEmpty()) {
             throw IllegalArgumentException("Primitives array is empty")
+        }
+        if (primitives.list.size > 1) {
+            throw IllegalArgumentException(
+                unsupportedMeshPrimitiveCountMessage("primitives", primitives.list.size)
+            )
         }
         val primitive = primitives.list[0] as? JsonValue.JsonObject
             ?: throw IllegalArgumentException("Invalid primitive entry")
@@ -234,6 +244,9 @@ public object GltfBinaryParser : MeshLoader {
         }
         return values
     }
+
+    private fun unsupportedMeshPrimitiveCountMessage(kind: String, count: Int): String =
+        "GltfBinaryParser currently supports exactly one mesh with one primitive; found $count $kind"
 }
 
 internal sealed class JsonValue {

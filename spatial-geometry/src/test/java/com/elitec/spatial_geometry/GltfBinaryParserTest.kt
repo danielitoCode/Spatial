@@ -31,6 +31,108 @@ class GltfBinaryParserTest {
     }
 
     @Test
+    fun testParseGlbWithMultiplePrimitivesFailsClearly() {
+        val json = """
+            {
+              "asset": { "version": "2.0" },
+              "meshes": [
+                {
+                  "primitives": [
+                    {
+                      "attributes": { "POSITION": 0 },
+                      "indices": 1
+                    },
+                    {
+                      "attributes": { "POSITION": 0 },
+                      "indices": 1
+                    }
+                  ]
+                }
+              ],
+              "accessors": [
+                {
+                  "bufferView": 0,
+                  "componentType": 5126,
+                  "count": 3,
+                  "type": "VEC3",
+                  "byteOffset": 0
+                },
+                {
+                  "bufferView": 1,
+                  "componentType": 5123,
+                  "count": 3,
+                  "type": "SCALAR",
+                  "byteOffset": 0
+                }
+              ],
+              "bufferViews": [
+                {
+                  "buffer": 0,
+                  "byteOffset": 0,
+                  "byteLength": 36
+                },
+                {
+                  "buffer": 0,
+                  "byteOffset": 36,
+                  "byteLength": 8
+                }
+              ],
+              "buffers": [
+                {
+                  "byteLength": 44
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val exception = try {
+            GltfBinaryParser.parse(ByteArrayInputStream(createMinimalGlb(json)))
+            null
+        } catch (e: IllegalArgumentException) {
+            e
+        }
+
+        assertEquals(
+            "GltfBinaryParser currently supports exactly one mesh with one primitive; found 2 primitives",
+            exception?.message
+        )
+    }
+
+    @Test
+    fun testParseGlbWithMultipleMeshesFailsClearly() {
+        val json = """
+            {
+              "asset": { "version": "2.0" },
+              "meshes": [
+                { "primitives": [ { "attributes": { "POSITION": 0 }, "indices": 1 } ] },
+                { "primitives": [ { "attributes": { "POSITION": 0 }, "indices": 1 } ] }
+              ],
+              "accessors": [
+                { "bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3" },
+                { "bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR" }
+              ],
+              "bufferViews": [
+                { "buffer": 0, "byteOffset": 0, "byteLength": 36 },
+                { "buffer": 0, "byteOffset": 36, "byteLength": 8 }
+              ],
+              "buffers": [ { "byteLength": 44 } ]
+            }
+        """.trimIndent()
+
+        val exception = try {
+            GltfBinaryParser.parse(ByteArrayInputStream(createMinimalGlb(json)))
+            null
+        } catch (e: IllegalArgumentException) {
+            e
+        }
+
+        assertEquals(
+            "GltfBinaryParser currently supports exactly one mesh with one primitive; found 2 meshes",
+            exception?.message
+        )
+    }
+
+    @Test
     fun testParsePositionsAndNormals() {
         val positions = floatArrayOf(
             0f, 1f, 0f,
@@ -185,6 +287,45 @@ class GltfBinaryParserTest {
         """.trimIndent()
 
         return buildGlb(json, binBytes)
+    }
+
+    private fun createMinimalGlb(json: String): ByteArray {
+        val jsonBytes = json.toByteArray(Charsets.UTF_8)
+        val jsonPadding = (4 - (jsonBytes.size % 4)) % 4
+        val jsonChunkLength = jsonBytes.size + jsonPadding
+
+        val positions = floatArrayOf(
+            0f, 1f, 0f,
+            -1f, -1f, 0f,
+            1f, -1f, 0f
+        )
+        val indices = shortArrayOf(0, 1, 2)
+        val binBytesSize = 36 + 8
+        val glbSize = 12 + 8 + jsonChunkLength + 8 + binBytesSize
+
+        val glbBuffer = ByteBuffer.allocate(glbSize).order(ByteOrder.LITTLE_ENDIAN)
+        glbBuffer.putInt(0x46546C67)
+        glbBuffer.putInt(2)
+        glbBuffer.putInt(glbSize)
+
+        glbBuffer.putInt(jsonChunkLength)
+        glbBuffer.putInt(0x4E4F534A)
+        glbBuffer.put(jsonBytes)
+        for (i in 0 until jsonPadding) {
+            glbBuffer.put(' '.toByte())
+        }
+
+        glbBuffer.putInt(binBytesSize)
+        glbBuffer.putInt(0x004E4942)
+        for (f in positions) {
+            glbBuffer.putFloat(f)
+        }
+        for (index in indices) {
+            glbBuffer.putShort(index)
+        }
+        glbBuffer.putShort(0)
+
+        return glbBuffer.array()
     }
 
     private fun buildGlb(json: String, binBytes: ByteArray): ByteArray {
