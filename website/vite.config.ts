@@ -8,5 +8,7 @@ export default defineConfig({
     tailwindcss(),
     svelte()
   ],
-  base: "/Spatial/"
+  base: process.env.NODE_ENV === 'production'
+      ? '/Spatial/'
+      : '/',
 })
