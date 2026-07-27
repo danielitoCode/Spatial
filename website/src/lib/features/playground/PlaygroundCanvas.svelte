@@ -31,11 +31,11 @@
 
   let meshRef = $state<THREE.Mesh | undefined>(undefined);
 
-  useTask((delta) => {
+  /*useTask((delta) => {
     if (!meshRef || !autoRotate) return;
     meshRef.rotation.y += delta * 0.5 * rotationSpeed;
     meshRef.rotation.z += delta * 0.2 * rotationSpeed;
-  });
+  });*/
 </script>
 
 <div class="relative w-full h-full min-h-[400px] bg-[#05070D] rounded-[2rem] overflow-hidden border border-[#1C2638] shadow-2xl">

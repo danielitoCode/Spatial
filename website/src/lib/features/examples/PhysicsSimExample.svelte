@@ -8,7 +8,7 @@
 
   let cubeGroupRef = $state<THREE.Group | undefined>(undefined);
 
-  useTask(() => {
+  /*useTask(() => {
     if (!cubeGroupRef) return;
     const time = performance.now() * 0.001 * bounceSpeed;
 
@@ -17,7 +17,7 @@
       child.rotation.x = time + index;
       child.rotation.y = time * 0.5;
     });
-  });
+  });*/
 
   const colors = ['#19E6D2', '#159FE8', '#8B5CF6', '#F25933', '#46fbe7'];
 </script>

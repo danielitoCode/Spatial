@@ -13,6 +13,7 @@
   import PlaygroundPage from './lib/features/playground/PlaygroundPage.svelte';
   import DocsPage from './lib/features/docs/DocsPage.svelte';
   import RoadmapPage from './lib/features/roadmap/RoadmapPage.svelte';
+  import CustomNavBar from "./lib/features/navigation/CustomNavBar.svelte";
 
   type Route = 'home' | 'examples' | 'playground' | 'docs' | 'roadmap';
 
@@ -53,7 +54,8 @@
 
 <div class="min-h-screen bg-[#05070D] text-[#e1e2ec] font-sans selection:bg-[#19E6D2] selection:text-[#00201c]">
   <!-- Top Navigation -->
-  <Navbar activeRoute={currentRoute} onNavigate={handleNavigate} />
+  <!-- <Navbar activeRoute={currentRoute} onNavigate={handleNavigate} /> -->
+  <CustomNavBar activeRoute={currentRoute} onNavigate={handleNavigate}/>
 
   <!-- Dynamic Feature Route Rendering -->
   <main>

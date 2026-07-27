@@ -30,11 +30,11 @@
     return geo;
   });
 
-  useTask((delta) => {
+  /*useTask((delta) => {
     if (!pointsRef) return;
     pointsRef.rotation.y += delta * 0.1 * speed;
     pointsRef.rotation.z += delta * 0.05 * speed;
-  });
+  });*/
 </script>
 
 <GlassPanel class="p-6 rounded-3xl bg-[#0A0E17]/80 border border-[#1C2638] flex flex-col gap-6 overflow-hidden">

@@ -24,9 +24,9 @@
     <!-- Brand Logo -->
     <a href="#home" onclick={(e) => navigate(e, 'home')} class="flex items-center gap-3 group">
       <img
-        src="https://lh3.googleusercontent.com/aida/AP1WRLv8F0fCCHN7e9LktQfoO8E1ON9THH6khQGintz1XEJCdZTC9Yb7Y_q-_IEbF2st7ODPfsZU4Ce9CodkEjF-TNdXzi3akxZGnaWt3f1q3cm4iTqBlW02RL_i_6K5nMVx0pHBbFEXju9i1p5YXcabu4ZCi5nxDAE6LF9t9bl_E0_MWCc8fzfaDe1gc2kj16KzruP_XNGR0SUvy8sqz6e--iN8P3OTmmdFH0vg8Udje7qcLeBUACKH1CEr55gv"
+        src="/public/spatial_icon_cleaned.svg"
         alt="Spatial Logo"
-        class="w-9 h-9 object-contain group-hover:scale-105 transition-transform"
+        class="w-15 h-15 object-contain group-hover:scale-105 transition-transform"
       />
       <span class="font-extrabold text-2xl tracking-tighter text-[#7effed]">SPATIAL</span>
     </a>

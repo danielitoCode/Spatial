@@ -27,7 +27,7 @@
     return data;
   });
 
-  useTask((delta) => {
+  /*useTask((delta) => {
     if (!meshRef) return;
     const time = Date.now() * 0.001;
     const size = Math.sqrt(count);
@@ -44,7 +44,7 @@
       meshRef.setMatrixAt(i, tempObject.matrix);
     }
     meshRef.instanceMatrix.needsUpdate = true;
-  });
+  });*/
 </script>
 
 <GlassPanel class="p-6 rounded-2xl bg-[#0A0E17] border border-[#1C2638] flex flex-col gap-6 overflow-hidden">

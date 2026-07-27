@@ -14,11 +14,12 @@
 
   let meshRef = $state<THREE.Mesh | undefined>(undefined);
 
-  useTask((delta) => {
+  // Cuanto coloco esta funcion se daña todo
+  /*useTask((delta) => {
     if (!meshRef || !autoRotate) return;
     meshRef.rotation.y += delta * 0.6;
     meshRef.rotation.x += delta * 0.3;
-  });
+  });*/
 
   const generatedKotlinCode = $derived(
 `SpatialScene {
