@@ -1,6 +1,5 @@
 <script lang="ts">
   import CodeBlock from '../../components/CodeBlock.svelte';
-  import { Row, Col } from 'svelte-layouts';
 
   interface Props {
     shape: string;

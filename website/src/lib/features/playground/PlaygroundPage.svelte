@@ -4,18 +4,19 @@
   import ComposeGenerator from './ComposeGenerator.svelte';
   import GradientText from '../../components/GradientText.svelte';
 
-  let shape = $state<'box' | 'sphere' | 'torus' | 'cylinder'>('torus');
+  // State managed at page level
+  let shape = $state<'box' | 'sphere' | 'torus' | 'cylinder' | 'plane'>('box');
   let color = $state('#19E6D2');
   let emissive = $state('#000000');
-  let metalness = $state(0.8);
-  let roughness = $state(0.15);
+  let metalness = $state(0.7);
+  let roughness = $state(0.2);
   let wireframe = $state(false);
-  let lightIntensity = $state(10);
-  let lightColor = $state('#19E6D2');
+  let lightIntensity = $state(15);
+  let lightColor = $state('#ffffff');
   let autoRotate = $state(true);
 
   function handleApplyPreset(p: any) {
-    // Handled via bindings
+    // Optional: add sound effects or global transitions here
   }
 </script>
 
@@ -37,7 +38,7 @@
     <!-- Main Studio Layout using standard Tailwind grid -->
     <div class="grid grid-cols-12 gap-8">
       <!-- 3D Canvas Viewport -->
-      <div class="col-span-12 lg:col-span-7 h-[500px]">
+      <div class="col-span-12 lg:col-span-7 h-[550px]">
         <PlaygroundCanvas
           {shape}
           {color}

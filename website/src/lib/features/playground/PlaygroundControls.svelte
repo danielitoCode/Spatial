@@ -2,7 +2,7 @@
   import SpatialButton from '../../components/SpatialButton.svelte';
 
   interface Props {
-    shape: 'box' | 'sphere' | 'torus' | 'cylinder';
+    shape: 'box' | 'sphere' | 'torus' | 'cylinder' | 'plane';
     color: string;
     emissive: string;
     metalness: number;
@@ -41,6 +41,10 @@
     metalness = p.metalness;
     roughness = p.roughness;
   }
+
+  const shapes: Array<'box' | 'sphere' | 'torus' | 'cylinder' | 'plane'> = [
+    'box', 'sphere', 'torus', 'cylinder', 'plane'
+  ];
 </script>
 
 <div class="glass-panel p-6 rounded-3xl flex flex-col gap-8 text-xs">
@@ -63,11 +67,11 @@
   <!-- Geometry -->
   <section class="space-y-3">
     <span class="text-[#6F7A90] font-mono tracking-tighter uppercase font-bold">Geometry</span>
-    <div class="flex p-1 bg-[#101624] rounded-2xl border border-[#1C2638]">
-      {#each ['box', 'sphere', 'torus', 'cylinder'] as s}
+    <div class="flex flex-wrap p-1 bg-[#101624] rounded-2xl border border-[#1C2638]">
+      {#each shapes as s}
         <button
-          onclick={() => (shape = s as any)}
-          class="flex-1 py-2.5 rounded-xl font-mono capitalize transition-all {shape === s
+          onclick={() => (shape = s)}
+          class="flex-1 min-w-[60px] py-2.5 rounded-xl font-mono capitalize transition-all {shape === s
             ? 'bg-[#19E6D2] text-[#00201c] font-black shadow-lg shadow-[#19E6D2]/20'
             : 'text-[#6F7A90] hover:text-[#e1e2ec]'}"
         >
@@ -94,6 +98,7 @@
           {#each ['#19E6D2', '#159FE8', '#8B5CF6', '#F25933'] as c}
             <button
               onclick={() => (color = c)}
+              aria-label="Set color to {c}"
               class="w-6 h-6 rounded-full border border-white/10 transition-transform active:scale-90"
               style="background-color: {c}"
             ></button>
@@ -108,14 +113,14 @@
           <span class="text-[#A6B0C3]">Metalness</span>
           <span>{metalness.toFixed(2)}</span>
         </div>
-        <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="w-full accent-[#19E6D2]" />
+        <input type="range" min="0" max="1" step="0.01" bind:value={metalness} class="w-full accent-[#19E6D2]" aria-label="Metalness" />
       </div>
       <div class="space-y-2">
         <div class="flex justify-between font-mono text-[10px]">
           <span class="text-[#A6B0C3]">Roughness</span>
           <span>{roughness.toFixed(2)}</span>
         </div>
-        <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="w-full accent-[#19E6D2]" />
+        <input type="range" min="0" max="1" step="0.01" bind:value={roughness} class="w-full accent-[#19E6D2]" aria-label="Roughness" />
       </div>
     </div>
   </section>
@@ -142,6 +147,7 @@
 
 <style>
   input[type="range"] {
+    appearance: none;
     -webkit-appearance: none;
     background: #1C2638;
     height: 4px;
@@ -155,6 +161,16 @@
     border-radius: 50%;
     background: #19E6D2;
     cursor: pointer;
+    box-shadow: 0 0 10px rgba(25, 230, 210, 0.4);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: #19E6D2;
+    cursor: pointer;
+    border: none;
     box-shadow: 0 0 10px rgba(25, 230, 210, 0.4);
   }
 </style>
