@@ -39,6 +39,7 @@ import com.elitec.spatial.presentation.navigation.MainNavigationWrapper
 import com.elitec.spatial.ui.theme.SpatialTheme
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures
+import com.elitec.spatial_compose.ModelResource
 import com.elitec.spatial_compose.Modifier3D
 import com.elitec.spatial_compose_runtime_adapter.DefaultSceneRenderHostFactory
 import com.elitec.spatial_compose.Scene
@@ -73,6 +74,7 @@ private fun PlaygroundScreen(modifier: Modifier = Modifier) {
     var autoRotate by remember { mutableStateOf(false) }
     var showGrid by remember { mutableStateOf(true) }
     var primitiveCount by remember { mutableStateOf(3) }
+    var showModel by remember { mutableStateOf(false) }
 
     // Control panel state for slider-driven camera.
     // Sliders are the source of truth only while the user drags them; we DON'T want a LaunchedEffect
@@ -99,7 +101,11 @@ private fun PlaygroundScreen(modifier: Modifier = Modifier) {
             cameraState = cameraState,
             gestures = Gestures.orbitAndZoom(),
         ) {
-            PlaygroundScene(primitiveCount = primitiveCount, showGrid = showGrid)
+            PlaygroundScene(
+                primitiveCount = primitiveCount,
+                showGrid = showGrid,
+                showModel = showModel,
+            )
         }
 
         ControlPanel(
@@ -112,6 +118,8 @@ private fun PlaygroundScreen(modifier: Modifier = Modifier) {
             onAutoRotateChange = { autoRotate = it },
             showGrid = showGrid,
             onShowGridChange = { showGrid = it },
+            showModel = showModel,
+            onShowModelChange = { showModel = it },
             primitiveCount = primitiveCount,
             onPrimitiveCountChange = { primitiveCount = it.coerceIn(1, 8) },
             yawSlider = yawSlider,
@@ -162,7 +170,7 @@ private fun PlaygroundScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PlaygroundScene(primitiveCount: Int, showGrid: Boolean) {
+private fun PlaygroundScene(primitiveCount: Int, showGrid: Boolean, showModel: Boolean) {
     val cyclicPositions = remember {
         listOf(
             Triple(0f, 0f, -4f),
@@ -175,6 +183,15 @@ private fun PlaygroundScene(primitiveCount: Int, showGrid: Boolean) {
             Triple(-4f, -1f, -9f),
         )
     }
+
+    // The bundled sample GLB intentionally stays within the current GltfBinaryParser
+    // limits: glTF 2.0, exactly one mesh, one primitive, and POSITION data only.
+    Element.Model(
+        model = ModelResource.fromRawResource(R.raw.sample_model),
+        modifier = Modifier3D.Default
+            .size(1.2f.meters)
+            .position((-1.6f).meters, 0.2f.meters, (-3.2f).meters),
+    )
 
     // Central cube always present
     Element.Cube(
@@ -224,6 +241,16 @@ private fun PlaygroundScene(primitiveCount: Int, showGrid: Boolean) {
         }
     }
 
+    if (showModel) {
+        Element.Model(
+            model = ModelResource.fromRawResource(R.raw.sample_model),
+            modifier = Modifier3D.Default
+                .rotateY((-20f).deg)
+                .size(1.6f.meters)
+                .position(0f.meters, 0.45f.meters, (-3.2f).meters),
+        )
+    }
+
     if (showGrid) {
         for (i in -3..3) {
             Element.Plane(
@@ -248,6 +275,8 @@ private fun ControlPanel(
     onAutoRotateChange: (Boolean) -> Unit,
     showGrid: Boolean,
     onShowGridChange: (Boolean) -> Unit,
+    showModel: Boolean,
+    onShowModelChange: (Boolean) -> Unit,
     primitiveCount: Int,
     onPrimitiveCountChange: (Int) -> Unit,
     yawSlider: Float,
@@ -261,7 +290,11 @@ private fun ControlPanel(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-            "Spatial Playground — Core #1",
+            if (showModel) {
+                "Spatial Playground — Core #2 / Asset Pipeline"
+            } else {
+                "Spatial Playground — Core #1"
+            },
             style = MaterialTheme.typography.titleSmall,
             fontFamily = FontFamily.Monospace,
         )
@@ -302,6 +335,18 @@ private fun ControlPanel(
             LabeledSwitch("Grid", showGrid, onShowGridChange, Modifier.weight(1f))
         }
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            LabeledSwitch("Modelo GLB", showModel, onShowModelChange, Modifier.weight(1f))
+            Text(
+                if (showModel) "Primitivas + asset" else "Solo primitivas",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.weight(1f),
+            )
+        }
         LabeledSlider(
             label = "Primitivas: $primitiveCount",
             value = primitiveCount.toFloat(),
@@ -332,7 +377,8 @@ private fun ControlPanel(
         )
 
         Text(
-            "Gestos: 1-dedo orbit  ·  2-dedos pinch zoom",
+            "Modelo GLB sample: parser actual = 1 mesh / 1 primitive / POSITION.\n" +
+                    "Gestos: 1-dedo orbit  ·  2-dedos pinch zoom",
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
         )

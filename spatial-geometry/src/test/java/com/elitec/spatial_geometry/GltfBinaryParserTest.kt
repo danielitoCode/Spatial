@@ -31,105 +31,89 @@ class GltfBinaryParserTest {
     }
 
     @Test
-    fun testParseGlbWithMultiplePrimitivesFailsClearly() {
-        val json = """
-            {
-              "asset": { "version": "2.0" },
-              "meshes": [
-                {
-                  "primitives": [
-                    {
-                      "attributes": { "POSITION": 0 },
-                      "indices": 1
-                    },
-                    {
-                      "attributes": { "POSITION": 0 },
-                      "indices": 1
-                    }
-                  ]
-                }
-              ],
-              "accessors": [
-                {
-                  "bufferView": 0,
-                  "componentType": 5126,
-                  "count": 3,
-                  "type": "VEC3",
-                  "byteOffset": 0
-                },
-                {
-                  "bufferView": 1,
-                  "componentType": 5123,
-                  "count": 3,
-                  "type": "SCALAR",
-                  "byteOffset": 0
-                }
-              ],
-              "bufferViews": [
-                {
-                  "buffer": 0,
-                  "byteOffset": 0,
-                  "byteLength": 36
-                },
-                {
-                  "buffer": 0,
-                  "byteOffset": 36,
-                  "byteLength": 8
-                }
-              ],
-              "buffers": [
-                {
-                  "byteLength": 44
-                }
-              ]
-            }
-        """.trimIndent()
-
-        val exception = try {
-            GltfBinaryParser.parse(ByteArrayInputStream(createMinimalGlb(json)))
-            null
-        } catch (e: IllegalArgumentException) {
-            e
-        }
-
-        assertEquals(
-            "GltfBinaryParser currently supports exactly one mesh with one primitive; found 2 primitives",
-            exception?.message
+    fun testParseGlbWithMultiplePrimitivesCombinesVerticesAndOffsetsIndices() {
+        val firstPositions = floatArrayOf(
+            0f, 0f, 0f,
+            1f, 0f, 0f,
+            0f, 1f, 0f
         )
+        val secondPositions = floatArrayOf(
+            2f, 0f, 0f,
+            3f, 0f, 0f,
+            2f, 1f, 0f
+        )
+        val meshData = GltfBinaryParser.parse(
+            ByteArrayInputStream(
+                createMultiPrimitiveGlb(
+                    meshes = listOf(
+                        listOf(
+                            PrimitiveSpec(positions = firstPositions, indices = intArrayOf(0, 1, 2)),
+                            PrimitiveSpec(positions = secondPositions, indices = intArrayOf(2, 1, 0))
+                        )
+                    )
+                )
+            )
+        )
+
+        assertEquals(6, meshData.vertexCount)
+        assertArrayEquals(firstPositions + secondPositions, meshData.vertices, 1e-5f)
+        assertArrayEquals(intArrayOf(0, 1, 2, 5, 4, 3), meshData.indices)
     }
 
     @Test
-    fun testParseGlbWithMultipleMeshesFailsClearly() {
-        val json = """
-            {
-              "asset": { "version": "2.0" },
-              "meshes": [
-                { "primitives": [ { "attributes": { "POSITION": 0 }, "indices": 1 } ] },
-                { "primitives": [ { "attributes": { "POSITION": 0 }, "indices": 1 } ] }
-              ],
-              "accessors": [
-                { "bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3" },
-                { "bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR" }
-              ],
-              "bufferViews": [
-                { "buffer": 0, "byteOffset": 0, "byteLength": 36 },
-                { "buffer": 0, "byteOffset": 36, "byteLength": 8 }
-              ],
-              "buffers": [ { "byteLength": 44 } ]
-            }
-        """.trimIndent()
-
-        val exception = try {
-            GltfBinaryParser.parse(ByteArrayInputStream(createMinimalGlb(json)))
-            null
-        } catch (e: IllegalArgumentException) {
-            e
-        }
-
-        assertEquals(
-            "GltfBinaryParser currently supports exactly one mesh with one primitive; found 2 meshes",
-            exception?.message
+    fun testParseGlbWithMultipleMeshesCombinesAttributesAndOffsetsIndices() {
+        val firstPositions = floatArrayOf(
+            0f, 0f, 0f,
+            1f, 0f, 0f,
+            0f, 1f, 0f
         )
+        val secondPositions = floatArrayOf(
+            0f, 0f, 1f,
+            1f, 0f, 1f,
+            0f, 1f, 1f
+        )
+        val firstNormals = floatArrayOf(
+            0f, 0f, 1f,
+            0f, 0f, 1f,
+            0f, 0f, 1f
+        )
+        val secondNormals = floatArrayOf(
+            0f, 1f, 0f,
+            0f, 1f, 0f,
+            0f, 1f, 0f
+        )
+        val firstTexCoords = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f)
+        val secondTexCoords = floatArrayOf(0f, 1f, 1f, 1f, 0.5f, 0f)
+        val meshData = GltfBinaryParser.parse(
+            ByteArrayInputStream(
+                createMultiPrimitiveGlb(
+                    meshes = listOf(
+                        listOf(
+                            PrimitiveSpec(
+                                positions = firstPositions,
+                                normals = firstNormals,
+                                texCoords = firstTexCoords,
+                                indices = intArrayOf(0, 1, 2)
+                            )
+                        ),
+                        listOf(
+                            PrimitiveSpec(
+                                positions = secondPositions,
+                                normals = secondNormals,
+                                texCoords = secondTexCoords,
+                                indices = intArrayOf(0, 2, 1)
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        assertEquals(6, meshData.vertexCount)
+        assertArrayEquals(firstPositions + secondPositions, meshData.vertices, 1e-5f)
+        assertArrayEquals(intArrayOf(0, 1, 2, 3, 5, 4), meshData.indices)
+        assertArrayEquals(firstNormals + secondNormals, meshData.normals, 1e-5f)
+        assertArrayEquals(firstTexCoords + secondTexCoords, meshData.texCoords, 1e-5f)
     }
 
     @Test
@@ -220,6 +204,74 @@ class GltfBinaryParserTest {
         val nested = root.getObjectOrNull("nested")!!
         assertEquals("val", nested.getStringOrNull("key"))
     }
+
+    private data class PrimitiveSpec(
+        val positions: FloatArray,
+        val normals: FloatArray = floatArrayOf(),
+        val texCoords: FloatArray = floatArrayOf(),
+        val indices: IntArray = intArrayOf(),
+    )
+
+    private fun createMultiPrimitiveGlb(meshes: List<List<PrimitiveSpec>>): ByteArray {
+        val binary = ByteBuffer.allocate(8192).order(ByteOrder.LITTLE_ENDIAN)
+        val bufferViews = mutableListOf<String>()
+        val accessors = mutableListOf<String>()
+
+        fun putFloats(values: FloatArray, componentType: String): Int {
+            val byteOffset = binary.position()
+            val componentCount = if (componentType == "VEC3") 3 else 2
+            val count = values.size / componentCount
+            for (value in values) binary.putFloat(value)
+            val byteLength = values.size * 4
+            val bufferViewIndex = bufferViews.size
+            bufferViews += """{ "buffer": 0, "byteOffset": $byteOffset, "byteLength": $byteLength }"""
+            val accessorIndex = accessors.size
+            accessors += """{ "bufferView": $bufferViewIndex, "componentType": 5126, "count": $count, "type": "$componentType", "byteOffset": 0 }"""
+            return accessorIndex
+        }
+
+        fun putIndices(values: IntArray): Int {
+            val byteOffset = binary.position()
+            for (index in values) binary.putShort(index.toShort())
+            if (binary.position() % 4 != 0) binary.putShort(0)
+            val byteLength = values.size * 2
+            val bufferViewIndex = bufferViews.size
+            bufferViews += """{ "buffer": 0, "byteOffset": $byteOffset, "byteLength": $byteLength }"""
+            val accessorIndex = accessors.size
+            accessors += """{ "bufferView": $bufferViewIndex, "componentType": 5123, "count": ${values.size}, "type": "SCALAR", "byteOffset": 0 }"""
+            return accessorIndex
+        }
+
+        val meshJson = meshes.joinToString { primitives ->
+            val primitiveJson = primitives.joinToString { primitive ->
+                val attributes = mutableListOf("\"POSITION\": ${putFloats(primitive.positions, "VEC3")}")
+                if (primitive.normals.isNotEmpty()) {
+                    attributes += "\"NORMAL\": ${putFloats(primitive.normals, "VEC3")}"
+                }
+                if (primitive.texCoords.isNotEmpty()) {
+                    attributes += "\"TEXCOORD_0\": ${putFloats(primitive.texCoords, "VEC2")}"
+                }
+                val indices = if (primitive.indices.isNotEmpty()) ", \"indices\": ${putIndices(primitive.indices)}" else ""
+                """{ "attributes": { ${attributes.joinToString()} }$indices }"""
+            }
+            """{ "primitives": [ $primitiveJson ] }"""
+        }
+
+        val binLength = binary.position()
+        val binBytes = binary.array().copyOf(binLength)
+        val json = """
+            {
+              "asset": { "version": "2.0" },
+              "meshes": [ $meshJson ],
+              "accessors": [ ${accessors.joinToString()} ],
+              "bufferViews": [ ${bufferViews.joinToString()} ],
+              "buffers": [ { "byteLength": $binLength } ]
+            }
+        """.trimIndent()
+
+        return buildGlb(json, binBytes)
+    }
+
 
     private fun createGlb(
         positions: FloatArray,

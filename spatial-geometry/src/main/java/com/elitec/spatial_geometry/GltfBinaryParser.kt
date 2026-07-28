@@ -72,11 +72,6 @@ public object GltfBinaryParser : MeshLoader {
         if (meshes.list.isEmpty()) {
             throw IllegalArgumentException("Meshes array is empty")
         }
-        if (meshes.list.size > 1) {
-            throw IllegalArgumentException(
-                unsupportedMeshPrimitiveCountMessage("meshes", meshes.list.size)
-            )
-        }
         val firstMesh = meshes.list[0] as? JsonValue.JsonObject
             ?: throw IllegalArgumentException("Invalid mesh entry")
 
@@ -84,11 +79,6 @@ public object GltfBinaryParser : MeshLoader {
             ?: throw IllegalArgumentException("No primitives found in mesh")
         if (primitives.list.isEmpty()) {
             throw IllegalArgumentException("Primitives array is empty")
-        }
-        if (primitives.list.size > 1) {
-            throw IllegalArgumentException(
-                unsupportedMeshPrimitiveCountMessage("primitives", primitives.list.size)
-            )
         }
         val primitive = primitives.list[0] as? JsonValue.JsonObject
             ?: throw IllegalArgumentException("Invalid primitive entry")
@@ -106,92 +96,140 @@ public object GltfBinaryParser : MeshLoader {
         val bufferViews = root.getArrayOrNull("bufferViews")
             ?: throw IllegalArgumentException("No bufferViews found in glTF")
 
-        // 1. Read vertex attributes
-        val vertices = readFloatAccessor(
-            accessorIndex = posAccessorIdx,
-            accessors = accessors,
-            bufferViews = bufferViews,
-            bin = bin,
-            expectedType = "VEC3",
-            attributeName = "POSITION"
-        )
+        val vertices = mutableListOf<Float>()
+        val indices = mutableListOf<Int>()
+        val normals = mutableListOf<Float>()
+        val texCoords = mutableListOf<Float>()
+        var allPrimitivesHaveNormals = true
+        var allPrimitivesHaveTexCoords = true
 
-        val normalAccessorIdx = attributes.getIntOrNull("NORMAL")
-        val normals = normalAccessorIdx?.let {
-            readFloatAccessor(
-                accessorIndex = it,
-                accessors = accessors,
-                bufferViews = bufferViews,
-                bin = bin,
-                expectedType = "VEC3",
-                attributeName = "NORMAL"
-            )
-        } ?: floatArrayOf()
-
-        val texCoordAccessorIdx = attributes.getIntOrNull("TEXCOORD_0")
-        val texCoords = texCoordAccessorIdx?.let {
-            readFloatAccessor(
-                accessorIndex = it,
-                accessors = accessors,
-                bufferViews = bufferViews,
-                bin = bin,
-                expectedType = "VEC2",
-                attributeName = "TEXCOORD_0"
-            )
-        } ?: floatArrayOf()
-
-        // 2. Read Indices
-        val indices: IntArray
-        if (indicesAccessorIdx != null) {
-            val indAccessor = accessors.list.getOrNull(indicesAccessorIdx) as? JsonValue.JsonObject
-                ?: throw IllegalArgumentException("Invalid indices accessor index: $indicesAccessorIdx")
-
-            val indBufferViewIdx = indAccessor.getIntOrNull("bufferView")
-                ?: throw IllegalArgumentException("Indices accessor has no bufferView")
-            val indBufferView = bufferViews.list.getOrNull(indBufferViewIdx) as? JsonValue.JsonObject
-                ?: throw IllegalArgumentException("Invalid bufferView index in indices accessor: $indBufferViewIdx")
-
-            val indCount = indAccessor.getIntOrNull("count") ?: 0
-            val indComponentType = indAccessor.getIntOrNull("componentType")
-                ?: throw IllegalArgumentException("Indices accessor has no componentType")
-            val indByteOffset = indAccessor.getIntOrNull("byteOffset") ?: 0
-
-            val indBvByteOffset = indBufferView.getIntOrNull("byteOffset") ?: 0
-            val indStart = indBvByteOffset + indByteOffset
-
-            indices = IntArray(indCount)
-            when (indComponentType) {
-                5121 -> { // UNSIGNED_BYTE
-                    for (i in 0 until indCount) {
-                        bin.position(indStart + i * 1)
-                        indices[i] = bin.get().toInt() and 0xFF
-                    }
-                }
-                5123 -> { // UNSIGNED_SHORT
-                    for (i in 0 until indCount) {
-                        bin.position(indStart + i * 2)
-                        indices[i] = bin.short.toInt() and 0xFFFF
-                    }
-                }
-                5125 -> { // UNSIGNED_INT
-                    for (i in 0 until indCount) {
-                        bin.position(indStart + i * 4)
-                        indices[i] = bin.int
-                    }
-                }
-                else -> throw IllegalArgumentException("Unsupported indices componentType: $indComponentType")
+        for ((meshIndex, meshValue) in meshes.list.withIndex()) {
+            val mesh = meshValue as? JsonValue.JsonObject
+                ?: throw IllegalArgumentException("Invalid mesh entry at index $meshIndex")
+            val primitives = mesh.getArrayOrNull("primitives")
+                ?: throw IllegalArgumentException("No primitives found in mesh at index $meshIndex")
+            if (primitives.list.isEmpty()) {
+                throw IllegalArgumentException("Primitives array is empty in mesh at index $meshIndex")
             }
-        } else {
-            indices = intArrayOf()
+
+            for ((primitiveIndex, primitiveValue) in primitives.list.withIndex()) {
+                val primitive = primitiveValue as? JsonValue.JsonObject
+                    ?: throw IllegalArgumentException("Invalid primitive entry at mesh $meshIndex primitive $primitiveIndex")
+                val attributes = primitive.getObjectOrNull("attributes")
+                    ?: throw IllegalArgumentException("No attributes found in mesh $meshIndex primitive $primitiveIndex")
+
+                val posAccessorIdx = attributes.getIntOrNull("POSITION")
+                    ?: throw IllegalArgumentException("POSITION attribute not found in mesh $meshIndex primitive $primitiveIndex attributes")
+                val primitiveVertices = readFloatAccessor(
+                    accessorIndex = posAccessorIdx,
+                    accessors = accessors,
+                    bufferViews = bufferViews,
+                    bin = bin,
+                    expectedType = "VEC3",
+                    attributeName = "POSITION"
+                )
+                val vertexOffset = vertices.size / MeshData.CoordinatesPerVertex
+                vertices.addAll(primitiveVertices.asIterable())
+
+                val normalAccessorIdx = attributes.getIntOrNull("NORMAL")
+
+                if (normalAccessorIdx != null) {
+                    val primitiveNormals = readFloatAccessor(
+                        accessorIndex = normalAccessorIdx,
+                        accessors = accessors,
+                        bufferViews = bufferViews,
+                        bin = bin,
+                        expectedType = "VEC3",
+                        attributeName = "NORMAL"
+                    )
+                    if (primitiveNormals.size != primitiveVertices.size) {
+                        throw IllegalArgumentException("NORMAL count must match POSITION count in mesh $meshIndex primitive $primitiveIndex")
+                    }
+                    normals.addAll(primitiveNormals.asIterable())
+                } else {
+                    allPrimitivesHaveNormals = false
+                }
+
+                val texCoordAccessorIdx = attributes.getIntOrNull("TEXCOORD_0")
+                if (texCoordAccessorIdx != null) {
+                    val primitiveTexCoords = readFloatAccessor(
+                        accessorIndex = texCoordAccessorIdx,
+                        accessors = accessors,
+                        bufferViews = bufferViews,
+                        bin = bin,
+                        expectedType = "VEC2",
+                        attributeName = "TEXCOORD_0"
+                    )
+                    if (primitiveTexCoords.size / MeshData.CoordinatesPerTexCoord != primitiveVertices.size / MeshData.CoordinatesPerVertex) {
+                        throw IllegalArgumentException("TEXCOORD_0 count must match POSITION count in mesh $meshIndex primitive $primitiveIndex")
+                    }
+                    texCoords.addAll(primitiveTexCoords.asIterable())
+                } else {
+                    allPrimitivesHaveTexCoords = false
+                }
+
+                val indicesAccessorIdx = primitive.getIntOrNull("indices")
+                if (indicesAccessorIdx != null) {
+                    val primitiveIndices = readIndexAccessor(indicesAccessorIdx, accessors, bufferViews, bin)
+                    indices.addAll(primitiveIndices.map { it + vertexOffset })
+                }
+            }
         }
 
         return MeshData(
-            vertices = vertices,
-            indices = indices,
+            vertices = vertices.toFloatArray(),
+            indices = indices.toIntArray(),
             drawMode = MeshDrawMode.Triangles,
-            normals = normals,
-            texCoords = texCoords
+            normals = if (allPrimitivesHaveNormals) normals.toFloatArray() else floatArrayOf(),
+            texCoords = if (allPrimitivesHaveTexCoords) texCoords.toFloatArray() else floatArrayOf()
         )
+    }
+
+    private fun readIndexAccessor(
+        accessorIndex: Int,
+        accessors: JsonValue.JsonArray,
+        bufferViews: JsonValue.JsonArray,
+        bin: ByteBuffer,
+    ): IntArray {
+        val indAccessor = accessors.list.getOrNull(accessorIndex) as? JsonValue.JsonObject
+            ?: throw IllegalArgumentException("Invalid indices accessor index: $accessorIndex")
+
+        val indBufferViewIdx = indAccessor.getIntOrNull("bufferView")
+            ?: throw IllegalArgumentException("Indices accessor has no bufferView")
+        val indBufferView = bufferViews.list.getOrNull(indBufferViewIdx) as? JsonValue.JsonObject
+            ?: throw IllegalArgumentException("Invalid bufferView index in indices accessor: $indBufferViewIdx")
+
+        val indCount = indAccessor.getIntOrNull("count") ?: 0
+        val indComponentType = indAccessor.getIntOrNull("componentType")
+            ?: throw IllegalArgumentException("Indices accessor has no componentType")
+        val indByteOffset = indAccessor.getIntOrNull("byteOffset") ?: 0
+
+        val indBvByteOffset = indBufferView.getIntOrNull("byteOffset") ?: 0
+        val indStart = indBvByteOffset + indByteOffset
+
+        val indices = IntArray(indCount)
+        when (indComponentType) {
+            5121 -> {
+                for (i in 0 until indCount) {
+                    bin.position(indStart + i)
+                    indices[i] = bin.get().toInt() and 0xFF
+                }
+            }
+            5123 -> {
+                for (i in 0 until indCount) {
+                    bin.position(indStart + i * 2)
+                    indices[i] = bin.short.toInt() and 0xFFFF
+                }
+            }
+            5125 -> {
+                for (i in 0 until indCount) {
+                    bin.position(indStart + i * 4)
+                    indices[i] = bin.int
+                }
+            }
+            else -> throw IllegalArgumentException("Unsupported indices componentType: $indComponentType")
+        }
+        return indices
     }
 
     internal fun readFloatAccessor(
@@ -244,9 +282,6 @@ public object GltfBinaryParser : MeshLoader {
         }
         return values
     }
-
-    private fun unsupportedMeshPrimitiveCountMessage(kind: String, count: Int): String =
-        "GltfBinaryParser currently supports exactly one mesh with one primitive; found $count $kind"
 }
 
 internal sealed class JsonValue {
