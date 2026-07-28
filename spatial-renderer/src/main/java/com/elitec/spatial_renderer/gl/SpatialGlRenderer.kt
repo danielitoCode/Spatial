@@ -11,6 +11,7 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.scene.RenderableNode
+import com.elitec.spatial_geometry.GlobalMeshRegistry
 import com.elitec.spatial_geometry.MeshData
 import com.elitec.spatial_geometry.MeshDrawMode
 import com.elitec.spatial_renderer.BuildConfig
@@ -188,14 +189,19 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
                 return@forEach
             }
 
+            val registryVersion = GlobalMeshRegistry.getVersioned(node.meshId)?.version
             var mesh = meshBuffers[node.meshId]
-            if (mesh == null) {
+            if (mesh == null || mesh.registryVersion != registryVersion) {
                 try {
-                    val newBuffers = meshData.toGlMeshBuffers()
-                    meshBuffers[node.meshId] = newBuffers
+                    val newBuffers = meshData.toGlMeshBuffers(registryVersion)
+                    val previousBuffers = meshBuffers.put(node.meshId, newBuffers)
+                    if (previousBuffers != null && previousBuffers !== newBuffers) {
+                        previousBuffers.release()
+                    }
                     mesh = newBuffers
                     if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "JIT uploaded GL buffers for mesh id: ${node.meshId}")
+                        val uploadReason = if (previousBuffers == null) "JIT uploaded" else "Re-uploaded changed"
+                        Log.d(TAG, "$uploadReason GL buffers for mesh id: ${node.meshId}, registryVersion=$registryVersion")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to upload GL buffers for dynamic mesh id: ${node.meshId}", e)
@@ -324,7 +330,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
     }
 
-    private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
+    private fun MeshData.toGlMeshBuffers(registryVersion: Long? = null): GlMeshBuffers {
         val attributePlan = toMeshBufferAttributeAvailability()
         val vertexBufferId = uploadFloatArrayBuffer(vertices)
         val normalBufferId = if (attributePlan.hasNormals) uploadFloatArrayBuffer(normals) else 0
@@ -361,6 +367,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             vertexCount = vertexCount,
             indexCount = indexCount,
             drawMode = drawMode,
+            registryVersion = registryVersion,
         )
     }
 
@@ -415,6 +422,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         val vertexCount: Int,
         val indexCount: Int,
         val drawMode: MeshDrawMode,
+        val registryVersion: Long?,
     ) {
         fun release() {
             val bufferIds = intArrayOf(
