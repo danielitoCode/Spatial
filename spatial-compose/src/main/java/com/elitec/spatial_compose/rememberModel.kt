@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalResources
 import com.elitec.spatial_compose.ModelResource.Companion.unwrapResId
+import com.elitec.spatial_geometry.GlobalMeshRegistry
 import com.elitec.spatial_geometry.GltfBinaryParser
 import com.elitec.spatial_geometry.MeshData
 import kotlinx.coroutines.Dispatchers
@@ -30,16 +31,24 @@ public fun rememberModel(model: ModelResource): MeshData {
     val resources = LocalResources.current
     val cachedModels = LocalModelCache.current
 
-    // 1. Check cache first
-    cachedModels[model.id]?.let { return it }
+    // 1. Check cache first. Re-publish cached meshes so renderers created after loading can JIT
+    // upload the real mesh from the global registry on their first frame.
+    cachedModels[model.id]?.let { cachedMesh ->
+        GlobalMeshRegistry.register(model.id, cachedMesh)
+        return cachedMesh
+    }
 
-    // 2. If not in cache, setup loading state
+    // 2. If not in cache, setup loading state and publish a visible placeholder under the final
+    // mesh id before the async load completes. SpatialGlRenderer can then JIT upload this fallback
+    // immediately instead of skipping the node as unknown.
     val state = remember(model.id) { mutableStateOf<ModelLoadState>(ModelLoadState.Loading) }
 
     LaunchedEffect(model.id) {
-        // Check again in coroutine in case another composition beat us to it
-        if (cachedModels.containsKey(model.id)) {
-            state.value = ModelLoadState.Loaded(cachedModels.getValue(model.id))
+        GlobalMeshRegistry.register(model.id, MeshData.FallbackTriangle)
+
+        cachedModels[model.id]?.let { cachedMesh ->
+            GlobalMeshRegistry.register(model.id, cachedMesh)
+            state.value = ModelLoadState.Loaded(cachedMesh)
             return@LaunchedEffect
         }
 
@@ -57,7 +66,7 @@ public fun rememberModel(model: ModelResource): MeshData {
 
         val loadedMesh = loadState.mesh
 
-        com.elitec.spatial_geometry.GlobalMeshRegistry.register(model.id, loadedMesh)
+        GlobalMeshRegistry.register(model.id, loadedMesh)
         cachedModels[model.id] = loadedMesh
         state.value = loadState
     }
