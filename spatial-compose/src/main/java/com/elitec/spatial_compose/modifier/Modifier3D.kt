@@ -4,6 +4,9 @@ import androidx.compose.runtime.Immutable
 import com.elitec.spatial_compose.core.Rotation3D
 import com.elitec.spatial_compose.core.Vec3Distance
 import com.elitec.spatial_core.scene.MaterialData
+import com.elitec.spatial_material.PbrMaterial
+import com.elitec.spatial_material.SpatialMaterial
+import com.elitec.spatial_material.toSpatialMaterial
 import com.elitec.spatial_units.Angle
 import com.elitec.spatial_units.Distance
 import com.elitec.spatial_units.meters
@@ -14,7 +17,7 @@ class Modifier3D internal constructor(
     internal val rotation: Rotation3D = Rotation3D(),
     internal val scale: Vec3Distance = Vec3Distance(1f.meters, 1f.meters, 1f.meters),
     internal val size: Vec3Distance? = null,
-    internal val material: MaterialData? = null,
+    internal val material: SpatialMaterial? = null,
 ) {
     fun position(x: Float, y: Float, z: Float): Modifier3D = position(x.meters, y.meters, z.meters)
     fun position(x: Distance, y: Distance, z: Distance): Modifier3D = copy(position = Vec3Distance(x, y, z))
@@ -24,15 +27,22 @@ class Modifier3D internal constructor(
     fun scale(x: Distance, y: Distance, z: Distance): Modifier3D = copy(scale = Vec3Distance(x, y, z))
     fun size(all: Distance): Modifier3D = copy(size = Vec3Distance(all, all, all))
     fun size(width: Distance, height: Distance, depth: Distance): Modifier3D = copy(size = Vec3Distance(width, height, depth))
-    fun material(material: MaterialData): Modifier3D = copy(material = material)
-    fun color(r: Float, g: Float, b: Float, a: Float = 1f): Modifier3D = material(MaterialData(r, g, b, a))
-
+    fun material(material: SpatialMaterial): Modifier3D = copy(material = material)
+    fun material(material: MaterialData): Modifier3D = material(material.toSpatialMaterial())
+    fun color(r: Float, g: Float, b: Float, a: Float = 1f): Modifier3D = material(
+        PbrMaterial(
+            r,
+            g,
+            b,
+            a
+        )
+    )
     private fun copy(
         position: Vec3Distance = this.position,
         rotation: Rotation3D = this.rotation,
         scale: Vec3Distance = this.scale,
         size: Vec3Distance? = this.size,
-        material: MaterialData? = this.material,
+        material: SpatialMaterial? = this.material,
     ): Modifier3D = Modifier3D(
         position = position,
         rotation = rotation,

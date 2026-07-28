@@ -33,6 +33,7 @@ dependencies {
     implementation(project(":spatial-camera"))
     implementation(project(":spatial-units"))
     implementation(project(":spatial-motion"))
+    api(project(":spatial-material"))
 }
 
 mavenPublishing {

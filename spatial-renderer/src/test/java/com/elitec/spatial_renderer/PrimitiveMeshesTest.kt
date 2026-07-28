@@ -8,6 +8,7 @@ import com.elitec.spatial_renderer.gl.UnknownPrimitiveMeshException
 import com.elitec.spatial_renderer.gl.createCube
 import com.elitec.spatial_renderer.gl.createPlane
 import com.elitec.spatial_renderer.gl.createSphere
+import com.elitec.spatial_renderer.gl.toMeshBufferAttributeAvailability
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -123,4 +124,35 @@ class PrimitiveMeshesTest {
         assertEquals(replacementCube, registry.resolve(PrimitiveMeshIds.Cube))
         assertNotEquals(originalCube, registry.resolve(PrimitiveMeshIds.Cube))
     }
+
+    @Test
+    fun meshDataAttributeAvailabilityPreservesNormalsAndTexCoordsForGlUpload() {
+        val normals = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f, 0f, 0f, 1f)
+        val texCoords = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f)
+        val mesh = MeshData(
+            vertices = floatArrayOf(0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f),
+            normals = normals,
+            texCoords = texCoords,
+        )
+
+        val attributes = mesh.toMeshBufferAttributeAvailability()
+
+        assertTrue(attributes.hasNormals)
+        assertTrue(attributes.hasTexCoords)
+        assertEquals(normals.size, attributes.normalFloatCount)
+        assertEquals(texCoords.size, attributes.texCoordFloatCount)
+    }
+
+    @Test
+    fun meshDataAttributeAvailabilityKeepsLegacyMeshesAttributeOptional() {
+        val mesh = MeshData(vertices = floatArrayOf(0f, 0f, 0f))
+
+        val attributes = mesh.toMeshBufferAttributeAvailability()
+
+        assertFalse(attributes.hasNormals)
+        assertFalse(attributes.hasTexCoords)
+        assertEquals(0, attributes.normalFloatCount)
+        assertEquals(0, attributes.texCoordFloatCount)
+    }
+
 }

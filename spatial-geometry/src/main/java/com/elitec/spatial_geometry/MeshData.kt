@@ -1,5 +1,7 @@
 package com.elitec.spatial_geometry
 
+import com.elitec.spatial_core.scene.MaterialData
+
 /** Draw mode understood by the renderer without exposing Android GL classes to mesh tests. */
 enum class MeshDrawMode {
     Triangles,
@@ -19,6 +21,7 @@ data class MeshData(
     val drawMode: MeshDrawMode = MeshDrawMode.Triangles,
     val normals: FloatArray = floatArrayOf(),
     val texCoords: FloatArray = floatArrayOf(),
+    val material: MaterialData = MaterialData(),
 ) {
     init {
         require(vertices.size % CoordinatesPerVertex == 0) {
@@ -46,7 +49,8 @@ data class MeshData(
                 indices.contentEquals(other.indices) &&
                 drawMode == other.drawMode &&
                 normals.contentEquals(other.normals) &&
-                texCoords.contentEquals(other.texCoords)
+                texCoords.contentEquals(other.texCoords) &&
+                material == other.material
     }
 
     override fun hashCode(): Int {
@@ -55,6 +59,7 @@ data class MeshData(
         result = 31 * result + drawMode.hashCode()
         result = 31 * result + normals.contentHashCode()
         result = 31 * result + texCoords.contentHashCode()
+        result = 31 * result + material.hashCode()
         return result
     }
 

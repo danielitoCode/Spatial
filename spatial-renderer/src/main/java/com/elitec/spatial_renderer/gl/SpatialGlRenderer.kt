@@ -172,7 +172,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         // Proyección cacheada: solo se recalcula en onSurfaceChanged (Phase 2.1).
         GLES30.glUniformMatrix4fv(uniformLocations.projectionMatrix, 1, false, projectionMatrix, 0)
 
-        GLES30.glEnableVertexAttribArray(0)
+        GLES30.glEnableVertexAttribArray(PositionAttributeLocation)
 
         var drawCalls = 0
         var skippedUnknownMeshIds = 0
@@ -212,13 +212,43 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mesh.vertexBufferId)
             GLES30.glVertexAttribPointer(
-                0,
+                PositionAttributeLocation,
                 MeshData.CoordinatesPerVertex,
                 GLES30.GL_FLOAT,
                 false,
                 MeshData.CoordinatesPerVertex * Float.SIZE_BYTES,
                 0,
             )
+
+            if (mesh.normalBufferId != 0) {
+                GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mesh.normalBufferId)
+                GLES30.glEnableVertexAttribArray(NormalAttributeLocation)
+                GLES30.glVertexAttribPointer(
+                    NormalAttributeLocation,
+                    MeshData.CoordinatesPerNormal,
+                    GLES30.GL_FLOAT,
+                    false,
+                    MeshData.CoordinatesPerNormal * Float.SIZE_BYTES,
+                    0,
+                )
+            } else {
+                GLES30.glDisableVertexAttribArray(NormalAttributeLocation)
+            }
+
+            if (mesh.texCoordBufferId != 0) {
+                GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mesh.texCoordBufferId)
+                GLES30.glEnableVertexAttribArray(TexCoordAttributeLocation)
+                GLES30.glVertexAttribPointer(
+                    TexCoordAttributeLocation,
+                    MeshData.CoordinatesPerTexCoord,
+                    GLES30.GL_FLOAT,
+                    false,
+                    MeshData.CoordinatesPerTexCoord * Float.SIZE_BYTES,
+                    0,
+                )
+            } else {
+                GLES30.glDisableVertexAttribArray(TexCoordAttributeLocation)
+            }
 
             GLES30.glUniformMatrix4fv(uniformLocations.modelMatrix, 1, false, node.modelMatrix, 0)
             GLES30.glUniform4f(
@@ -246,7 +276,9 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
 
-        GLES30.glDisableVertexAttribArray(0)
+        GLES30.glDisableVertexAttribArray(PositionAttributeLocation)
+        GLES30.glDisableVertexAttribArray(NormalAttributeLocation)
+        GLES30.glDisableVertexAttribArray(TexCoordAttributeLocation)
     }
 
     private fun createProgram(vertexSource: String, fragmentSource: String): Int {
@@ -293,23 +325,10 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     private fun MeshData.toGlMeshBuffers(): GlMeshBuffers {
-        val vertexBuffer = ByteBuffer.allocateDirect(vertices.size * Float.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-            .asFloatBuffer()
-            .apply {
-                put(vertices)
-                position(0)
-            }
-        val vertexBufferIds = IntArray(1)
-        GLES30.glGenBuffers(1, vertexBufferIds, 0)
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vertexBufferIds[0])
-        GLES30.glBufferData(
-            GLES30.GL_ARRAY_BUFFER,
-            vertices.size * Float.SIZE_BYTES,
-            vertexBuffer,
-            GLES30.GL_STATIC_DRAW,
-        )
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
+        val attributePlan = toMeshBufferAttributeAvailability()
+        val vertexBufferId = uploadFloatArrayBuffer(vertices)
+        val normalBufferId = if (attributePlan.hasNormals) uploadFloatArrayBuffer(normals) else 0
+        val texCoordBufferId = if (attributePlan.hasTexCoords) uploadFloatArrayBuffer(texCoords) else 0
 
         val indexBufferId = if (hasIndices) {
             val indexBuffer = ByteBuffer.allocateDirect(indices.size * Int.SIZE_BYTES)
@@ -335,12 +354,35 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         }
 
         return GlMeshBuffers(
-            vertexBufferId = vertexBufferIds[0],
+            vertexBufferId = vertexBufferId,
+            normalBufferId = normalBufferId,
+            texCoordBufferId = texCoordBufferId,
             indexBufferId = indexBufferId,
             vertexCount = vertexCount,
             indexCount = indexCount,
             drawMode = drawMode,
         )
+    }
+
+    private fun uploadFloatArrayBuffer(values: FloatArray): Int {
+        val buffer = ByteBuffer.allocateDirect(values.size * Float.SIZE_BYTES)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+            .apply {
+                put(values)
+                position(0)
+            }
+        val bufferIds = IntArray(1)
+        GLES30.glGenBuffers(1, bufferIds, 0)
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, bufferIds[0])
+        GLES30.glBufferData(
+            GLES30.GL_ARRAY_BUFFER,
+            values.size * Float.SIZE_BYTES,
+            buffer,
+            GLES30.GL_STATIC_DRAW,
+        )
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
+        return bufferIds[0]
     }
 
     private fun MeshDrawMode.toGlDrawMode(): Int = when (this) {
@@ -367,13 +409,20 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     private data class GlMeshBuffers(
         val vertexBufferId: Int,
+        val normalBufferId: Int,
+        val texCoordBufferId: Int,
         val indexBufferId: Int,
         val vertexCount: Int,
         val indexCount: Int,
         val drawMode: MeshDrawMode,
     ) {
         fun release() {
-            val bufferIds = intArrayOf(vertexBufferId, indexBufferId).filter { it != 0 }.toIntArray()
+            val bufferIds = intArrayOf(
+                vertexBufferId,
+                normalBufferId,
+                texCoordBufferId,
+                indexBufferId,
+            ).filter { it != 0 }.toIntArray()
             if (bufferIds.isNotEmpty()) {
                 GLES30.glDeleteBuffers(bufferIds.size, bufferIds, 0)
             }
@@ -406,14 +455,23 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     private companion object {
         private const val TAG = "SpatialGlRenderer"
         val LegacyNavyClearColor = Color4(0.02f, 0.05f, 0.18f, 1f)
+        private const val PositionAttributeLocation = 0
+        private const val NormalAttributeLocation = 1
+        private const val TexCoordAttributeLocation = 2
         private const val VERTEX_SHADER = "#version 300 es\n" +
-            "layout (location = 0) in vec4 aPosition;\n" +
-            "uniform mat4 uModelMatrix;\n" +
-            "uniform mat4 uViewMatrix;\n" +
-            "uniform mat4 uProjectionMatrix;\n" +
-            "void main() {\n" +
-            "  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aPosition;\n" +
-            "}"
+                "layout(location = 0) in vec4 aPosition;\n" +
+                "layout(location = 1) in vec3 aNormal;\n" +
+                "layout(location = 2) in vec2 aTexCoord;\n" +
+                "uniform mat4 uModelMatrix;\n" +
+                "uniform mat4 uViewMatrix;\n" +
+                "uniform mat4 uProjectionMatrix;\n" +
+                "out vec3 vNormal;\n" +
+                "out vec2 vTexCoord;\n" +
+                "void main() {\n" +
+                "  vNormal = aNormal;\n" +
+                "  vTexCoord = aTexCoord;\n" +
+                "  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aPosition;\n" +
+                "}"
 
         private const val FRAGMENT_SHADER = "#version 300 es\n" +
             "precision mediump float;\n" +
@@ -425,6 +483,22 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     }
 }
+
+internal data class MeshBufferAttributeAvailability(
+    val hasNormals: Boolean,
+    val hasTexCoords: Boolean,
+    val normalFloatCount: Int,
+    val texCoordFloatCount: Int,
+)
+
+internal fun MeshData.toMeshBufferAttributeAvailability(): MeshBufferAttributeAvailability =
+    MeshBufferAttributeAvailability(
+        hasNormals = normals.isNotEmpty(),
+        hasTexCoords = texCoords.isNotEmpty(),
+        normalFloatCount = normals.size,
+        texCoordFloatCount = texCoords.size,
+    )
+
 
 internal fun orbitDistanceForVisualZoom(
     zoom: Float,

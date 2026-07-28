@@ -1,5 +1,8 @@
 package com.elitec.spatial_geometry
 
+import com.elitec.spatial_core.scene.ColorFactor
+import com.elitec.spatial_core.scene.MaterialData
+import com.elitec.spatial_core.scene.TextureReference
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -176,12 +179,43 @@ public object GltfBinaryParser : MeshLoader {
             }
         }
 
+        val material = parseMaterial(root, primitive.getIntOrNull("material"))
+
         return MeshData(
             vertices = vertices.toFloatArray(),
             indices = indices.toIntArray(),
             drawMode = MeshDrawMode.Triangles,
             normals = if (allPrimitivesHaveNormals) normals.toFloatArray() else floatArrayOf(),
-            texCoords = if (allPrimitivesHaveTexCoords) texCoords.toFloatArray() else floatArrayOf()
+            texCoords = if (allPrimitivesHaveTexCoords) texCoords.toFloatArray() else floatArrayOf(),
+            material = material
+        )
+    }
+
+    private fun parseMaterial(root: JsonValue.JsonObject, materialIndex: Int?): MaterialData {
+        val material = materialIndex?.let { index ->
+            val materials = root.getArrayOrNull("materials")
+                ?: throw IllegalArgumentException("Primitive references material $index but glTF has no materials array")
+            materials.list.getOrNull(index) as? JsonValue.JsonObject
+                ?: throw IllegalArgumentException("Invalid material index in primitive: $index")
+        } ?: return MaterialData(r = 1f, g = 1f, b = 1f, a = 1f)
+
+        val pbr = material.getObjectOrNull("pbrMetallicRoughness")
+        val baseColor = pbr?.getFloatArrayOrNull("baseColorFactor", expectedSize = 4)
+            ?: floatArrayOf(1f, 1f, 1f, 1f)
+
+        return MaterialData(
+            r = baseColor[0],
+            g = baseColor[1],
+            b = baseColor[2],
+            a = baseColor[3],
+            baseColor = ColorFactor(baseColor[0], baseColor[1], baseColor[2], baseColor[3]),
+            metallicFactor = pbr?.getFloatOrNull("metallicFactor") ?: 1f,
+            roughnessFactor = pbr?.getFloatOrNull("roughnessFactor") ?: 1f,
+            baseColorTexture = pbr?.getTextureReferenceOrNull("baseColorTexture"),
+            metallicRoughnessTexture = pbr?.getTextureReferenceOrNull("metallicRoughnessTexture"),
+            normalTexture = material.getTextureReferenceOrNull("normalTexture"),
+            occlusionTexture = material.getTextureReferenceOrNull("occlusionTexture"),
+            emissiveTexture = material.getTextureReferenceOrNull("emissiveTexture"),
         )
     }
 
@@ -289,7 +323,25 @@ internal sealed class JsonValue {
         fun getObjectOrNull(key: String): JsonObject? = map[key] as? JsonObject
         fun getArrayOrNull(key: String): JsonArray? = map[key] as? JsonArray
         fun getIntOrNull(key: String): Int? = (map[key] as? JsonNumber)?.value?.toInt()
+        fun getFloatOrNull(key: String): Float? = (map[key] as? JsonNumber)?.value?.toFloat()
         fun getStringOrNull(key: String): String? = (map[key] as? JsonString)?.value
+        fun getFloatArrayOrNull(key: String, expectedSize: Int): FloatArray? {
+            val array = map[key] as? JsonArray ?: return null
+            if (array.list.size != expectedSize) {
+                throw IllegalArgumentException("$key must have $expectedSize numeric values")
+            }
+            return FloatArray(expectedSize) { index ->
+                (array.list[index] as? JsonNumber)?.value?.toFloat()
+                    ?: throw IllegalArgumentException("$key must contain only numeric values")
+            }
+        }
+
+        fun getTextureReferenceOrNull(key: String): TextureReference? {
+            val textureInfo = getObjectOrNull(key) ?: return null
+            val index = textureInfo.getIntOrNull("index")
+                ?: throw IllegalArgumentException("$key textureInfo has no index")
+            return TextureReference(index = index, texCoord = textureInfo.getIntOrNull("texCoord") ?: 0)
+        }
     }
     data class JsonArray(val list: List<JsonValue>) : JsonValue()
     data class JsonString(val value: String) : JsonValue()

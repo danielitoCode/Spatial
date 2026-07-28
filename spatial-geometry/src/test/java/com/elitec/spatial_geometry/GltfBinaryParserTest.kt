@@ -1,5 +1,6 @@
 package com.elitec.spatial_geometry
 
+import com.elitec.spatial_core.scene.TextureReference
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -28,6 +29,49 @@ class GltfBinaryParserTest {
         assertArrayEquals(indices, meshData.indices)
         assertArrayEquals(floatArrayOf(), meshData.normals, 1e-5f)
         assertArrayEquals(floatArrayOf(), meshData.texCoords, 1e-5f)
+    }
+
+    @Test
+    fun testParsePbrMetallicRoughnessMaterial() {
+        // 1. Prepare GLB data
+        val glbData = createGlb(
+            positions = floatArrayOf(0f, 1f, 0f, -1f, -1f, 0f, 1f, -1f, 0f),
+            materialJson = """
+            {
+              "pbrMetallicRoughness": {
+                "baseColorFactor": [0.2, 0.3, 0.4, 0.5],
+                "metallicFactor": 0.6,
+                "roughnessFactor": 0.7,
+                "baseColorTexture": { "index": 2, "texCoord": 1 },
+                "metallicRoughnessTexture": { "index": 3 }
+              },
+              "normalTexture": { "index": 4 },
+              "occlusionTexture": { "index": 5 },
+              "emissiveTexture": { "index": 6 }
+            }
+        """.trimIndent()
+        )
+
+        // 2. Parse and Assert
+        val meshData = GltfBinaryParser.parse(glbData.inputStream())
+        val epsilon = 1e-5f
+
+        with(meshData.material) {
+            // Assert Color & PBR factors
+            assertEquals(0.2f, baseColor.r, epsilon)
+            assertEquals(0.3f, baseColor.g, epsilon)
+            assertEquals(0.4f, baseColor.b, epsilon)
+            assertEquals(0.5f, baseColor.a, epsilon)
+            assertEquals(0.6f, metallicFactor, epsilon)
+            assertEquals(0.7f, roughnessFactor, epsilon)
+
+            // Assert Texture References using object equality
+            assertEquals(TextureReference(2, 1), baseColorTexture)
+            assertEquals(TextureReference(3), metallicRoughnessTexture)
+            assertEquals(TextureReference(4), normalTexture)
+            assertEquals(TextureReference(5), occlusionTexture)
+            assertEquals(TextureReference(6), emissiveTexture)
+        }
     }
 
     @Test
@@ -278,6 +322,7 @@ class GltfBinaryParserTest {
         normals: FloatArray = floatArrayOf(),
         texCoords: FloatArray = floatArrayOf(),
         indices: IntArray = intArrayOf(),
+        materialJson: String? = null,
     ): ByteArray {
         val binary = ByteBuffer.allocate(4096)
             .order(ByteOrder.LITTLE_ENDIAN)
@@ -328,15 +373,19 @@ class GltfBinaryParserTest {
 
         val binLength = binary.position()
         val binBytes = binary.array().copyOf(binLength)
+        val materialPart = if (materialJson != null) """, "materials": [ $materialJson ]""" else ""
+        val primitiveMaterial = if (materialJson != null) """, "material": 0""" else ""
+
         val json = """
-            {
-              "asset": { "version": "2.0" },
-              "meshes": [ { "primitives": [ { "attributes": { ${attributes.joinToString()} }$indicesAccessor } ] } ],
-              "accessors": [ ${accessors.joinToString()} ],
-              "bufferViews": [ ${bufferViews.joinToString()} ],
-              "buffers": [ { "byteLength": $binLength } ]
-            }
-        """.trimIndent()
+    {
+      "asset": { "version": "2.0" },
+      "meshes": [ { "primitives": [ { "attributes": { ${attributes.joinToString()} }$indicesAccessor$primitiveMaterial } ] } ],
+      "accessors": [ ${accessors.joinToString()} ],
+      "bufferViews": [ ${bufferViews.joinToString()} ],
+      "buffers": [ { "byteLength": $binLength } ]
+      $materialPart
+    }
+""".trimIndent()
 
         return buildGlb(json, binBytes)
     }

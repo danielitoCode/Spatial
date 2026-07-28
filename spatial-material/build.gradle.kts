@@ -3,6 +3,11 @@ plugins {
     id("spatial.publish")
 }
 
+dependencies {
+    api(project(":spatial-core"))
+}
+
+
 mavenPublishing {
     coordinates(
         groupId = "io.github.danielitocode",

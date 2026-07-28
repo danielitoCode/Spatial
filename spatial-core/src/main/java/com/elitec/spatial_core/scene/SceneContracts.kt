@@ -10,6 +10,28 @@ data class MaterialData(
     val g: Float = 0.8f,
     val b: Float = 0.8f,
     val a: Float = 1.0f,
+    val baseColor: ColorFactor = ColorFactor(r, g, b, a),
+    val metallicFactor: Float = 1.0f,
+    val roughnessFactor: Float = 1.0f,
+    val baseColorTexture: TextureReference? = null,
+    val metallicRoughnessTexture: TextureReference? = null,
+    val normalTexture: TextureReference? = null,
+    val occlusionTexture: TextureReference? = null,
+    val emissiveTexture: TextureReference? = null,
+)
+
+/** RGBA factor used by glTF PBR material contracts. */
+data class ColorFactor(
+    val r: Float = 0.8f,
+    val g: Float = 0.8f,
+    val b: Float = 0.8f,
+    val a: Float = 1.0f,
+)
+
+/** Optional texture slot reference mirroring glTF textureInfo indices without owning image bytes. */
+data class TextureReference(
+    val index: Int,
+    val texCoord: Int = 0,
 )
 
 /**

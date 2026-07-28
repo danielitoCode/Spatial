@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    api(project(":spatial-core"))
     testImplementation(libs.junit)
 }
 
