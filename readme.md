@@ -46,6 +46,14 @@ Instead, it focuses on:
 
 Core #1 exposes its public Compose API from the root `com.elitec.spatial_compose` package.
 
+## Public consumer entry points
+
+For Pilar 1, application and playground consumers should depend on `:spatial-compose` as the public facade for scene authoring. Load GLB assets with `Element.Model(model = ModelResource.fromRawResource(R.raw.my_model), ...)`; `spatial-compose` delegates parsing internally, so consumers should not depend directly on `:spatial-geometry` unless they are building a dedicated diagnostic parser screen.
+
+Material changes for rendered primitives or GLB models should be expressed through `Modifier3D.color(...)` for simple flat colors or `Modifier3D.material(...)` when a caller needs to pass the public material data object. The `:spatial-material` module is reserved for the material implementation and future texture/shader metadata APIs; apps should add `implementation(project(":spatial-material"))` only after a deliberate public material API is exposed from that module.
+
+---
+
 ## Current status
 
 Core #1 remains **In Development**. This status must only change when the Core #1 contracts and tests are closed and passing against the real public API. Until then, README badges, phase notes, and release messaging must not describe Core #1 as complete or stable.
