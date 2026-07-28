@@ -20,6 +20,15 @@ class SpatialPublishPlugin : Plugin<Project> {
 
             extensions.configure<MavenPublishBaseExtension> {
                 publishToMavenCentral()
+
+                // Desactivar Javadoc JAR para evitar errores de Dokka en CI con APIs complejas de Core #2
+                pluginManager.withPlugin("com.android.library") {
+                    configure(
+                        com.vanniktech.maven.publish.AndroidSingleVariantLibrary(
+                            publishJavadocJar = false
+                        )
+                    )
+                }
                 
                 if (isReleaseBuild) {
                     signAllPublications()
