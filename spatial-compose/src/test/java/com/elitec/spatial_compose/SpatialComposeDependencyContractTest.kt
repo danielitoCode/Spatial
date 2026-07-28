@@ -47,6 +47,7 @@ class SpatialComposeDependencyContractTest {
             "spatial-camera",
             "spatial-units",
             "spatial-motion",
+            "spatial-material",
         )
         val forbiddenBackendDependencies = setOf(
             "spatial-renderer",
