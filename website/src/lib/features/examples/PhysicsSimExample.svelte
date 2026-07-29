@@ -9,8 +9,8 @@
 
 <GlassPanel class="p-6 rounded-2xl bg-[#0A0E17] border border-[#1C2638] flex flex-col gap-6">
   <div class="border-b border-[#1C2638] pb-4">
-    <h3 class="text-xl font-bold text-[#e1e2ec]">3D Physics & Collision Simulator</h3>
-    <p class="text-xs text-[#6F7A90]">Rigid body dynamics optimized for low-latency mobile rendering</p>
+    <h3 class="text-xl font-bold text-[#e1e2ec]">Motion Demo (Web)</h3>
+    <p class="text-xs text-[#6F7A90]">Browser illustration only — Spatial has no physics engine; Core #1 excludes physics by design</p>
   </div>
 
   <div class="grid lg:grid-cols-12 gap-6">
@@ -38,10 +38,8 @@
       </div>
 
       <div class="p-3 bg-[#0A0E17] rounded-lg border border-[#1C2638] font-mono text-[11px] text-[#6F7A90] mt-2">
-        <span class="text-[#8B5CF6]">SpatialPhysicsWorld</span> {'{'}<br />
-        &nbsp;&nbsp;gravity = Vector3(0f, -9.8f, 0f)<br />
-        &nbsp;&nbsp;restitution = 0.85f<br />
-        {'}'}
+        <span class="text-[#8B5CF6]">// Not in Spatial API</span><br />
+        <span class="text-[#6F7A90]">// Use Element.Cube + CameraState on Android</span>
       </div>
     </div>
   </div>

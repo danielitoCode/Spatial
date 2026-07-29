@@ -12,11 +12,11 @@
   <div class="border-b border-[#1C2638] pb-6">
     <div class="flex justify-between items-end">
         <div class="space-y-1">
-            <h3 class="text-2xl font-black text-[#e1e2ec]">Particle <GradientText>Constellations</GradientText></h3>
-            <p class="text-xs text-[#6F7A90] font-medium tracking-tight">Massive GPU-accelerated point clouds for immersive app backgrounds</p>
+            <h3 class="text-2xl font-black text-[#e1e2ec]">Particle <GradientText>Field</GradientText></h3>
+            <p class="text-xs text-[#6F7A90] font-medium tracking-tight">WebGL demo — particle systems are not part of the Spatial Android API</p>
         </div>
         <div class="px-3 py-1 bg-[#8B5CF6]/10 rounded-full border border-[#8B5CF6]/30 text-[10px] text-[#8B5CF6] font-mono font-bold tracking-widest">
-            VBO_INSTANCING: ACTIVE
+            WEB_PREVIEW
         </div>
     </div>
   </div>
@@ -28,7 +28,7 @@
       </Canvas>
 
       <div class="absolute top-4 right-4 bg-[#0A0E17]/90 px-3 py-1.5 rounded-xl text-[10px] font-mono text-[#19E6D2] border border-[#1C2638] backdrop-blur-md">
-        ACTIVE_VERTICES: <span class="text-white">{particleCount}</span>
+        POINTS: <span class="text-white">{particleCount}</span>
       </div>
     </div>
 
@@ -52,12 +52,9 @@
       </div>
 
       <div class="p-4 bg-[#101624] rounded-2xl border border-[#1C2638] font-mono text-[11px] space-y-1 shadow-inner relative overflow-hidden">
-        <div class="absolute -right-2 -bottom-2 opacity-5 text-4xl font-black italic">API</div>
-        <div class="text-[#19E6D2]">SpatialParticles</div>(<br />
-        &nbsp;&nbsp;count = <span class="text-[#8B5CF6] font-bold">{particleCount}</span>,<br />
-        &nbsp;&nbsp;speed = <span class="text-[#159FE8] font-bold">{speed.toFixed(1)}f</span>,<br />
-        &nbsp;&nbsp;mesh = <span class="text-white">Point.Circle</span><br />
-        )
+        <div class="absolute -right-2 -bottom-2 opacity-5 text-4xl font-black italic">WEB</div>
+        <div class="text-[#6F7A90]">// Conceptual only</div>
+        <div class="text-[#19E6D2]">// Android: Element primitives</div>
       </div>
     </div>
   </div>
