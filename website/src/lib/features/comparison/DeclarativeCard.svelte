@@ -8,15 +8,15 @@
     <span class="material-symbols-outlined text-[#19E6D2] text-lg">check</span>
   </div>
 
-  <pre class="font-mono text-xs md:text-sm text-[#e1e2ec] overflow-x-auto leading-relaxed"><code>SpatialScene {'{'}
-    OrbitalCamera(distance = 5f)
-    
-    Model(
-        src = "assets/ship.glb",
-        rotation = rotationState,
-        scale = 1.5f
-    )
-    
-    PointLight(color = Color.Cyan)
+  <pre class="font-mono text-xs md:text-sm text-[#e1e2ec] overflow-x-auto leading-relaxed"><code>Scene(
+  renderHostFactory = DefaultSceneRenderHostFactory,
+  cameraState = cameraState,
+  gestures = Gestures.orbitAndZoom(),
+) {'{'}
+  Element.Cube(
+    modifier = Modifier3D.Default
+      .size(2f.meters)
+      .position(0f, 0f, -5f)
+  )
 {'}'}</code></pre>
 </GlassPanel>

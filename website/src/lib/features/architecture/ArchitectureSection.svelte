@@ -2,9 +2,9 @@
   import ArchitectureVisual from './ArchitectureVisual.svelte';
 
   const benefits = [
-    'Zero-overhead integration with existing Jetpack Compose UI hierarchies.',
-    'Multi-threaded asset loading and scene graph management.',
-    'Automated Vulkan fallback support for older Android devices.'
+    'Compose-first API: Scene, Element, Modifier3D, and CameraState.',
+    'Modular pipeline: compose → scene graph → GLES renderer (no Vulkan yet).',
+    'Typed units (meters, degrees) and orbit / pinch gestures on device.'
   ];
 </script>
 
@@ -20,7 +20,7 @@
       <h2 class="text-3xl md:text-5xl font-bold text-[#e1e2ec]">What is Spatial?</h2>
 
       <p class="text-base md:text-lg text-[#bacac6] leading-relaxed">
-        Spatial is a lightweight, high-performance rendering engine built exclusively for the modern Android stack. We've stripped away the complexity of legacy OpenGL wrappers to provide a clean, Kotlin-first API that feels like a natural extension of Jetpack Compose.
+        Spatial is a declarative 3D library for Android inspired by Jetpack Compose. It is not a full game engine: it focuses on scene composition, camera motion, and hiding GLES boilerplate behind a clean Kotlin API.
       </p>
 
       <ul class="space-y-3 pt-2">

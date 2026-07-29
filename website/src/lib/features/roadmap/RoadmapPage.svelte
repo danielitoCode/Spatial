@@ -5,48 +5,48 @@
   const roadmapItems = [
     {
       phase: 'Core #1',
-      title: 'Stability & Pipeline',
-      status: 'Functional',
-      statusColor: 'text-primary border-primary/30 bg-primary/5',
-      badgeIcon: 'verified',
+      title: 'Stability & Compose API',
+      status: 'In progress',
+      statusColor: 'text-amber-400 border-amber-500/30 bg-amber-500/5',
+      badgeIcon: 'construction',
       description:
-        'Foundation 3D rendering pipeline for Android and Jetpack Compose. Includes VSYNC frame scheduling and procedural geometries.',
+        'Declarative GLES pipeline for Android + Compose: primitives, orbit/pinch, camera state, flat materials. Device closure still finishing (pinch + lifecycle checks).',
       features: [
-        'OpenGL ES 3.0 multi-threaded engine',
-        'ChoreographerFrameScheduler (VSync)',
-        'Declarative Compose primitives',
-        'OrbitalCamera with inertia',
-        'Flat-color PBR Material shading'
+        'OpenGL ES 3.0 multi-module engine',
+        'Scene / Element / Modifier3D public API',
+        'Orbit + pinch gestures',
+        'CameraState with auto-rotate yield',
+        'Flat-color materials (no active lighting)'
       ]
     },
     {
       phase: 'Core #2',
-      title: 'Asset & Layout Engine',
+      title: 'Assets, Layout, Motion',
       status: 'Active',
       statusColor: 'text-amber-400 border-amber-500/30 bg-amber-500/5',
       badgeIcon: 'rocket_launch',
       description:
-        'Expanding abstractions to support external models, Compose-like 3D layout containers, and camera motion timelines.',
+        'GLB loading, material hooks, 3D layout containers, and camera sequence timelines. Phase 1 (assets) is partially implemented in code.',
       features: [
-        'glTF 2.0 (.glb) binary loader',
-        '3D Layout Engine (Box3D, Row3D)',
-        'Intrinsic Bounding Box alignment',
-        'CameraSequence keyframe DSL'
+        'Element.Model + rememberModel + GLB parser',
+        'Normals / UVs / multi-mesh (code path)',
+        '3D Layout (Box3D, Row3D) — planned',
+        'CameraSequence keyframe DSL — planned'
       ]
     },
     {
       phase: 'Core #3',
-      title: 'XR & AI Display',
+      title: 'XR & beyond',
       status: 'Planned',
       statusColor: 'text-tertiary border-tertiary/30 bg-tertiary/5',
       badgeIcon: 'view_in_ar',
       description:
-        'Projected application framework for Android XR and AI Display Glasses using Jetpack Compose Glimmer.',
+        'Long-term exploration only — not committed work. Possible Android XR / spatial UI directions after Core #1–2 stabilize.',
       features: [
-        'Stereoscopic spatial rendering',
-        'Head-tracking anchor pipeline',
-        'Low-latency HUD HUD overlays',
-        'Spatial UI gesture integration'
+        'Stereoscopic / XR paths (idea)',
+        'Richer materials and lighting',
+        'Advanced motion timelines',
+        'No physics engine in scope today'
       ]
     }
   ];
@@ -63,7 +63,7 @@
         Spatial Engine <GradientText>Evolution</GradientText>
       </h1>
       <p class="text-lg text-silver/50 leading-relaxed max-w-2xl mx-auto font-medium">
-        Tracking the transition from production stability to advanced asset pipelines and the next generation of XR interfaces.
+        Status mirrors <span class="font-mono text-sm text-silver/70">roadmap/CORE1_STABILITY.md</span> and <span class="font-mono text-sm text-silver/70">CORE2_STABILITY.md</span> in the repo.
       </p>
     </div>
 

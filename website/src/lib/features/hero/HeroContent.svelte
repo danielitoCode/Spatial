@@ -20,16 +20,16 @@
   <div class="max-w-3xl space-y-8">
     <div class="inline-flex items-center gap-3 bg-white/5 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10 shadow-2xl animate-float">
        <span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_#19E6D2]"></span>
-       <span class="text-[10px] font-black text-silver/80 tracking-[0.25em] uppercase">Core #1 Architecture Ready</span>
+       <span class="text-[10px] font-black text-silver/80 tracking-[0.25em] uppercase">0.1.0-alpha01 · Core #1 in progress</span>
     </div>
 
     <h1 class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] text-white">
-      Build <GradientText class="italic">cinematic</GradientText><br/>
+      Build <GradientText class="italic">declarative</GradientText><br/>
       3D for Android.
     </h1>
 
     <p class="text-lg md:text-xl text-silver/60 max-w-xl leading-relaxed font-medium">
-      A technical premium 3D rendering library designed for Kotlin and Jetpack Compose. Performance-first, declarative by nature, and cinematic by design.
+      A Compose-first 3D library for Kotlin: scene graph, orbit camera, gestures, and OpenGL ES 3.0 — without writing a render loop by hand.
     </p>
 
     <div class="flex flex-col sm:flex-row gap-5 justify-center md:justify-start pt-4">
@@ -46,11 +46,11 @@
       <SpatialButton
         variant="secondary"
         size="lg"
-        href="#examples"
-        onclick={(e: MouseEvent) => navigate(e, 'examples')}
+        href="#docs"
+        onclick={(e: MouseEvent) => navigate(e, 'docs')}
       >
-        EXPLORE MODELS
-        <span class="material-symbols-outlined text-lg">view_in_ar</span>
+        READ DOCS
+        <span class="material-symbols-outlined text-lg">menu_book</span>
       </SpatialButton>
     </div>
 
@@ -61,7 +61,7 @@
             <span class="text-[10px] font-black tracking-widest uppercase text-white">OpenGL ES 3.0+</span>
         </div>
         <div class="w-px h-3 bg-white/20"></div>
-        <span class="text-[10px] font-black tracking-widest uppercase text-white">Jetpack Compose 1.7</span>
+        <span class="text-[10px] font-black tracking-widest uppercase text-white">Jetpack Compose</span>
         <div class="w-px h-3 bg-white/20"></div>
         <span class="text-[10px] font-black tracking-widest uppercase text-white">Kotlin 2.2</span>
     </div>

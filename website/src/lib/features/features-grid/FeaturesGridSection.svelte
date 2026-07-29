@@ -3,44 +3,44 @@
 
   const features = [
     {
-      icon: 'deployed_code',
-      title: 'PBR Rendering',
-      description: 'Physically based rendering with advanced material support, including metallic, roughness, and normal mapping.',
+      icon: 'layers',
+      title: 'Declarative Scene',
+      description: 'Compose Scene + Element.Cube / Sphere / Plane / Model with Modifier3D for size, position, and color.',
       badgeColor: 'bg-[#19E6D2]/10 border-[#19E6D2]/20',
       iconColor: 'text-[#19E6D2]'
     },
     {
-      icon: 'brightness_high',
-      title: 'HDR Lighting',
-      description: 'Global illumination with high dynamic range. Simulate realistic light environments with minimal performance hit.',
+      icon: '360',
+      title: 'Orbit Camera',
+      description: 'CameraState with yaw, pitch, zoom, auto-rotate, and natural turntable orbit gestures.',
       badgeColor: 'bg-[#159FE8]/10 border-[#159FE8]/20',
       iconColor: 'text-[#159FE8]'
     },
     {
-      icon: 'motion_mode',
-      title: 'Dynamic Physics',
-      description: 'Built-in collision detection and rigid body physics specifically optimized for mobile processor constraints.',
+      icon: 'touch_app',
+      title: 'Gestures',
+      description: 'Orbit and pinch-zoom wired through Gestures.orbitAndZoom() with sensitivity controls.',
       badgeColor: 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20',
       iconColor: 'text-[#8B5CF6]'
     },
     {
-      icon: 'token',
-      title: 'Asset Pipeline',
-      description: 'Seamless GLTF/GLB importing with automated texture compression and mesh LOD generation.',
+      icon: 'deployed_code',
+      title: 'GLB Pipeline',
+      description: 'Element.Model + rememberModel load .glb assets (normals, UVs, multi-mesh in progress on Core #2).',
       badgeColor: 'bg-[#19E6D2]/10 border-[#19E6D2]/20',
       iconColor: 'text-[#19E6D2]'
     },
     {
-      icon: 'architecture',
-      title: 'Custom Shaders',
-      description: 'Write your own AGSL shaders and apply them as materials to any geometry in the scene graph.',
+      icon: 'straighten',
+      title: 'Typed Units',
+      description: 'spatial-units exposes meters, degrees, and related helpers so scene sizes stay readable.',
       badgeColor: 'bg-[#159FE8]/10 border-[#159FE8]/20',
       iconColor: 'text-[#159FE8]'
     },
     {
       icon: 'speed',
-      title: 'Low Latency',
-      description: 'Minimal input-to-render latency, perfect for interactive AR experiences and highly responsive tools.',
+      title: 'GLES 3.0 Renderer',
+      description: 'OpenGL ES 3.0 host via spatial-renderer and runtime adapter — flat-color materials in Core #1.',
       badgeColor: 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20',
       iconColor: 'text-[#8B5CF6]'
     }

@@ -1,9 +1,9 @@
 <script lang="ts">
   const techItems = [
     { icon: 'terminal', label: 'Kotlin 2.2', color: 'text-primary' },
-    { icon: 'android', label: 'Android GLES', color: 'text-secondary' },
-    { icon: 'layers', label: 'Compose 1.7', color: 'text-tertiary' },
-    { icon: 'view_in_ar', label: 'Vulkan Ready', color: 'text-primary' }
+    { icon: 'android', label: 'OpenGL ES 3.0', color: 'text-secondary' },
+    { icon: 'layers', label: 'Jetpack Compose', color: 'text-tertiary' },
+    { icon: 'view_in_ar', label: 'Multi-module', color: 'text-primary' }
   ];
 </script>
 
@@ -18,7 +18,7 @@
            <span class="material-symbols-outlined {item.color} text-lg group-hover:scale-110 transition-transform">{item.icon}</span>
         </div>
         <div class="flex flex-col">
-            <span class="text-[9px] font-black text-silver/40 uppercase tracking-widest leading-none mb-1">Module</span>
+            <span class="text-[9px] font-black text-silver/40 uppercase tracking-widest leading-none mb-1">Stack</span>
             <span class="text-xs font-bold text-silver/80 group-hover:text-white transition-colors tracking-tight">{item.label}</span>
         </div>
       </div>

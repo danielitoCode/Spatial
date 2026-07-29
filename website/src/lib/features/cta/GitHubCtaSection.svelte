@@ -12,16 +12,16 @@
       </span>
     </div>
 
-    <h2 class="text-3xl md:text-5xl font-bold mb-4 text-[#e1e2ec]">Open Source. High Performance.</h2>
+    <h2 class="text-3xl md:text-5xl font-bold mb-4 text-[#e1e2ec]">Open Source. Alpha.</h2>
 
     <p class="text-base md:text-lg text-[#bacac6] max-w-2xl mb-10 leading-relaxed">
-      Join our community of graphics engineers. Help us build the future of 3D on Android. Contributions, issues, and stars are welcome.
+      Spatial is developed in the open. Issues, PRs, and stars help shape Core #1 stability and the Core #2 asset pipeline.
     </p>
 
     <SpatialButton
       variant="secondary"
       size="lg"
-      href="https://github.com/spatial/rendering"
+      href="https://github.com/danielitoCode/Spatial"
       target="_blank"
       class="bg-[#e1e2ec] text-[#0A0E17] hover:bg-white border-none font-bold"
     >

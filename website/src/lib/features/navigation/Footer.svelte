@@ -34,12 +34,12 @@
         </div>
         <div class="flex flex-col">
             <span class="font-black text-2xl text-white tracking-tighter italic uppercase leading-none">SPATIAL</span>
-            <span class="text-[9px] font-mono text-primary font-black uppercase tracking-[0.3em] mt-1">Dev_System</span>
+            <span class="text-[9px] font-mono text-primary font-black uppercase tracking-[0.3em] mt-1">0.1.0-alpha01</span>
         </div>
       </div>
 
       <p class="text-sm text-silver/40 leading-relaxed font-medium max-w-xs">
-        The ultimate declarative 3D framework for Android developers. Cinematic rendering, reactive state, and professional performance out of the box.
+        Declarative 3D for Android with Jetpack Compose. OpenGL ES 3.0 under the hood — Core #1 still in active development.
       </p>
 
       <!-- Fixed Social Icons (Consistent with theme) -->
@@ -86,14 +86,11 @@
     <div class="md:col-span-3 space-y-6">
       <h4 class="text-[10px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-2">
           <div class="w-1 h-1 bg-tertiary rounded-full"></div>
-          Developer Beta
+          Follow development
       </h4>
       <div class="glass-panel p-5 rounded-[2rem] border border-white/5 bg-white/[0.02] space-y-4 shadow-xl">
-        <p class="text-[11px] text-silver/60 leading-relaxed font-medium">Join the <span class="text-white font-bold">Spatial Cloud</span> early access list for advanced shader debugging tools.</p>
-        <div class="relative group">
-          <input type="email" placeholder="dev@spatial.io" class="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 text-xs text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-silver/20" />
-          <button class="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary text-[#00201c] rounded-xl text-[10px] font-black uppercase hover:scale-[1.02] active:scale-95 transition-all">Join</button>
-        </div>
+        <p class="text-[11px] text-silver/60 leading-relaxed font-medium">Track Core #1 device closure and Core #2 GLB work on <span class="text-white font-bold">GitHub</span>. Star the repo to get updates.</p>
+        <a href="https://github.com/danielitoCode/Spatial" target="_blank" rel="noreferrer" class="block w-full text-center px-5 py-3 bg-primary text-[#00201c] rounded-2xl text-[10px] font-black uppercase hover:scale-[1.02] active:scale-95 transition-all">Open repository</a>
       </div>
     </div>
   </div>
@@ -101,14 +98,14 @@
   <!-- Bottom Legal Bar -->
   <div class="mt-24 pt-8 border-t border-white/5 max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-6 text-[10px] text-silver/20 font-mono uppercase tracking-[0.2em] font-black">
     <div class="flex items-center gap-6">
-        <span>© 2026 SPATIAL ENGINE</span>
+        <span>© 2026 SPATIAL · danielitoCode</span>
         <div class="w-px h-3 bg-white/5"></div>
-        <span>MIT LICENSE</span>
+        <span>OPEN SOURCE</span>
     </div>
     <div class="flex gap-10">
-      <a href="#" class="hover:text-primary transition-colors tracking-widest">Security</a>
-      <a href="#" class="hover:text-primary transition-colors tracking-widest">Privacy</a>
-      <a href="#" class="hover:text-primary transition-colors tracking-widest">Terms</a>
+      <a href="https://github.com/danielitoCode/Spatial" target="_blank" rel="noreferrer" class="hover:text-primary transition-colors tracking-widest">GitHub</a>
+      <a href="#docs" class="hover:text-primary transition-colors tracking-widest">Docs</a>
+      <a href="#roadmap" class="hover:text-primary transition-colors tracking-widest">Roadmap</a>
     </div>
   </div>
 </footer>

@@ -9,13 +9,13 @@
     <!-- Title Header -->
     <div class="text-center max-w-4xl mx-auto space-y-6">
       <div class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary font-black text-[10px] tracking-[0.3em] uppercase">
-        Implementation Guide
+        Implementation Guide · 0.1.0-alpha01
       </div>
       <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-tight">
         Spatial <GradientText>Developer Docs</GradientText>
       </h1>
       <p class="text-lg text-silver/50 leading-relaxed max-w-2xl mx-auto font-medium">
-        Master the art of 3D state management in Android. From basic primitives to advanced cinematic camera orchestrations.
+        Public Compose API from <span class="text-silver/80 font-mono text-sm">com.elitec.spatial_compose</span>. Core #1 is still stabilizing on device; treat the surface as alpha.
       </p>
     </div>
 
@@ -34,9 +34,7 @@
             <div class="bg-[#0D1117] rounded-[2.2rem] p-2 shadow-2xl">
                 <CodeBlock title="build.gradle.kts" lang="kotlin">
                     dependencies {'{'}<br />
-                    &nbsp;&nbsp;implementation(<span class="text-primary">"io.spatial:rendering-core:1.2.0"</span>)<br />
-                    &nbsp;&nbsp;implementation(<span class="text-primary">"io.spatial:compose-ui:1.2.0"</span>)<br />
-                    &nbsp;&nbsp;implementation(<span class="text-primary">"io.spatial:assets-gltf:1.2.0"</span>)<br />
+                    &nbsp;&nbsp;implementation(<span class="text-primary">"io.github.danielitocode:spatial:0.1.0-alpha01"</span>)<br />
                     {'}'}
                 </CodeBlock>
             </div>
@@ -53,20 +51,26 @@
         </div>
 
         <p class="text-base text-silver/60 max-w-2xl font-medium leading-relaxed">
-          Spatial elements are native Compose components. They respect the same lifecycle and state observation patterns you already know.
+          Host GLES with <span class="font-mono text-sm text-silver/80">DefaultSceneRenderHostFactory</span>. Primitives and models are Compose children of <span class="font-mono text-sm text-silver/80">Scene</span>.
         </p>
 
         <div class="glass-panel p-1 rounded-[2.5rem] bg-white/[0.02] border-white/5">
             <div class="bg-[#0D1117] rounded-[2.2rem] p-2 shadow-2xl">
-                <CodeBlock title="MainActivity.kt" lang="kotlin">
+                <CodeBlock title="CoreOneScene.kt" lang="kotlin">
                     @Composable<br />
-                    fun SpatialScreen() {'{'}<br />
-                    &nbsp;&nbsp;SpatialScene(<br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;modifier = Modifier.fillMaxSize()<br />
+                    fun CoreOneScene() {'{'}<br />
+                    &nbsp;&nbsp;val cameraState = rememberCameraState()<br />
+                    &nbsp;&nbsp;Scene(<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;modifier = Modifier.fillMaxSize(),<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;renderHostFactory = DefaultSceneRenderHostFactory,<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;cameraState = cameraState,<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;gestures = Gestures.orbitAndZoom(),<br />
                     &nbsp;&nbsp;) {'{'}<br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;OrbitalCamera(distance = 5f)<br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;PointLight(color = Color.Cyan, intensity = 10f)<br />
-                    &nbsp;&nbsp;&nbsp;&nbsp;Model(src = <span class="text-primary">"models/robot.glb"</span>, scale = 1.5f)<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;Element.Cube(<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;modifier = Modifier3D.Default<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.size(2f.meters)<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.position(0f, 0f, -5f),<br />
+                    &nbsp;&nbsp;&nbsp;&nbsp;)<br />
                     &nbsp;&nbsp;{'}'}<br />
                     {'}'}
                 </CodeBlock>
@@ -85,10 +89,10 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {#each [
-            { id: 'SpatialScene', color: 'text-primary', desc: 'The root container orchestrating the GPU context and VSync synchronization.' },
-            { id: 'OrbitalCamera', color: 'text-secondary', desc: 'Touch-enabled view controller with cinematic inertia and pitch safety clamps.' },
-            { id: 'SpatialNode', color: 'text-tertiary', desc: 'The base unit for 3D state, supporting meshes, PBR materials, and local transforms.' },
-            { id: 'LightSystem', color: 'text-accent', desc: 'High-dynamic range point and directional light sources for realistic scene shading.' }
+            { id: 'Scene', color: 'text-primary', desc: 'Root Compose host: scene graph, gestures, camera snapshot, and frame submission to the render host.' },
+            { id: 'Element', color: 'text-secondary', desc: 'Cube, Sphere, Plane, and Model entry points. Models use ModelResource + rememberModel.' },
+            { id: 'CameraState', color: 'text-tertiary', desc: 'Yaw, pitch, zoom, auto-rotate, and gesture interaction epochs for orbit / pinch.' },
+            { id: 'Modifier3D', color: 'text-accent', desc: 'Size, position, color, and optional material override applied when building RenderableNode.' }
           ] as item}
             <GlassPanel class="p-8 rounded-[2rem] border border-white/5 bg-[#0D1117]/50 group" glow>
               <h3 class="font-mono text-xs font-black {item.color} mb-3 uppercase tracking-[0.2em] italic">{item.id}</h3>
@@ -113,7 +117,7 @@
         </div>
 
         <p class="text-base text-silver/60 max-w-2xl font-medium leading-relaxed italic">
-          "Have complex questions about VBO instancing or shader interpolation? Our specialized AI has indexed the entire Spatial codebase to help you in real-time."
+          "Questions about the public API or module boundaries? Prefer the GitHub README and roadmap trackers for source-of-truth status."
         </p>
 
         <div class="glass-panel p-1 rounded-[3rem] bg-white/[0.02] border-white/5 overflow-hidden shadow-2xl">
