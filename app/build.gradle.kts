@@ -39,12 +39,15 @@ dependencies {
     implementation(project(":spatial-compose"))
     implementation(project(":spatial-compose-runtime-adapter"))
     implementation(project(":spatial-units"))
+    // Used by playground + androidTest sample_model parse path
+    implementation(project(":spatial-geometry"))
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.core)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
@@ -53,7 +56,6 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.material3.adaptive.navigation3)
     implementation(libs.kotlinx.serialization.core)
-
 
     // Highligh
     implementation(libs.snipme.kodeview)

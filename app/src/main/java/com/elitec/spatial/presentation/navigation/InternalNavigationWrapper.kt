@@ -11,10 +11,9 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.elitec.spatial.presentation.feature.code.screen.CodeScreen
+import com.elitec.spatial.presentation.feature.playground.PlaygroundScreen
 import com.elitec.spatial.presentation.feature.shapes.models.ShapesContentScreen
-import com.elitec.spatial.presentation.screens.LandingScreen
 import com.elitec.spatial.presentation.screens.MainScreen
-import com.elitec.spatial.presentation.screens.SplashScreen
 
 @Composable
 fun InternalNavigationWrapper(
@@ -72,6 +71,11 @@ fun InternalNavigationWrapper(
                 }
                 entry<MainRoutesKey.Code> {
                     CodeScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                entry<MainRoutesKey.Playground> {
+                    PlaygroundScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 }

@@ -1,7 +1,6 @@
 package com.elitec.spatial.presentation.navigation
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,7 +48,11 @@ fun NavigationTagScreen(
         Pair("Examples") {
             pageSelected = "Examples"
             navigateTo(MainRoutesKey.Code)
-        }
+        },
+        Pair("Playground") {
+            pageSelected = "Playground"
+            navigateTo(MainRoutesKey.Playground)
+        },
     )
 
     Scaffold(
@@ -70,17 +73,14 @@ fun NavigationTagScreen(
                         .padding(10.dp)
                 ) {
                     items(buttonsTagsItems) { buttonItem ->
-                        var iconSize = animateDpAsState(
-                            if(pageSelected == buttonItem.first) 20.dp else 30.dp
-                        )
-                        var buttonBackground = animateColorAsState(
-                            if(pageSelected == buttonItem.first)
+                        val buttonBackground = animateColorAsState(
+                            if (pageSelected == buttonItem.first)
                                 MaterialTheme.colorScheme.background
                             else
                                 MaterialTheme.colorScheme.onBackground
                         )
                         Button(
-                            border = BorderStroke(1.dp,buttonBackground.value),
+                            border = BorderStroke(1.dp, buttonBackground.value),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Transparent
                             ),
@@ -94,7 +94,7 @@ fun NavigationTagScreen(
                 }
             }
         }
-    ) {  innerPadding ->
+    ) { innerPadding ->
         Box(
             modifier = Modifier.padding(innerPadding)
         ) {
@@ -103,9 +103,7 @@ fun NavigationTagScreen(
     }
 }
 
-@Preview(
-    showBackground = true
-)
+@Preview(showBackground = true)
 @Composable
 fun NavigationTagScreenPreview() {
     GlobalPreview(

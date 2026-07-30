@@ -26,6 +26,10 @@ sealed class MainRoutesKey: NavKey {
     @Serializable
     object Code : MainRoutesKey()
 
+    /** Interactive Scene + optional R.raw.sample_model GLB. */
+    @Serializable
+    object Playground : MainRoutesKey()
+
     @Serializable
     object About: MainRoutesKey()
 }

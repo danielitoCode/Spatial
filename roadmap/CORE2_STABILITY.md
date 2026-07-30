@@ -1,6 +1,6 @@
 # Core #2 Stability Plan
 
-> **Status:** Phase 1 partially implemented in code | **Last Updated:** 2026-07-29  
+> **Status:** Phase 1 partially implemented in code | **Last Updated:** 2026-07-30  
 > **Owner:** Project owner + agents  
 > **Purpose:** Track Core #2 against code reality (not only the original proposal audit).
 
@@ -19,9 +19,20 @@
 | **1.4** Multi-mesh / multi-primitive | **Done (code)** | Parser loops meshes/primitives |
 | **1.5** Material override on `Modifier3D` | **Done (code)** | `SpatialMaterial` / `material()` |
 | **1.6** Error mesh + logging | **Done (code)** | `MeshData.ErrorMesh` + `ModelLoadState.Error` |
-| **1.7** Real `.glb` on device | **Pending device** | Prep: `RegisteredModelRendersOnDeviceTest` (registry path, not full GLB file) |
+| **1.7** Real `.glb` on device | **Partial** | Asset `app/.../raw/sample_model.glb`; Playground tab wired (`PlaygroundScreen`); parse+registry instrumented test; **GPU pixels still manual in Playground** |
 | **1.8** Registry eviction / lifecycle | **Done (code)** | LRU `maxEntries` + `unregister` / `size` |
 | **1.9** JIT upload race audit | **Pending** | Review still open |
+
+### Playground alignment (2026-07-30)
+
+- Bottom nav tag **Playground** → `MainRoutesKey.Playground` → `PlaygroundScreen`.
+- `showModel` defaults **true** → `Element.Model(ModelResource.fromRawResource(R.raw.sample_model))`.
+- Pipeline: `rememberModel` → `GltfBinaryParser` → `GlobalMeshRegistry` → renderer JIT.
+
+```text
+./gradlew :app:connectedDebugAndroidTest
+./gradlew :spatial-renderer:connectedDebugAndroidTest
+```
 
 ### 1.7 prep — registered mesh device test
 
@@ -29,7 +40,7 @@
 ./gradlew :spatial-renderer:connectedDebugAndroidTest
 ```
 
-Validates `GlobalMeshRegistry` → renderer JIT. Full GLB asset instrumented test still pending owner asset + physical/emulator GPU run.
+Validates `GlobalMeshRegistry` → renderer JIT. Full GLB **visual** proof: open app → Playground → toggle Modelo GLB.
 
 ### 1.8 policy
 
@@ -64,3 +75,4 @@ Validates `GlobalMeshRegistry` → renderer JIT. Full GLB asset instrumented tes
 | 2026-07-18 | Baseline audit (all Planned) |
 | 2026-07-27–28 | Owner: Model API, parser, materials, rememberModel, CI javadoc |
 | 2026-07-29 | Grok: tracker sync; registry LRU; transform parity test; registered-mesh device test prep |
+| 2026-07-30 | Wire Playground to `sample_model.glb`; instrumented parse/registry test |
