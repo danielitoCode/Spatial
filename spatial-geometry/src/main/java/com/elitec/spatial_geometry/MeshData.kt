@@ -1,6 +1,7 @@
 package com.elitec.spatial_geometry
 
 import com.elitec.spatial_core.scene.MaterialData
+import kotlin.math.max
 
 /** Draw mode understood by the renderer without exposing Android GL classes to mesh tests. */
 enum class MeshDrawMode {
@@ -42,6 +43,57 @@ data class MeshData(
     val indexCount: Int get() = indices.size
     val hasIndices: Boolean get() = indices.isNotEmpty()
 
+    /** Axis-aligned bounds of [vertices], or null if empty. */
+    fun computeBounds(): MeshBounds? {
+        if (vertexCount == 0) return null
+        var minX = Float.POSITIVE_INFINITY
+        var minY = Float.POSITIVE_INFINITY
+        var minZ = Float.POSITIVE_INFINITY
+        var maxX = Float.NEGATIVE_INFINITY
+        var maxY = Float.NEGATIVE_INFINITY
+        var maxZ = Float.NEGATIVE_INFINITY
+        var i = 0
+        while (i < vertices.size) {
+            val x = vertices[i]
+            val y = vertices[i + 1]
+            val z = vertices[i + 2]
+            if (x < minX) minX = x
+            if (y < minY) minY = y
+            if (z < minZ) minZ = z
+            if (x > maxX) maxX = x
+            if (y > maxY) maxY = y
+            if (z > maxZ) maxZ = z
+            i += CoordinatesPerVertex
+        }
+        return MeshBounds(minX, minY, minZ, maxX, maxY, maxZ)
+    }
+
+    /**
+     * Centers the mesh at the origin and scales so the longest AABB axis is 1.
+     * Keeps framing comparable to Core #1 unit primitives under Modifier3D.size.
+     */
+    fun normalizedToUnitCube(): MeshData {
+        val bounds = computeBounds() ?: return this
+        val extentX = bounds.maxX - bounds.minX
+        val extentY = bounds.maxY - bounds.minY
+        val extentZ = bounds.maxZ - bounds.minZ
+        val maxExtent = max(extentX, max(extentY, extentZ)).coerceAtLeast(1e-6f)
+        val scale = 1f / maxExtent
+        val cx = (bounds.minX + bounds.maxX) * 0.5f
+        val cy = (bounds.minY + bounds.maxY) * 0.5f
+        val cz = (bounds.minZ + bounds.maxZ) * 0.5f
+
+        val out = FloatArray(vertices.size)
+        var i = 0
+        while (i < vertices.size) {
+            out[i] = (vertices[i] - cx) * scale
+            out[i + 1] = (vertices[i + 1] - cy) * scale
+            out[i + 2] = (vertices[i + 2] - cz) * scale
+            i += CoordinatesPerVertex
+        }
+        return copy(vertices = out)
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MeshData) return false
@@ -68,18 +120,11 @@ data class MeshData(
         const val CoordinatesPerNormal = 3
         const val CoordinatesPerTexCoord = 2
 
-        /** A simple 1x1 triangle used as a fallback while real models are loading. */
         val FallbackTriangle: MeshData = MeshData(
             vertices = floatArrayOf(0f, 1f, 0f, -1f, -1f, 0f, 1f, -1f, 0f),
             indices = intArrayOf(0, 1, 2)
         )
 
-        /**
-         * A distinguishable mesh registered when model loading fails.
-         *
-         * This must not match [FallbackTriangle], so renderers and diagnostics can tell an
-         * invalid model apart from a model that is still loading.
-         */
         val ErrorMesh: MeshData = MeshData(
             vertices = floatArrayOf(
                 -1f, 1f, 0f,
@@ -96,4 +141,18 @@ data class MeshData(
             indices = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 9, 8),
         )
     }
+}
+
+/** Axis-aligned bounding box for [MeshData.vertices]. */
+data class MeshBounds(
+    val minX: Float,
+    val minY: Float,
+    val minZ: Float,
+    val maxX: Float,
+    val maxY: Float,
+    val maxZ: Float,
+) {
+    val extentX: Float get() = maxX - minX
+    val extentY: Float get() = maxY - minY
+    val extentZ: Float get() = maxZ - minZ
 }
