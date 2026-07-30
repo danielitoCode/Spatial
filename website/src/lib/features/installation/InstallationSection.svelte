@@ -13,8 +13,14 @@
       {'}'}
     </CodeBlock>
 
-    <div class="mt-8 text-center">
-      <p class="text-sm text-[#6F7A90] mb-4">Alpha release — API may change. Prefer the sample app under <span class="text-[#bacac6]">/app</span> while Core #1 stabilizes.</p>
+    <div class="mt-8 text-center space-y-3">
+      <p class="text-sm text-[#6F7A90]">Alpha release — API may change. Prefer the sample app under <span class="text-[#bacac6]">/app</span> while Core #1 stabilizes.</p>
+      <p class="text-sm text-[#6F7A90]">
+        <span class="text-[#bacac6] font-semibold">License:</span>
+        <a href="https://github.com/danielitoCode/Spatial/blob/master/LICENSE" target="_blank" rel="noreferrer" class="text-[#19E6D2] hover:underline">PolyForm Shield 1.0.0</a>
+        — free to use under your apps; not for competing libraries.
+        © danielitoCode
+      </p>
       <a href="#docs" class="inline-flex items-center gap-1.5 text-[#19E6D2] font-bold hover:underline text-sm">
         Full Documentation
         <span class="material-symbols-outlined text-base">arrow_forward</span>

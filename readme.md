@@ -11,12 +11,25 @@
 ![Compose](https://img.shields.io/badge/Jetpack-Compose-blue?style=flat-square)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2B%20Feature%20First-red?style=flat-square)
 ![Status](https://img.shields.io/badge/Core%20%231-In%20Development-yellow?style=flat-square)
+[![License](https://img.shields.io/badge/License-PolyForm%20Shield%201.0.0-blue?style=flat-square)](LICENSE)
 
 ### Declarative 3D Rendering for Android inspired by Jetpack Compose
 
 *Modern • Reactive • Cinematic • GPU-Abstracted*
 
 </div>
+
+---
+
+# 📜 License
+
+Spatial is licensed under the **[PolyForm Shield License 1.0.0](LICENSE)**.
+
+**You may** embed Spatial in your own applications — including commercial apps — free of charge, modify it for that purpose, and redistribute it **with** your application, as long as you keep the required copyright and license notices.
+
+**You may not** copy, fork, or rebrand this codebase to publish a competing 3D library, SDK, or practical substitute for Spatial, and you may not remove or obscure authorship.
+
+Copyright © 2024–2026 **Daniel Imbert (danielitoCode)**. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE) for the full terms.
 
 ---
 
@@ -813,5 +826,7 @@ Potential future expansions:
 ### Spatial — Declarative 3D Rendering for Android
 
 Built for modern Android graphics experimentation.
+
+**License:** [PolyForm Shield 1.0.0](LICENSE) · © 2024–2026 Daniel Imbert (danielitoCode)
 
 </div>

@@ -44,6 +44,11 @@
         Declarative 3D for Android with Jetpack Compose. OpenGL ES 3.0 under the hood — Core #1 still in active development.
       </p>
 
+      <p class="text-[11px] text-silver/30 leading-relaxed font-medium max-w-xs">
+        Licensed under <a href="https://github.com/danielitoCode/Spatial/blob/master/LICENSE" target="_blank" rel="noreferrer" class="text-primary/80 hover:text-primary underline-offset-2 hover:underline">PolyForm Shield 1.0.0</a>:
+        free to embed in apps; not for competing libraries. © danielitoCode
+      </p>
+
       <!-- Fixed Social Icons (Consistent with theme) -->
       <div class="flex items-center gap-4">
         {#each socials as social}
@@ -81,6 +86,7 @@
         <li><a href="#playground" onclick={(e) => navigate(e, 'playground')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Studio</a></li>
         <li><a href="#roadmap" onclick={(e) => navigate(e, 'roadmap')} class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>Roadmap</a></li>
         <li><a href="https://github.com/danielitoCode/Spatial" target="_blank" rel="noreferrer" class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>GitHub</a></li>
+        <li><a href="https://github.com/danielitoCode/Spatial/blob/master/LICENSE" target="_blank" rel="noreferrer" class="text-silver/50 hover:text-white transition-colors flex items-center gap-2 group"><span class="w-1 h-1 rounded-full bg-white/10 group-hover:bg-primary transition-all"></span>License</a></li>
       </ul>
     </div>
 
@@ -99,10 +105,10 @@
 
   <!-- Bottom Legal Bar -->
   <div class="mt-24 pt-8 border-t border-white/5 max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-6 text-[10px] text-silver/20 font-mono uppercase tracking-[0.2em] font-black">
-    <div class="flex items-center gap-6">
+    <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
         <span>© 2026 SPATIAL · danielitoCode</span>
-        <div class="w-px h-3 bg-white/5"></div>
-        <span>OPEN SOURCE</span>
+        <div class="w-px h-3 bg-white/5 hidden sm:block"></div>
+        <a href="https://github.com/danielitoCode/Spatial/blob/master/LICENSE" target="_blank" rel="noreferrer" class="hover:text-primary transition-colors tracking-widest">PolyForm Shield 1.0.0</a>
     </div>
     <div class="flex gap-10">
       <a href="https://github.com/danielitoCode/Spatial" target="_blank" rel="noreferrer" class="hover:text-primary transition-colors tracking-widest">GitHub</a>
