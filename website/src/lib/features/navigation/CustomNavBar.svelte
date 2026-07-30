@@ -9,7 +9,7 @@
 
   let { activeRoute = 'home', onNavigate }: Props = $props();
 
-  /** Respects Vite `base` (`/` in dev, `/Spatial/` on GitHub Pages). */
+  /** Vite injects BASE_URL from config.base (`/` in dev, `/Spatial/` on build). */
   const logoSrc = `${import.meta.env.BASE_URL}spatial_icon_cleaned.svg`;
 
   function navigate(e: MouseEvent, targetRoute: string) {
@@ -42,9 +42,15 @@
           onclick={(e) => navigate(e, 'home')}
           class="flex items-center gap-3 pl-3 pr-5 py-2 group bg-white/5 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-500"
         >
-          <div class="relative w-9 h-9">
+          <div class="relative w-9 h-9 shrink-0">
             <div class="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-60 transition-opacity"></div>
-            <img src={logoSrc}/>
+            <img
+              src={logoSrc}
+              alt="Spatial Logo"
+              width="36"
+              height="36"
+              class="w-full h-full object-contain relative z-10 group-hover:rotate-[360deg] transition-transform duration-1000"
+            />
           </div>
           <div class="flex flex-col leading-tight">
             <span class="font-black text-lg tracking-tighter text-white italic uppercase">SPATIAL</span>
