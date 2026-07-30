@@ -19,7 +19,7 @@
 | **1.4** Multi-mesh / multi-primitive | **Done (code)** | Parser loops meshes/primitives |
 | **1.5** Material override on `Modifier3D` | **Done (code)** | `SpatialMaterial` / `material()` |
 | **1.6** Error mesh + logging | **Done (code)** | `MeshData.ErrorMesh` + `ModelLoadState.Error` |
-| **1.7** Real `.glb` on device | **Partial** | Asset `app/.../raw/sample_model.glb`; Playground tab wired (`PlaygroundScreen`); parse+registry instrumented test; **GPU pixels still manual in Playground** |
+| **1.7** Real `.glb` on device | **Partial** | Asset `app/.../raw/sample_model.glb`; Playground tab wired (`PlaygroundScreen`); parse+registry instrumented test; **GPU pixels still manual in Playground**. Root cause of "loads but doesn't visibly render" found 2026-07-30: `sample_model.glb`'s raw POSITION accessors span roughly ±400 to ±600 per axis (verified directly against the file's accessor `min`/`max`), while the engine's default camera sits 10 units from origin with a far clip plane at 100. `Modifier3D.size(n.meters)` applies a flat multiplier on raw vertex coordinates (correct for built-in primitives, which are always exactly 1 unit across by construction), so an unnormalized large source mesh ends up with geometry far outside the frustum despite the load/registry/GPU-upload pipeline itself working correctly end to end. Fixed via `MeshData.normalizedToUnitBounds()` (`spatial-geometry`), applied in `rememberModel` right after `GltfBinaryParser.parse()` - keeps the parser itself faithful/unchanged (its own tests assert raw positions pass through unmodified) while normalizing every loaded model to the same ~1-unit convention primitives already use. |
 | **1.8** Registry eviction / lifecycle | **Done (code)** | LRU `maxEntries` + `unregister` / `size` |
 | **1.9** JIT upload race audit | **Pending** | Review still open |
 
@@ -76,3 +76,4 @@ Validates `GlobalMeshRegistry` → renderer JIT. Full GLB **visual** proof: open
 | 2026-07-27–28 | Owner: Model API, parser, materials, rememberModel, CI javadoc |
 | 2026-07-29 | Grok: tracker sync; registry LRU; transform parity test; registered-mesh device test prep |
 | 2026-07-30 | Wire Playground to `sample_model.glb`; instrumented parse/registry test |
+| 2026-07-30 | Claude: diagnosed and fixed loaded `.glb` models rendering invisible despite a correctly working load/registry/GPU-upload pipeline - see item 1.1 note below |

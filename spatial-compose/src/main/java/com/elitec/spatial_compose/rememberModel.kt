@@ -11,6 +11,7 @@ import com.elitec.spatial_compose.ModelResource.Companion.unwrapResId
 import com.elitec.spatial_geometry.GlobalMeshRegistry
 import com.elitec.spatial_geometry.GltfBinaryParser
 import com.elitec.spatial_geometry.MeshData
+import com.elitec.spatial_geometry.normalizedToUnitBounds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -69,7 +70,15 @@ public fun rememberModel(model: ModelResource): MeshData {
                 resources.openRawResource(resId).use { inputStream ->
                     val available = runCatching { inputStream.available() }.getOrDefault(-1)
                     Log.i(TAG, "rememberModel IO stream opened availableBytes=$available → GltfBinaryParser.parse")
-                    val mesh = GltfBinaryParser.parse(inputStream)
+                    val rawMesh = GltfBinaryParser.parse(inputStream)
+                    // Loaded models are authored in whatever arbitrary scale the source file
+                    // used, unlike this engine's built-in primitives, which are always exactly
+                    // 1 unit across. Without normalizing, `Modifier3D.size(n.meters)` (a flat
+                    // multiplier on raw vertex coordinates) can place a large source mesh's
+                    // geometry entirely outside the camera's frustum, making a correctly-parsed,
+                    // correctly-uploaded model simply not appear on screen. See
+                    // MeshData.normalizedToUnitBounds()'s KDoc for the full explanation.
+                    val mesh = rawMesh.normalizedToUnitBounds()
                     Log.i(
                         TAG,
                         "rememberModel IO PARSE_OK id=${model.id} verts=${mesh.vertexCount} " +
