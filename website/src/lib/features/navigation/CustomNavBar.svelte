@@ -44,11 +44,7 @@
         >
           <div class="relative w-9 h-9">
             <div class="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-60 transition-opacity"></div>
-            <img
-              src={logoSrc}
-              alt="Spatial Logo"
-              class="w-full h-full object-contain relative z-10 group-hover:rotate-[360deg] transition-transform duration-1000"
-            />
+            <img src={logoSrc}/>
           </div>
           <div class="flex flex-col leading-tight">
             <span class="font-black text-lg tracking-tighter text-white italic uppercase">SPATIAL</span>
