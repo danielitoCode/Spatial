@@ -26,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +39,7 @@ import com.elitec.spatial.R
 import com.elitec.spatial.util.GlobalPreview
 import com.elitec.spatial_compose.Element
 import com.elitec.spatial_compose.Gestures
+import com.elitec.spatial_compose.ModelResource
 import com.elitec.spatial_compose.Modifier3D
 import com.elitec.spatial_compose.Scene
 import com.elitec.spatial_compose.rememberCameraState
@@ -49,9 +49,13 @@ import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
 
 private val shapeItems = listOf(
-    ShapeSectionItem("Plane", "A simple plane in a axis orientation , 2D only", 0, {}, {}),
-    ShapeSectionItem("Cube", "Native cube shape", 0, {}, {}),
-    ShapeSectionItem("Sphere", "Native sphere shape", 0, {}, {}),
+    ShapeSectionItem(
+        tittle = "Model GLB",
+        description = "Bundled sample_model.glb from res/raw via Element.Model",
+        icon = 0,
+        onCode = {},
+        onScene = {},
+    ),
     ShapeSectionItem("Plane", "A simple plane in a axis orientation , 2D only", 0, {}, {}),
     ShapeSectionItem("Cube", "Native cube shape", 0, {}, {}),
     ShapeSectionItem("Sphere", "Native sphere shape", 0, {}, {}),
@@ -61,18 +65,6 @@ private val shapeItems = listOf(
 fun ShapesContentScreen(
     modifier: Modifier = Modifier
 ) {
-    val cyclicPositions = remember {
-        listOf(
-            Triple(0f, 0f, -4f),
-            Triple(2f, 0f, -6f),
-            Triple(-2f, 0f, -6f),
-            Triple(3f, 1f, -8f),
-            Triple(-3f, 1f, -8f),
-            Triple(0f, 2f, -10f),
-            Triple(4f, -1f, -9f),
-            Triple(-4f, -1f, -9f),
-        )
-    }
     Column(
         modifier = modifier
     ) {
@@ -94,7 +86,7 @@ fun ShapesContentScreen(
                 )
                 Text(
                     style = MaterialTheme.typography.bodyMedium,
-                    text = "Visualize a Spatial main predeterminate shapes",
+                    text = "Primitives + sample_model.glb from res/raw",
                     color = MaterialTheme.colorScheme.onBackground.copy(0.7f)
                 )
             }
@@ -108,7 +100,7 @@ fun ShapesContentScreen(
         ) {
             items(shapeItems) { shapeItem ->
                 val cameraState = rememberCameraState(yaw = 25f.deg, pitch = (-15f).deg, zoom = 1.25f)
-                    .autoRotate( true)
+                    .autoRotate(true)
 
                 Card(
                     shape = RoundedCornerShape(15.dp),
@@ -222,7 +214,14 @@ fun ShapesContentScreen(
                                     gestures = Gestures.orbitAndZoom(),
                                     backgroundColor = Color.Blue
                                 ) {
-                                    when(shapeItem.tittle.lowercase()) {
+                                    when (shapeItem.tittle.lowercase()) {
+                                        "model glb" -> Element.Model(
+                                            model = ModelResource.fromRawResource(R.raw.sample_model),
+                                            modifier = Modifier3D.Default
+                                                .rotateY((-20f).deg)
+                                                .size(2.2f.meters)
+                                                .position(0f.meters, 0f.meters, (-4f).meters),
+                                        )
                                         "plane" -> Element.Plane(
                                             modifier = Modifier3D.Default
                                                 .size(4f.meters, 0.1f.meters, 3f.meters)
@@ -231,16 +230,13 @@ fun ShapesContentScreen(
                                             modifier = Modifier3D.Default
                                                 .size(2f.meters)
                                         )
-                                        "sphere" ->  Element.Sphere(
+                                        "sphere" -> Element.Sphere(
                                             modifier = Modifier3D.Default
                                                 .size(3f.meters)
                                         )
                                     }
                                 }
                             }
-
-
-
                         }
                     }
                 }
