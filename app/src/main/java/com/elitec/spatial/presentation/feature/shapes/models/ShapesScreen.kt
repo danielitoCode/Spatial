@@ -52,9 +52,9 @@ private val shapeItems = listOf(
     ShapeSectionItem(
         tittle = "Model GLB",
         description = "Bundled sample_model.glb from res/raw via Element.Model",
-        icon = 0,
-        onCode = {},
-        onScene = {},
+        image = 0,
+        onCodeClick = {},
+        onSceneClick = {},
     ),
     ShapeSectionItem("Plane", "A simple plane in a axis orientation , 2D only", 0, {}, {}),
     ShapeSectionItem("Cube", "Native cube shape", 0, {}, {}),
