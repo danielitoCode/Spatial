@@ -1,6 +1,7 @@
 package com.elitec.spatial.presentation.feature.shapes.models
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +49,8 @@ import com.elitec.spatial_compose_runtime_adapter.DefaultSceneRenderHostFactory
 import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
 
+private const val UI_TAG = "SpatialModelUI"
+
 private val shapeItems = listOf(
     ShapeSectionItem(
         tittle = "Model GLB",
@@ -65,6 +68,7 @@ private val shapeItems = listOf(
 fun ShapesContentScreen(
     modifier: Modifier = Modifier
 ) {
+    Log.i(UI_TAG, "ShapesContentScreen compose items=${shapeItems.map { it.tittle }}")
     Column(
         modifier = modifier
     ) {
@@ -215,13 +219,22 @@ fun ShapesContentScreen(
                                     backgroundColor = Color.Blue
                                 ) {
                                     when (shapeItem.tittle.lowercase()) {
-                                        "model glb" -> Element.Model(
-                                            model = ModelResource.fromRawResource(R.raw.sample_model),
-                                            modifier = Modifier3D.Default
-                                                .rotateY((-20f).deg)
-                                                .size(2.2f.meters)
-                                                .position(0f.meters, 0f.meters, (-4f).meters),
-                                        )
+                                        "model glb" -> {
+                                            val model = ModelResource.fromRawResource(R.raw.sample_model)
+                                            Log.i(
+                                                UI_TAG,
+                                                "Element.Model branch title=${shapeItem.tittle} " +
+                                                    "id=${model.id} resId=${model.rawResIdOrNull()} " +
+                                                    "R.raw.sample_model=${R.raw.sample_model}",
+                                            )
+                                            Element.Model(
+                                                model = model,
+                                                modifier = Modifier3D.Default
+                                                    .rotateY((-20f).deg)
+                                                    .size(2.2f.meters)
+                                                    .position(0f.meters, 0f.meters, (-4f).meters),
+                                            )
+                                        }
                                         "plane" -> Element.Plane(
                                             modifier = Modifier3D.Default
                                                 .size(4f.meters, 0.1f.meters, 3f.meters)
@@ -234,6 +247,7 @@ fun ShapesContentScreen(
                                             modifier = Modifier3D.Default
                                                 .size(3f.meters)
                                         )
+                                        else -> Log.w(UI_TAG, "Unknown shape title=${shapeItem.tittle}")
                                     }
                                 }
                             }
