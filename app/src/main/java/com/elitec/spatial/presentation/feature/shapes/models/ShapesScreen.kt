@@ -44,7 +44,6 @@ import com.elitec.spatial_compose.ModelResource
 import com.elitec.spatial_compose.Modifier3D
 import com.elitec.spatial_compose.Scene
 import com.elitec.spatial_compose.rememberCameraState
-import com.elitec.spatial_compose.state.extention.autoRotate
 import com.elitec.spatial_compose_runtime_adapter.DefaultSceneRenderHostFactory
 import com.elitec.spatial_units.deg
 import com.elitec.spatial_units.meters
@@ -103,9 +102,13 @@ fun ShapesContentScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             items(shapeItems) { shapeItem ->
-                // Faster yaw tick so rotation is obvious in a 150dp preview (and on slow emulators).
-                val cameraState = rememberCameraState(yaw = 25f.deg, pitch = (-20f).deg, zoom = 1.4f)
-                    .autoRotate(isActive = true, deltaYawDegrees = 0.55f)
+                // No autoRotate in list previews: continuous yaw fought gestures and burned FPS
+                // with 4 concurrent GLSurfaceViews. Orbit/pinch only via Gestures.orbitAndZoom().
+                val cameraState = rememberCameraState(
+                    yaw = 35f.deg,
+                    pitch = (-22f).deg,
+                    zoom = 1.35f,
+                )
 
                 Card(
                     shape = RoundedCornerShape(15.dp),
@@ -228,7 +231,6 @@ fun ShapesContentScreen(
                                                     "id=${model.id} resId=${model.rawResIdOrNull()} " +
                                                     "R.raw.sample_model=${R.raw.sample_model}",
                                             )
-                                            // Same framing as Cube: origin + size so orbit/lookAt align.
                                             Element.Model(
                                                 model = model,
                                                 modifier = Modifier3D.Default
