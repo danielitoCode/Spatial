@@ -18,14 +18,8 @@ import kotlinx.coroutines.withContext
 /**
  * Loads and caches a [ModelResource] into a [MeshData] structure.
  *
- * This function acts as the 3D equivalent of `painterResource(id)`.
- * It uses a `LaunchedEffect` with [Dispatchers.IO] to parse the file off the main thread,
- * preventing UI jank when loading complex 50k-polygon models.
- *
- * While loading, it returns a simple fallback triangle to prevent GPU rendering errors.
- *
- * @param model The [ModelResource] to load (e.g., from [ModelResource.fromRawResource]).
- * @return The loaded [MeshData], [MeshData.FallbackTriangle] while loading, or [MeshData.ErrorMesh] after a failed load.
+ * Parsed meshes are centered and scaled to a unit AABB (see [normalizedToUnitBounds]) so
+ * [Modifier3D.size] frames them like Core #1 primitives.
  */
 @Composable
 public fun rememberModel(model: ModelResource): MeshData {
@@ -34,32 +28,27 @@ public fun rememberModel(model: ModelResource): MeshData {
 
     Log.i(TAG, "rememberModel ENTER id=${model.id} rawRes=${model.rawResIdOrNull()}")
 
-    // 1. Check cache first. Re-publish cached meshes so renderers created after loading can JIT
-    // upload the real mesh from the global registry on their first frame.
     cachedModels[model.id]?.let { cachedMesh ->
-        Log.i(
-            TAG,
-            "rememberModel CACHE_HIT id=${model.id} verts=${cachedMesh.vertexCount} idx=${cachedMesh.indexCount}",
-        )
-        GlobalMeshRegistry.register(model.id, cachedMesh)
-        return cachedMesh
+        val mesh = ensureUnitBounds(cachedMesh, model.id, fromCache = true)
+        if (mesh !== cachedMesh) {
+            cachedModels[model.id] = mesh
+        }
+        GlobalMeshRegistry.register(model.id, mesh)
+        return mesh
     }
 
-    // 2. If not in cache, setup loading state and publish a visible placeholder under the final
-    // mesh id before the async load completes. SpatialGlRenderer can then JIT upload this fallback
-    // immediately instead of skipping the node as unknown.
     val state = remember(model.id) { mutableStateOf<ModelLoadState>(ModelLoadState.Loading) }
     Log.i(TAG, "rememberModel STATE id=${model.id} phase=${state.value::class.simpleName}")
 
     LaunchedEffect(model.id) {
         Log.i(TAG, "rememberModel LaunchedEffect START id=${model.id}")
         GlobalMeshRegistry.register(model.id, MeshData.FallbackTriangle)
-        Log.i(TAG, "rememberModel registered FallbackTriangle id=${model.id}")
 
         cachedModels[model.id]?.let { cachedMesh ->
-            Log.i(TAG, "rememberModel LaunchedEffect CACHE_HIT id=${model.id}")
-            GlobalMeshRegistry.register(model.id, cachedMesh)
-            state.value = ModelLoadState.Loaded(cachedMesh)
+            val mesh = ensureUnitBounds(cachedMesh, model.id, fromCache = true)
+            cachedModels[model.id] = mesh
+            GlobalMeshRegistry.register(model.id, mesh)
+            state.value = ModelLoadState.Loaded(mesh)
             return@LaunchedEffect
         }
 
@@ -71,19 +60,12 @@ public fun rememberModel(model: ModelResource): MeshData {
                     val available = runCatching { inputStream.available() }.getOrDefault(-1)
                     Log.i(TAG, "rememberModel IO stream opened availableBytes=$available → GltfBinaryParser.parse")
                     val rawMesh = GltfBinaryParser.parse(inputStream)
-                    // Loaded models are authored in whatever arbitrary scale the source file
-                    // used, unlike this engine's built-in primitives, which are always exactly
-                    // 1 unit across. Without normalizing, `Modifier3D.size(n.meters)` (a flat
-                    // multiplier on raw vertex coordinates) can place a large source mesh's
-                    // geometry entirely outside the camera's frustum, making a correctly-parsed,
-                    // correctly-uploaded model simply not appear on screen. See
-                    // MeshData.normalizedToUnitBounds()'s KDoc for the full explanation.
-                    val mesh = rawMesh.normalizedToUnitBounds()
                     Log.i(
                         TAG,
-                        "rememberModel IO PARSE_OK id=${model.id} verts=${mesh.vertexCount} " +
-                            "idx=${mesh.indexCount} hasIdx=${mesh.hasIndices}",
+                        "rememberModel IO PARSE_OK id=${model.id} verts=${rawMesh.vertexCount} " +
+                            "idx=${rawMesh.indexCount} rawBounds=${rawMesh.computeBounds()}",
                     )
+                    val mesh = ensureUnitBounds(rawMesh, model.id, fromCache = false)
                     ModelLoadState.Loaded(mesh)
                 }
             } catch (e: Exception) {
@@ -96,7 +78,7 @@ public fun rememberModel(model: ModelResource): MeshData {
         Log.i(
             TAG,
             "rememberModel REGISTER_FINAL id=${model.id} phase=${loadState::class.simpleName} " +
-                "verts=${loadedMesh.vertexCount} idx=${loadedMesh.indexCount}",
+                "verts=${loadedMesh.vertexCount} idx=${loadedMesh.indexCount} bounds=${loadedMesh.computeBounds()}",
         )
 
         GlobalMeshRegistry.register(model.id, loadedMesh)
@@ -108,15 +90,35 @@ public fun rememberModel(model: ModelResource): MeshData {
     return state.value.mesh
 }
 
+/**
+ * Unit AABB = longest axis ≤ 1 after [normalizedToUnitBounds].
+ * Cached meshes from older builds may still be authoring-scale (±100s of units).
+ */
+private fun ensureUnitBounds(mesh: MeshData, modelId: String, fromCache: Boolean): MeshData {
+    val bounds = mesh.computeBounds()
+    val extent = bounds?.let {
+        maxOf(it.extentX, it.extentY, it.extentZ)
+    } ?: 0f
+    if (extent <= 1.5f && extent.isFinite()) {
+        Log.i(
+            TAG,
+            "rememberModel bounds OK id=$modelId fromCache=$fromCache extent=$extent bounds=$bounds",
+        )
+        return mesh
+    }
+    val normalized = mesh.normalizedToUnitBounds()
+    Log.w(
+        TAG,
+        "rememberModel RE-NORMALIZE id=$modelId fromCache=$fromCache " +
+            "rawExtent=$extent → bounds=${normalized.computeBounds()}",
+    )
+    return normalized
+}
+
 private const val TAG = "SpatialModelLoad"
 
-/**
- * A process-wide cache for loaded 3D models mapped by their resource ID.
- * This prevents re-parsing the same GLB file on every recomposition or activity recreation.
- */
 internal val LocalModelCache = staticCompositionLocalOf { mutableMapOf<String, MeshData>() }
 
-/** Internal state kept so failures are distinguishable from in-flight loading. */
 internal sealed interface ModelLoadState {
     val mesh: MeshData
 
