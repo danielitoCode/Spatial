@@ -1,0 +1,18 @@
+Spatial
+Copyright 2024–2026 Daniel Imbert (danielitoCode)
+
+https://github.com/danielitoCode/Spatial
+
+This product is licensed under the PolyForm Shield License 1.0.0.
+See the LICENSE file in the project root, or:
+https://polyformproject.org/licenses/shield/1.0.0
+
+Required Notice: Copyright 2024–2026 Daniel Imbert (danielitoCode) — https://github.com/danielitoCode/Spatial
+
+Licensor Line of Business: Spatial — a declarative 3D rendering library for Android
+(Jetpack Compose / OpenGL ES) published at https://github.com/danielitoCode/Spatial
+
+You may embed Spatial in your own applications (including commercial apps) under
+the terms of the LICENSE. You may not use this software to build, market, or
+distribute a competing 3D library, SDK, or practical substitute for Spatial, and
+you may not remove or obscure authorship or license notices.
