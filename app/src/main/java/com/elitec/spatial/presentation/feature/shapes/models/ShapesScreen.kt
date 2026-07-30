@@ -103,8 +103,9 @@ fun ShapesContentScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             items(shapeItems) { shapeItem ->
-                val cameraState = rememberCameraState(yaw = 25f.deg, pitch = (-15f).deg, zoom = 1.25f)
-                    .autoRotate(true)
+                // Faster yaw tick so rotation is obvious in a 150dp preview (and on slow emulators).
+                val cameraState = rememberCameraState(yaw = 25f.deg, pitch = (-20f).deg, zoom = 1.4f)
+                    .autoRotate(isActive = true, deltaYawDegrees = 0.55f)
 
                 Card(
                     shape = RoundedCornerShape(15.dp),
@@ -227,13 +228,12 @@ fun ShapesContentScreen(
                                                     "id=${model.id} resId=${model.rawResIdOrNull()} " +
                                                     "R.raw.sample_model=${R.raw.sample_model}",
                                             )
-                                            // Bright flat color so the mesh is obvious on the dark preview.
+                                            // Same framing as Cube: origin + size so orbit/lookAt align.
                                             Element.Model(
                                                 model = model,
                                                 modifier = Modifier3D.Default
                                                     .color(0.15f, 0.95f, 0.85f, 1f)
-                                                    .size(3f.meters)
-                                                    .position(0f.meters, 0f.meters, (-5f).meters),
+                                                    .size(2f.meters),
                                             )
                                         }
                                         "plane" -> Element.Plane(
