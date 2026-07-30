@@ -5,6 +5,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
 import com.elitec.spatial_compose.core.resolveOrbitGestureDelta
 import com.elitec.spatial_compose.motion.pointerPositions
@@ -18,6 +19,10 @@ import com.elitec.spatial_compose.state.CameraState
  *
  * Task 2.1: pairs pointer DOWN/UP with [CameraState.beginGestureInteraction] /
  * [CameraState.endGestureInteraction] so auto-rotate yields during user orbit.
+ *
+ * When [Scene] sits inside a scrollable parent (e.g. LazyColumn), the parent would
+ * otherwise intercept vertical MOVE events. We call [android.view.ViewParent.requestDisallowInterceptTouchEvent]
+ * while the gesture is active so orbit/pinch reach this filter.
  */
 internal fun Modifier.sceneGestureInput(
     cameraState: CameraState,
@@ -29,14 +34,17 @@ internal fun Modifier.sceneGestureInput(
 
     return composed {
         val gestureState = remember { SceneGestureInputState() }
+        val hostView = LocalView.current
         pointerInteropFilter { event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    hostView.parent?.requestDisallowInterceptTouchEvent(true)
                     cameraState.beginGestureInteraction()
                     gestureState.onDown(event.x, event.y)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    hostView.parent?.requestDisallowInterceptTouchEvent(true)
                     val rawDelta = gestureState.onMove(
                         pointers = event.pointerPositions(),
                         orbitEnabled = gestures.orbitEnabled,
@@ -57,6 +65,7 @@ internal fun Modifier.sceneGestureInput(
                     true
                 }
                 MotionEvent.ACTION_POINTER_DOWN -> {
+                    hostView.parent?.requestDisallowInterceptTouchEvent(true)
                     cameraState.beginGestureInteraction()
                     gestureState.onPointerDown(
                         pointers = event.pointerPositions(),
@@ -75,6 +84,7 @@ internal fun Modifier.sceneGestureInput(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     gestureState.reset()
                     cameraState.endGestureInteraction()
+                    hostView.parent?.requestDisallowInterceptTouchEvent(false)
                     true
                 }
                 else -> true
