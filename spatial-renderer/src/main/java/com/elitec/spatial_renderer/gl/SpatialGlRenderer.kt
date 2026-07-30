@@ -34,6 +34,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     private val projectionMatrix = FloatArray(16)
 
     private var surfaceReadyCallbackFired = false
+    private var modelLogFrameCounter = 0
 
     fun resetSurfaceReadyGate() {
         surfaceReadyCallbackFired = false
@@ -101,7 +102,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         applyClearColor(frameClearColor)
 
         if (nodes.isEmpty()) {
-            Log.i(TAG, "Skipping draw frame: GL surface is ready but there are no renderable nodes")
             return
         }
 
@@ -113,13 +113,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             return
         }
 
-        val uniformLocations = uniforms
-        if (uniformLocations == null) {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "onDrawFrame: returning because uniforms are missing; nodes.size=${nodes.size}, programId=$programId")
-            }
-            return
-        }
+        val uniformLocations = uniforms ?: return
 
         GLES30.glUseProgram(programId)
 
@@ -141,29 +135,24 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         var skippedUnknownMeshIds = 0
         var skippedMissingBuffers = 0
         var modelDrawCalls = 0
+        modelLogFrameCounter++
+        val logThisFrame = modelLogFrameCounter % 60 == 1
 
         nodes.forEach { node ->
             val isModel = node.meshId.startsWith("raw:")
             val meshData = meshRegistry.resolveOrNull(node.meshId)
             if (meshData == null) {
                 skippedUnknownMeshIds++
-                if (isModel) {
+                if (isModel && logThisFrame) {
                     Log.w(
                         MODEL_TAG,
                         "SKIP unknown meshId=${node.meshId} registryHas=${GlobalMeshRegistry.get(node.meshId) != null} " +
                             "registrySize=${GlobalMeshRegistry.size()}",
                     )
-                } else if (BuildConfig.DEBUG) {
+                } else if (BuildConfig.DEBUG && logThisFrame) {
                     Log.w(TAG, "Skipping renderable with unknown primitive mesh id: ${node.meshId}")
                 }
                 return@forEach
-            }
-
-            if (isModel) {
-                Log.i(
-                    MODEL_TAG,
-                    "RESOLVED meshId=${node.meshId} verts=${meshData.vertexCount} idx=${meshData.indexCount}",
-                )
             }
 
             val registryVersion = GlobalMeshRegistry.getVersioned(node.meshId)?.version
@@ -178,7 +167,11 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
                     mesh = newBuffers
                     if (isModel || BuildConfig.DEBUG) {
                         val uploadReason = if (previousBuffers == null) "JIT uploaded" else "Re-uploaded changed"
-                        Log.i(MODEL_TAG, "$uploadReason meshId=${node.meshId} registryVersion=$registryVersion")
+                        Log.i(
+                            MODEL_TAG,
+                            "$uploadReason meshId=${node.meshId} registryVersion=$registryVersion " +
+                                "verts=${meshData.vertexCount} idx=${meshData.indexCount}",
+                        )
                     }
                 } catch (e: Exception) {
                     Log.e(MODEL_TAG, "Failed to upload GL buffers for meshId=${node.meshId}", e)
@@ -187,10 +180,8 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
             if (mesh == null) {
                 skippedMissingBuffers++
-                if (isModel) {
+                if (isModel && logThisFrame) {
                     Log.w(MODEL_TAG, "SKIP missing GL buffers meshId=${node.meshId}")
-                } else if (BuildConfig.DEBUG) {
-                    Log.w(TAG, "Skipping renderable because GL buffers are missing for mesh id: ${node.meshId}")
                 }
                 return@forEach
             }
@@ -253,16 +244,11 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             drawCalls++
             if (isModel) modelDrawCalls++
         }
-        if (modelDrawCalls > 0 || skippedUnknownMeshIds > 0) {
+        if (logThisFrame && (modelDrawCalls > 0 || skippedUnknownMeshIds > 0)) {
             Log.i(
                 MODEL_TAG,
                 "onDrawFrame modelDraws=$modelDrawCalls totalDraws=$drawCalls " +
                     "skippedUnknown=$skippedUnknownMeshIds skippedMissingBuf=$skippedMissingBuffers nodes=${nodes.size}",
-            )
-        } else if (BuildConfig.DEBUG) {
-            Log.d(
-                TAG,
-                "onDrawFrame: nodes.size=${nodes.size}, drawCalls=$drawCalls, skippedUnknownMeshIds=$skippedUnknownMeshIds, skippedMissingBuffers=$skippedMissingBuffers",
             )
         }
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0)
