@@ -216,7 +216,7 @@ fun ShapesContentScreen(
                                     cameraState = cameraState,
                                     contentScale = 0.4f,
                                     gestures = Gestures.orbitAndZoom(),
-                                    backgroundColor = Color.Blue
+                                    backgroundColor = Color(0xFF0A1628)
                                 ) {
                                     when (shapeItem.tittle.lowercase()) {
                                         "model glb" -> {
@@ -227,12 +227,13 @@ fun ShapesContentScreen(
                                                     "id=${model.id} resId=${model.rawResIdOrNull()} " +
                                                     "R.raw.sample_model=${R.raw.sample_model}",
                                             )
+                                            // Bright flat color so the mesh is obvious on the dark preview.
                                             Element.Model(
                                                 model = model,
                                                 modifier = Modifier3D.Default
-                                                    .rotateY((-20f).deg)
-                                                    .size(2.2f.meters)
-                                                    .position(0f.meters, 0f.meters, (-4f).meters),
+                                                    .color(0.15f, 0.95f, 0.85f, 1f)
+                                                    .size(3f.meters)
+                                                    .position(0f.meters, 0f.meters, (-5f).meters),
                                             )
                                         }
                                         "plane" -> Element.Plane(

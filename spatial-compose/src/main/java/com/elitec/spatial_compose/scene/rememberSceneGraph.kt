@@ -10,6 +10,7 @@ import com.elitec.spatial_compose.ModelResource
 import com.elitec.spatial_compose.modifier.Modifier3D
 import com.elitec.spatial_compose.rememberModel
 import com.elitec.spatial_compose.shapes.PrimitiveShape
+import com.elitec.spatial_geometry.MeshData
 
 private const val TAG = "SpatialModelGraph"
 
@@ -20,15 +21,8 @@ internal fun rememberSceneGraph(content: @Composable () -> Unit): List<SceneNode
     CompositionLocalProvider(LocalSceneContentScope provides scope) {
         content()
     }
-    val nodes = builder.nodes
-    if (nodes.any { it is SceneNode.Model }) {
-        Log.i(
-            TAG,
-            "rememberSceneGraph nodes=${nodes.size} models=${nodes.count { it is SceneNode.Model }} " +
-                "ids=${nodes.filterIsInstance<SceneNode.Model>().map { it.meshId }}",
-        )
-    }
-    return nodes
+    // Do NOT log here: autoRotate / camera ticks recompose this every frame.
+    return builder.nodes
 }
 
 @Composable
@@ -38,9 +32,9 @@ internal fun SceneElement(
 ) {
     val sceneScope = LocalSceneContentScope.current
         ?: error("Element(...) must be called inside Scene { ... } content.")
-    
+
     val node = remember(shape, modifier) { SceneNode.Primitive(shape, modifier) }
-    
+
     DisposableEffect(node) {
         sceneScope.add(node)
         onDispose {
@@ -57,18 +51,17 @@ internal fun ModelSceneElement(
     val sceneScope = LocalSceneContentScope.current
         ?: error("Element.Model(...) must be called inside Scene { ... } content.")
 
-    Log.i(
-        TAG,
-        "ModelSceneElement COMPOSE id=${model.id} rawRes=${model.rawResIdOrNull()} " +
-            "scopeOk=${LocalSceneContentScope.current != null}",
-    )
-
-    // Load the model asynchronously. While loading, this returns a fallback triangle.
     val mesh = rememberModel(model)
-    Log.i(
-        TAG,
-        "ModelSceneElement after rememberModel id=${model.id} verts=${mesh.vertexCount} idx=${mesh.indexCount}",
-    )
+    // Log only meaningful load transitions (fallback 3 verts → real mesh).
+    val loadKey = "${model.id}:${mesh.vertexCount}:${mesh.indexCount}"
+    remember(loadKey) {
+        Log.i(
+            TAG,
+            "ModelSceneElement meshReady id=${model.id} verts=${mesh.vertexCount} idx=${mesh.indexCount} " +
+                "fallback=${mesh === MeshData.FallbackTriangle} error=${mesh === MeshData.ErrorMesh}",
+        )
+        true
+    }
 
     val node = remember(model.id, modifier) { SceneNode.Model(model.id, modifier) }
 
