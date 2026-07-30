@@ -31,9 +31,15 @@ public fun rememberModel(model: ModelResource): MeshData {
     val resources = LocalResources.current
     val cachedModels = LocalModelCache.current
 
+    Log.i(TAG, "rememberModel ENTER id=${model.id} rawRes=${model.rawResIdOrNull()}")
+
     // 1. Check cache first. Re-publish cached meshes so renderers created after loading can JIT
     // upload the real mesh from the global registry on their first frame.
     cachedModels[model.id]?.let { cachedMesh ->
+        Log.i(
+            TAG,
+            "rememberModel CACHE_HIT id=${model.id} verts=${cachedMesh.vertexCount} idx=${cachedMesh.indexCount}",
+        )
         GlobalMeshRegistry.register(model.id, cachedMesh)
         return cachedMesh
     }
@@ -42,11 +48,15 @@ public fun rememberModel(model: ModelResource): MeshData {
     // mesh id before the async load completes. SpatialGlRenderer can then JIT upload this fallback
     // immediately instead of skipping the node as unknown.
     val state = remember(model.id) { mutableStateOf<ModelLoadState>(ModelLoadState.Loading) }
+    Log.i(TAG, "rememberModel STATE id=${model.id} phase=${state.value::class.simpleName}")
 
     LaunchedEffect(model.id) {
+        Log.i(TAG, "rememberModel LaunchedEffect START id=${model.id}")
         GlobalMeshRegistry.register(model.id, MeshData.FallbackTriangle)
+        Log.i(TAG, "rememberModel registered FallbackTriangle id=${model.id}")
 
         cachedModels[model.id]?.let { cachedMesh ->
+            Log.i(TAG, "rememberModel LaunchedEffect CACHE_HIT id=${model.id}")
             GlobalMeshRegistry.register(model.id, cachedMesh)
             state.value = ModelLoadState.Loaded(cachedMesh)
             return@LaunchedEffect
@@ -55,24 +65,41 @@ public fun rememberModel(model: ModelResource): MeshData {
         val loadState = withContext(Dispatchers.IO) {
             try {
                 val resId = unwrapResId(model)
+                Log.i(TAG, "rememberModel IO openRawResource resId=$resId id=${model.id}")
                 resources.openRawResource(resId).use { inputStream ->
-                    ModelLoadState.Loaded(GltfBinaryParser.parse(inputStream))
+                    val available = runCatching { inputStream.available() }.getOrDefault(-1)
+                    Log.i(TAG, "rememberModel IO stream opened availableBytes=$available → GltfBinaryParser.parse")
+                    val mesh = GltfBinaryParser.parse(inputStream)
+                    Log.i(
+                        TAG,
+                        "rememberModel IO PARSE_OK id=${model.id} verts=${mesh.vertexCount} " +
+                            "idx=${mesh.indexCount} hasIdx=${mesh.hasIndices}",
+                    )
+                    ModelLoadState.Loaded(mesh)
                 }
             } catch (e: Exception) {
-                Log.e("rememberModel", "Failed to load model ${model.id}", e)
+                Log.e(TAG, "rememberModel IO PARSE_FAIL id=${model.id}", e)
                 ModelLoadState.Error(MeshData.ErrorMesh, e)
             }
         }
 
         val loadedMesh = loadState.mesh
+        Log.i(
+            TAG,
+            "rememberModel REGISTER_FINAL id=${model.id} phase=${loadState::class.simpleName} " +
+                "verts=${loadedMesh.vertexCount} idx=${loadedMesh.indexCount}",
+        )
 
         GlobalMeshRegistry.register(model.id, loadedMesh)
         cachedModels[model.id] = loadedMesh
         state.value = loadState
+        Log.i(TAG, "rememberModel DONE id=${model.id} registrySize=${GlobalMeshRegistry.size()}")
     }
 
     return state.value.mesh
 }
+
+private const val TAG = "SpatialModelLoad"
 
 /**
  * A process-wide cache for loaded 3D models mapped by their resource ID.

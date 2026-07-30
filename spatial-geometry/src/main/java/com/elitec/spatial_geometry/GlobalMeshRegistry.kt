@@ -1,5 +1,6 @@
 package com.elitec.spatial_geometry
 
+import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -13,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
  * teardown/tests, or rely on the soft [maxEntries] LRU cap to bound growth in long-lived apps.
  */
 public object GlobalMeshRegistry {
+    private const val TAG = "SpatialModelRegistry"
+
     private val meshes = ConcurrentHashMap<String, VersionedMeshData>()
     private val lastAccessNanos = ConcurrentHashMap<String, Long>()
 
@@ -33,24 +36,40 @@ public object GlobalMeshRegistry {
      * forcing a re-upload for idempotent re-publication during recomposition.
      */
     public fun register(meshId: String, meshData: MeshData) {
+        var versionOut = 0L
+        var advanced = false
         meshes.compute(meshId) { _, current ->
             if (current?.meshData == meshData) {
+                versionOut = current.version
                 current
             } else {
-                VersionedMeshData(
+                advanced = true
+                val next = VersionedMeshData(
                     meshData = meshData,
                     version = (current?.version ?: 0L) + 1L,
                 )
+                versionOut = next.version
+                next
             }
         }
         touch(meshId)
         evictIfNeeded()
+        if (advanced) {
+            Log.i(
+                TAG,
+                "register ADVANCED meshId=$meshId version=$versionOut verts=${meshData.vertexCount} " +
+                    "idx=${meshData.indexCount} size=${meshes.size}",
+            )
+        } else {
+            Log.d(TAG, "register NOOP meshId=$meshId version=$versionOut")
+        }
     }
 
     /** Removes a single entry. No-op if [meshId] is not registered. */
     public fun unregister(meshId: String) {
         meshes.remove(meshId)
         lastAccessNanos.remove(meshId)
+        Log.i(TAG, "unregister meshId=$meshId size=${meshes.size}")
     }
 
     /** Number of registered mesh ids. */
@@ -64,7 +83,13 @@ public object GlobalMeshRegistry {
     }
 
     public fun getVersioned(meshId: String): VersionedMeshData? {
-        val entry = meshes[meshId] ?: return null
+        val entry = meshes[meshId]
+        if (entry == null) {
+            if (meshId.startsWith("raw:")) {
+                Log.w(TAG, "getVersioned MISS meshId=$meshId size=${meshes.size} keys=${meshes.keys}")
+            }
+            return null
+        }
         touch(meshId)
         return entry
     }
@@ -75,6 +100,7 @@ public object GlobalMeshRegistry {
     public fun clear() {
         meshes.clear()
         lastAccessNanos.clear()
+        Log.i(TAG, "clear")
     }
 
     private fun touch(meshId: String) {
@@ -91,6 +117,7 @@ public object GlobalMeshRegistry {
                 ?: break
             meshes.remove(victim)
             lastAccessNanos.remove(victim)
+            Log.w(TAG, "evict LRU meshId=$victim size=${meshes.size} limit=$limit")
         }
     }
 
