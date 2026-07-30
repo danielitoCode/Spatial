@@ -5,6 +5,8 @@
 
   let { onNavigate }: Props = $props();
 
+  const logoSrc = `${import.meta.env.BASE_URL}spatial_icon_cleaned.svg`;
+
   function navigate(e: MouseEvent, targetRoute: string) {
     if (onNavigate) {
       e.preventDefault();
@@ -30,7 +32,7 @@
       <div class="flex items-center gap-4 group cursor-pointer" onclick={(e) => navigate(e, 'home')}>
         <div class="relative w-12 h-12">
             <div class="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
-            <img src="/spatial_icon_cleaned.svg" alt="Spatial" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:rotate-12" />
+            <img src={logoSrc} alt="Spatial" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:rotate-12" />
         </div>
         <div class="flex flex-col">
             <span class="font-black text-2xl text-white tracking-tighter italic uppercase leading-none">SPATIAL</span>
