@@ -31,29 +31,10 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     /** Called every time the viewport size changes, so the host can keep its own aspect ratio in sync. */
     var onViewportChangedCallback: ((aspectRatio: Float) -> Unit)? = null
 
-    // Cached once per onSurfaceChanged instead of once per onDrawFrame (Phase 2.1: the frustum only
-    // changes when the viewport size changes, not every frame).
     private val projectionMatrix = FloatArray(16)
 
-    // Item 2.0 follow-up (re-verification, 2026-07-08): guards `onSurfaceReadyCallback` so it fires
-    // exactly once per GL-context lifetime, from `onSurfaceChanged` instead of `onSurfaceCreated`.
-    // See the comment on that callback invocation below for why.
     private var surfaceReadyCallbackFired = false
 
-    /**
-     * Re-arms the `surfaceReadyCallbackFired` gate so the next `onSurfaceChanged` re-fires
-     * `onSurfaceReadyCallback`.
-     *
-     * Track 1 (Fix background-then-foreground bug, Core #1): after a background/foreground cycle,
-     * `onSurfaceCreated` runs again and resets this flag itself at line ~79, so the "first
-     * `onSurfaceChanged` of the new surface lifetime" path is already covered. This method is for
-     * the *other* half: `SpatialGlSurfaceView.onResume()` is called by the host BEFORE the GL
-     * thread finishes reloading the surface, so by the time `onSurfaceCreated` runs and resets
-     * the flag, the host might have already queried it and skipped its re-subscription path. We
-     * re-arm explicitly from `onResume()` to make both paths converge safely, with no harm done
-     * if `onSurfaceCreated` resets it a second time for the same surface lifetime
-     * (it's just a boolean flag, the second write is a no-op).
-     */
     fun resetSurfaceReadyGate() {
         surfaceReadyCallbackFired = false
         if (BuildConfig.DEBUG) {
@@ -63,6 +44,10 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     fun updateNodes(newNodes: List<RenderableNode>) {
         nodes = newNodes
+        val modelIds = newNodes.map { it.meshId }.filter { it.startsWith("raw:") }
+        if (modelIds.isNotEmpty()) {
+            Log.i(MODEL_TAG, "updateNodes count=${newNodes.size} modelMeshIds=$modelIds allIds=${newNodes.map { it.meshId }}")
+        }
     }
 
     fun updateCamera(snapshot: CameraSnapshot) {
@@ -95,9 +80,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
             )
         }
 
-        // `onSurfaceReadyCallback` no longer fires here (see onSurfaceChanged): a fresh EGL context
-        // always gets at least one onSurfaceChanged before the first onDrawFrame, so we defer to
-        // that call to guarantee the aspect ratio is already synced by the time "ready" fires.
         surfaceReadyCallbackFired = false
     }
 
@@ -108,16 +90,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onSurfaceChanged: width=$width, height=$height, aspectRatio=$aspectRatio")
         }
-        // Item 2.0 follow-up (re-verification, 2026-07-08): `onViewportChangedCallback` must run
-        // before `onSurfaceReadyCallback` so that whoever consumes the "ready" signal (i.e.
-        // SpatialRuntimeSceneRenderHost replaying its queued first frame) already has the real
-        // aspect ratio synced into SpatialRuntime.updateViewport(...). Previously the ready callback
-        // fired from onSurfaceCreated - *before* onSurfaceChanged ever ran - so the very first
-        // FrameSnapshot built for a fresh surface always used the default 1:1 aspect ratio instead
-        // of the real one, silently breaking item 2.0's "consumers get real data" promise for
-        // exactly the first frame of a surface's lifetime. This doesn't affect the pixels actually
-        // drawn (SpatialGlRenderer computes its own projection matrix independently, already
-        // correctly ordered), only the FrameSnapshot object exposed via the public contract.
         onViewportChangedCallback?.invoke(aspectRatio)
         if (!surfaceReadyCallbackFired) {
             surfaceReadyCallbackFired = true
@@ -126,12 +98,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        // Item 1.0 follow-up (audit 2026-07-05/07, Claude + GLM-5.2 review): this used to
-        // *overwrite* the consumer's `frameClearColor` with hardcoded diagnostic colors whenever
-        // nodes were empty or the GL program wasn't ready yet, which broke the contract's promise
-        // that consumers can theme the background via `FrameSnapshot.clearColor` in degraded
-        // states. The real clear color is now always applied; the degraded-state colors are kept
-        // only as debug logging so they're still easy to spot while developing.
         applyClearColor(frameClearColor)
 
         if (nodes.isEmpty()) {
@@ -159,8 +125,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
         val viewMatrix = FloatArray(16)
 
-        // Configuración de cámara básica (Orbit). CameraSnapshot.zoom is visual magnification,
-        // so orbital distance is inversely proportional to zoom.
         val orbitDistance = orbitDistanceForVisualZoom(cameraSnapshot.zoom)
         val eyeX = (orbitDistance * Math.sin(Math.toRadians(cameraSnapshot.yaw.toDouble())) * Math.cos(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
         val eyeY = (orbitDistance * Math.sin(Math.toRadians(cameraSnapshot.pitch.toDouble()))).toFloat()
@@ -169,8 +133,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, 0f, 0f, 0f, 0f, 1f, 0f)
 
         GLES30.glUniformMatrix4fv(uniformLocations.viewMatrix, 1, false, viewMatrix, 0)
-
-        // Proyección cacheada: solo se recalcula en onSurfaceChanged (Phase 2.1).
         GLES30.glUniformMatrix4fv(uniformLocations.projectionMatrix, 1, false, projectionMatrix, 0)
 
         GLES30.glEnableVertexAttribArray(PositionAttributeLocation)
@@ -178,15 +140,30 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         var drawCalls = 0
         var skippedUnknownMeshIds = 0
         var skippedMissingBuffers = 0
+        var modelDrawCalls = 0
 
         nodes.forEach { node ->
+            val isModel = node.meshId.startsWith("raw:")
             val meshData = meshRegistry.resolveOrNull(node.meshId)
             if (meshData == null) {
                 skippedUnknownMeshIds++
-                if (BuildConfig.DEBUG) {
+                if (isModel) {
+                    Log.w(
+                        MODEL_TAG,
+                        "SKIP unknown meshId=${node.meshId} registryHas=${GlobalMeshRegistry.get(node.meshId) != null} " +
+                            "registrySize=${GlobalMeshRegistry.size()}",
+                    )
+                } else if (BuildConfig.DEBUG) {
                     Log.w(TAG, "Skipping renderable with unknown primitive mesh id: ${node.meshId}")
                 }
                 return@forEach
+            }
+
+            if (isModel) {
+                Log.i(
+                    MODEL_TAG,
+                    "RESOLVED meshId=${node.meshId} verts=${meshData.vertexCount} idx=${meshData.indexCount}",
+                )
             }
 
             val registryVersion = GlobalMeshRegistry.getVersioned(node.meshId)?.version
@@ -199,18 +176,20 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
                         previousBuffers.release()
                     }
                     mesh = newBuffers
-                    if (BuildConfig.DEBUG) {
+                    if (isModel || BuildConfig.DEBUG) {
                         val uploadReason = if (previousBuffers == null) "JIT uploaded" else "Re-uploaded changed"
-                        Log.d(TAG, "$uploadReason GL buffers for mesh id: ${node.meshId}, registryVersion=$registryVersion")
+                        Log.i(MODEL_TAG, "$uploadReason meshId=${node.meshId} registryVersion=$registryVersion")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to upload GL buffers for dynamic mesh id: ${node.meshId}", e)
+                    Log.e(MODEL_TAG, "Failed to upload GL buffers for meshId=${node.meshId}", e)
                 }
             }
 
             if (mesh == null) {
                 skippedMissingBuffers++
-                if (BuildConfig.DEBUG) {
+                if (isModel) {
+                    Log.w(MODEL_TAG, "SKIP missing GL buffers meshId=${node.meshId}")
+                } else if (BuildConfig.DEBUG) {
                     Log.w(TAG, "Skipping renderable because GL buffers are missing for mesh id: ${node.meshId}")
                 }
                 return@forEach
@@ -272,8 +251,15 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
                 GLES30.glDrawArrays(mesh.drawMode.toGlDrawMode(), 0, mesh.vertexCount)
             }
             drawCalls++
+            if (isModel) modelDrawCalls++
         }
-        if (BuildConfig.DEBUG) {
+        if (modelDrawCalls > 0 || skippedUnknownMeshIds > 0) {
+            Log.i(
+                MODEL_TAG,
+                "onDrawFrame modelDraws=$modelDrawCalls totalDraws=$drawCalls " +
+                    "skippedUnknown=$skippedUnknownMeshIds skippedMissingBuf=$skippedMissingBuffers nodes=${nodes.size}",
+            )
+        } else if (BuildConfig.DEBUG) {
             Log.d(
                 TAG,
                 "onDrawFrame: nodes.size=${nodes.size}, drawCalls=$drawCalls, skippedUnknownMeshIds=$skippedUnknownMeshIds, skippedMissingBuffers=$skippedMissingBuffers",
@@ -309,12 +295,6 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
         return program
     }
 
-    /**
-     * Releases GPU-side resources (mesh buffers, GL program). Must be called on the GL thread with a
-     * valid, current EGL context. [SpatialGlSurfaceView.releaseGlResources] is responsible for
-     * queueing this correctly and for catching [IllegalStateException] if the EGL context has already
-     * been torn down by the system before this runs (see its KDoc, item 1.3 audit notes).
-     */
     fun releaseGlResources() {
         meshBuffers.values.forEach { it.release() }
         meshBuffers.clear()
@@ -462,6 +442,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
 
     private companion object {
         private const val TAG = "SpatialGlRenderer"
+        private const val MODEL_TAG = "SpatialModelGL"
         val LegacyNavyClearColor = Color4(0.02f, 0.05f, 0.18f, 1f)
         private const val PositionAttributeLocation = 0
         private const val NormalAttributeLocation = 1
