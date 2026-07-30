@@ -8,6 +8,8 @@
 
   let { onNavigate }: Props = $props();
 
+  const logoSrc = `${import.meta.env.BASE_URL}spatial_icon_cleaned.svg`;
+
   function navigate(e: MouseEvent, targetRoute: string) {
     if (onNavigate) {
       e.preventDefault();
@@ -57,7 +59,7 @@
     <!-- Tech Badges -->
     <div class="flex flex-wrap items-center gap-6 pt-8 opacity-40">
         <div class="flex items-center gap-2 grayscale brightness-200">
-            <img src="/spatial_icon_cleaned.svg" class="w-5 h-5 opacity-80" alt="GLES 3.0" />
+            <img src={logoSrc} class="w-5 h-5 opacity-80" alt="GLES 3.0" />
             <span class="text-[10px] font-black tracking-widest uppercase text-white">OpenGL ES 3.0+</span>
         </div>
         <div class="w-px h-3 bg-white/20"></div>

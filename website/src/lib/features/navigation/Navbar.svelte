@@ -8,6 +8,8 @@
 
   let { activeRoute = 'home', onNavigate }: Props = $props();
 
+  const logoSrc = `${import.meta.env.BASE_URL}spatial_icon_cleaned.svg`;
+
   function navigate(e: MouseEvent, targetRoute: string) {
     if (onNavigate) {
       e.preventDefault();
@@ -35,7 +37,7 @@
       <div class="relative w-9 h-9">
         <div class="absolute inset-0 bg-primary blur-lg opacity-20 group-hover:opacity-60 transition-opacity"></div>
         <img
-          src="/spatial_icon_cleaned.svg"
+          src={logoSrc}
           alt="Spatial Logo"
           class="w-full h-full object-contain relative z-10 group-hover:rotate-[360deg] transition-transform duration-1000"
         />

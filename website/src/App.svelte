@@ -26,6 +26,9 @@
   let spinTrigger = $state(0);
   let spinDirection = $state<1 | -1>(1);
 
+  /** Vite base-aware path for public/ assets on GitHub Pages. */
+  const logoSrc = `${import.meta.env.BASE_URL}spatial_icon_cleaned.svg`;
+
   function updateRouteFromHash() {
     const hash = (window.location.hash.replace('#', '') || 'home') as Route;
     if (routeOrder.includes(hash)) {
@@ -62,7 +65,10 @@
   <script src="https://udify.app/embed.min.js" id="XZWJsDVSqxQtNsHH" defer></script>
 </svelte:head>
 
-<div class="relative min-h-screen bg-[#05070D] text-[#e1e2ec] font-sans selection:bg-[#19E6D2] selection:text-[#00201c] overflow-x-hidden">
+<div
+  class="relative min-h-screen bg-[#05070D] text-[#e1e2ec] font-sans selection:bg-[#19E6D2] selection:text-[#00201c] overflow-x-hidden"
+  style="--spatial-icon-url: url('{logoSrc}')"
+>
 
   <!-- BACKGROUND LAYER -->
   <div class="fixed inset-0 z-0 pointer-events-none">
@@ -140,7 +146,7 @@
     position: absolute;
     width: 32px;
     height: 32px;
-    background: url('/spatial_icon_cleaned.svg') no-repeat center;
+    background: var(--spatial-icon-url) no-repeat center;
     background-size: contain;
   }
 
