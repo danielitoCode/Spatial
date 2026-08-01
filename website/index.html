@@ -1,13 +1,97 @@
 <!doctype html>
 <html lang="en" class="dark">
   <head>
-    <meta data-theme="spatial-theme" charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%spatial_icon_cleaned.svg" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <title>SPATIAL | 3D Rendering Library for Android</title>
+
+    <!-- Primary SEO -->
+    <title>SPATIAL | Declarative 3D Rendering Library for Android</title>
+    <meta
+      name="description"
+      content="Spatial is a Compose-first 3D library for Kotlin: declarative scene graph, orbit camera, gestures, GLB models, and OpenGL ES 3.0 — without writing a render loop by hand."
+    />
+    <meta
+      name="keywords"
+      content="Android, 3D, OpenGL ES, Jetpack Compose, Kotlin, scene graph, GLB, declarative rendering, Spatial"
+    />
+    <meta name="author" content="Daniel Imbert (danielitoCode)" />
+    <meta name="theme-color" content="#05070D" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://danielitocode.github.io/Spatial/" />
+
+    <!-- Icons (SVG + PNG/ICO for Google & iOS) -->
+    <link rel="icon" href="%BASE_URL%favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32x32.png" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%spatial_icon_cleaned.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="manifest" href="%BASE_URL%site.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Spatial" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://danielitocode.github.io/Spatial/" />
+    <meta property="og:title" content="SPATIAL | Declarative 3D for Android" />
+    <meta
+      property="og:description"
+      content="Compose-first 3D for Kotlin: scene graph, orbit camera, gestures, GLB models, OpenGL ES 3.0 — no hand-written render loop."
+    />
+    <meta property="og:image" content="https://danielitocode.github.io/Spatial/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Spatial — Declarative 3D rendering library for Android" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SPATIAL | Declarative 3D for Android" />
+    <meta
+      name="twitter:description"
+      content="Compose-first 3D for Kotlin: scene graph, orbit camera, gestures, GLB models, OpenGL ES 3.0."
+    />
+    <meta name="twitter:image" content="https://danielitocode.github.io/Spatial/og-image.png" />
+    <meta name="twitter:image:alt" content="Spatial — Declarative 3D rendering library for Android" />
+    <!-- Optional: set when you have an official X handle
+    <meta name="twitter:site" content="@yourusername" />
+    -->
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Spatial",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Android",
+        "description": "Compose-first 3D library for Kotlin with declarative scene graph, orbit camera, gestures, GLB models, and OpenGL ES 3.0.",
+        "url": "https://danielitocode.github.io/Spatial/",
+        "downloadUrl": "https://github.com/danielitoCode/Spatial",
+        "softwareVersion": "0.1.0-alpha01",
+        "license": "https://github.com/danielitoCode/Spatial/blob/master/LICENSE",
+        "author": {
+          "@type": "Person",
+          "name": "Daniel Imbert",
+          "url": "https://github.com/danielitoCode"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body class="bg-[#05070D] text-[#e1e2ec]">
+    <!-- Static H1 for crawlers that do not execute JS (SPA shell). App hero keeps the visual H1. -->
+    <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
+      Spatial — Declarative 3D Rendering Library for Android
+    </h1>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
