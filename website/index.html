@@ -21,16 +21,11 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://danielitocode.github.io/Spatial/" />
 
-    <!--
-      Icons: SVG works today on modern browsers.
-      After adding favicon.ico / favicon-32x32.png / apple-touch-icon.png / og-image.png
-      under website/public/ (see website/README SEO section), Google & social previews improve further.
-    -->
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%spatial_icon_cleaned.svg" />
+    <!-- Icons (PNG/ICO generated at deploy via website/scripts/generate-seo-assets.py) -->
     <link rel="icon" href="%BASE_URL%favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32x32.png" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%spatial_icon_cleaned.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
-    <link rel="apple-touch-icon" href="%BASE_URL%spatial_icon_cleaned.svg" />
     <link rel="manifest" href="%BASE_URL%site.webmanifest" />
 
     <!-- Open Graph -->
@@ -43,12 +38,11 @@
       property="og:description"
       content="Compose-first 3D for Kotlin: scene graph, orbit camera, gestures, GLB models, OpenGL ES 3.0 — no hand-written render loop."
     />
-    <!-- Prefer PNG 1200x630 when present; SVG logo is a valid interim absolute URL -->
     <meta property="og:image" content="https://danielitocode.github.io/Spatial/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Spatial — Declarative 3D rendering library for Android" />
-    <meta property="og:image" content="https://danielitocode.github.io/Spatial/spatial_icon_cleaned.svg" />
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
