@@ -43,9 +43,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Opcional: repetir el check para mayor seguridad
-      # - name: Type check
-      #   run: npm run check
+      - name: Generate SEO icons and OG image
+        run: |
+          pip install --quiet pillow
+          python3 scripts/generate-seo-assets.py
 
       - name: Build website
         run: npm run build
