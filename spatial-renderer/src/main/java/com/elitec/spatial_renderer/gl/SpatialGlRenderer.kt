@@ -10,6 +10,7 @@ import com.elitec.spatial_core.camera.CameraSnapshot
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import com.elitec.spatial_core.render.Color4
+import com.elitec.spatial_core.scene.LightData
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_geometry.GlobalMeshRegistry
 import com.elitec.spatial_geometry.MeshData
@@ -21,6 +22,7 @@ class SpatialGlRenderer : GLSurfaceView.Renderer {
     private val meshBuffers = java.util.concurrent.ConcurrentHashMap<String, GlMeshBuffers>()
     private var programId: Int = 0
     private var nodes: List<RenderableNode> = emptyList()
+    private var lights: List<LightData> = emptyList()
     private var cameraSnapshot: CameraSnapshot = CameraSnapshot()
     private var aspectRatio: Float = 1f
     private var uniforms: UniformLocations? = null

@@ -10,7 +10,7 @@ internal fun SceneNode.toRenderableNode(): RenderableNode = when (this) {
     is SceneNode.Primitive -> RenderableNode(
         meshId = shape.name,
         modelMatrix = modifier.toModelMatrix(),
-        material = shape.defaultMaterial(),
+        material = modifier.material?.toMaterialData() ?: shape.defaultMaterial(),
     )
     is SceneNode.Model -> {
         val registryMaterial = GlobalMeshRegistry.get(meshId)?.material

@@ -3,6 +3,8 @@ package com.elitec.spatial_compose
 import com.elitec.spatial_compose.modifier.Modifier3D
 import com.elitec.spatial_compose.scene.SceneNode
 import com.elitec.spatial_compose.scene.toRenderableNode
+import com.elitec.spatial_compose.shapes.PrimitiveShape
+import com.elitec.spatial_compose.shapes.defaultMaterial
 import com.elitec.spatial_core.scene.MaterialData
 import com.elitec.spatial_geometry.GlobalMeshRegistry
 import com.elitec.spatial_geometry.MeshData
@@ -100,5 +102,42 @@ class SceneNodeModelMaterialTest {
         val renderableNode = node.toRenderableNode()
 
         assertEquals(material, renderableNode.material)
+    }
+
+    @Test
+    fun `primitive renderable uses modifier color override`() {
+        val node = SceneNode.Primitive(
+            shape = PrimitiveShape.Cube,
+            modifier = Modifier3D.Default.color(0.1f, 0.2f, 0.3f, 0.4f),
+        )
+
+        val renderableNode = node.toRenderableNode()
+
+        assertEquals(
+            MaterialData(
+                r = 0.1f,
+                g = 0.2f,
+                b = 0.3f,
+                a = 0.4f,
+                metallicFactor = 0.0f,
+                roughnessFactor = 0.5f
+            ),
+            renderableNode.material
+        )
+    }
+
+    @Test
+    fun `primitive renderable falls back to shape default material when no override is provided`() {
+        val node = SceneNode.Primitive(
+            shape = PrimitiveShape.Cube,
+            modifier = Modifier3D.Default,
+        )
+
+        val renderableNode = node.toRenderableNode()
+
+        assertEquals(
+            PrimitiveShape.Cube.defaultMaterial(),
+            renderableNode.material
+        )
     }
 }

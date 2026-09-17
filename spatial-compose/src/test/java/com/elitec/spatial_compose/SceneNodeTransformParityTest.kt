@@ -5,6 +5,7 @@ import com.elitec.spatial_compose.scene.SceneNode
 import com.elitec.spatial_compose.scene.toRenderableNode
 import com.elitec.spatial_compose.shapes.PrimitiveShape
 import com.elitec.spatial_units.meters
+import com.elitec.spatial_units.deg
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -17,6 +18,10 @@ class SceneNodeTransformParityTest {
         val modifier = Modifier3D.Default
             .position(0.5f, -1f, 2f)
             .size(1.5f.meters, 2f.meters, 0.5f.meters)
+            .rotateX(45f.deg)
+            .rotateY(30f.deg)
+            .rotateZ(60f.deg)
+            .scale(2f.meters, 2f.meters, 2f.meters)
 
         val primitive = SceneNode.Primitive(PrimitiveShape.Cube, modifier).toRenderableNode()
         val model = SceneNode.Model("raw:parity", modifier).toRenderableNode()

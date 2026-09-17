@@ -177,21 +177,24 @@ private fun PlaygroundScene(primitiveCount: Int, showGrid: Boolean, showModel: B
             .rotateY(35f.deg)
             .rotateZ(18f.deg)
             .size(1.4f.meters)
-            .position(0f.meters, 0f.meters, (-4f).meters),
+            .position(0f.meters, 0f.meters, (-4f).meters)
+            .color(0.95f, 0.35f, 0.20f), // Custom vibrant coral/orange
     )
 
     if (primitiveCount >= 2) {
         Element.Sphere(
             modifier = Modifier3D.Default
                 .size(1f.meters)
-                .position(2f.meters, 0f.meters, (-6f).meters),
+                .position(2f.meters, 0f.meters, (-6f).meters)
+                .color(0.15f, 0.60f, 0.95f), // Custom vivid blue
         )
     }
     if (primitiveCount >= 3) {
         Element.Plane(
             modifier = Modifier3D.Default
                 .size(8f.meters, 0.1f.meters, 8f.meters)
-                .position(0f.meters, (-1.2f).meters, (-5f).meters),
+                .position(0f.meters, (-1.2f).meters, (-5f).meters)
+                .color(0.22f, 0.28f, 0.34f), // Custom deep slate gray
         )
     }
 

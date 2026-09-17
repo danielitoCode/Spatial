@@ -3,11 +3,13 @@ package com.elitec.spatial_compose.components
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -27,6 +29,7 @@ import com.elitec.spatial_compose.scene.renderSceneFrame
 import com.elitec.spatial_compose.scene.toRenderableNode
 import com.elitec.spatial_compose.state.CameraState
 import com.elitec.spatial_compose.state.rememberCameraState
+import com.elitec.spatial_core.camera.CameraUpdateSource
 
 @Composable
 fun Scene(
@@ -98,6 +101,25 @@ fun Scene(
     SideEffect {
         if (renderableNodes.isNotEmpty()) {
             renderHostHolder.host?.renderSceneFrame(renderableNodes, cameraSnapshot, clearColor)
+        }
+    }
+
+    LaunchedEffect(cameraState.gesturePointerActive) {
+        if (!cameraState.gesturePointerActive) {
+            while (true) {
+                withFrameNanos { _ -> }
+                val decayStep = cameraState.inertiaProcessor.computeDecayStep()
+                if (decayStep != null) {
+                    if (decayStep.deltaYaw != 0f || decayStep.deltaPitch != 0f) {
+                        cameraState.orbitBy(decayStep.deltaYaw, decayStep.deltaPitch, CameraUpdateSource.Animation)
+                    }
+                    if (decayStep.zoomScaleDelta != 1f) {
+                        cameraState.zoomBy(decayStep.zoomScaleDelta, CameraUpdateSource.Animation)
+                    }
+                } else {
+                    break
+                }
+            }
         }
     }
 }

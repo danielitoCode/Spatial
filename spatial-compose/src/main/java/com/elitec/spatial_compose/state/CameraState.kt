@@ -10,6 +10,7 @@ import com.elitec.spatial_camera.camera.CameraDelta
 import com.elitec.spatial_camera.camera.CameraRuntimeContract
 import com.elitec.spatial_camera.camera.SpatialCamera
 import com.elitec.spatial_camera.gesture.GestureMotionPolicy
+import com.elitec.spatial_camera.inertia.InertiaProcessor
 import com.elitec.spatial_compose.camera.ComposeFrameCameraAnimationScheduler
 import com.elitec.spatial_camera.animation.CameraAnimationSpec as RuntimeMotionSpec
 import com.elitec.spatial_compose.motion.MotionSpec
@@ -48,7 +49,13 @@ class CameraState internal constructor(
         private set
 
     /** True while a scene pointer gesture is active (DOWN…UP). */
-    private var gesturePointerActive: Boolean by mutableStateOf(false)
+    var gesturePointerActive: Boolean by mutableStateOf(false)
+        private set
+
+    /**
+     * Cinematic inertia integration processor.
+     */
+    internal val inertiaProcessor = InertiaProcessor()
 
     /**
      * Monotonic nanos after which auto-rotate may resume following a gesture.
@@ -66,6 +73,7 @@ class CameraState internal constructor(
      */
     fun beginGestureInteraction() {
         gesturePointerActive = true
+        inertiaProcessor.reset()
     }
 
     /**
@@ -102,12 +110,16 @@ class CameraState internal constructor(
         deltaPitchDegrees: Float,
         source: CameraUpdateSource = CameraUpdateSource.Gesture,
     ) {
+        val delta = CameraDelta(
+            deltaYaw = deltaYawDegrees,
+            deltaPitch = deltaPitchDegrees,
+            motionPolicy = GestureMotionPolicy.Raw,
+        )
+        if (source == CameraUpdateSource.Gesture) {
+            inertiaProcessor.feedDelta(delta)
+        }
         cameraRuntime.applyDelta(
-            delta = CameraDelta(
-                deltaYaw = deltaYawDegrees,
-                deltaPitch = deltaPitchDegrees,
-                motionPolicy = GestureMotionPolicy.Raw,
-            ),
+            delta = delta,
             source = source,
         )
         syncFromRuntime()
@@ -123,11 +135,15 @@ class CameraState internal constructor(
      * (objects appear closer/larger); values below `1f` zoom out visually.
      */
     fun zoomBy(scaleDelta: Float, source: CameraUpdateSource = CameraUpdateSource.Gesture) {
+        val delta = CameraDelta(
+            zoomScaleDelta = scaleDelta,
+            motionPolicy = GestureMotionPolicy.Raw,
+        )
+        if (source == CameraUpdateSource.Gesture) {
+            inertiaProcessor.feedDelta(delta)
+        }
         cameraRuntime.applyDelta(
-            delta = CameraDelta(
-                zoomScaleDelta = scaleDelta,
-                motionPolicy = GestureMotionPolicy.Raw,
-            ),
+            delta = delta,
             source = source,
         )
         syncFromRuntime()

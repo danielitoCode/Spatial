@@ -8,6 +8,7 @@ import com.elitec.spatial_core.render.Color4
 import com.elitec.spatial_core.render.FrameSnapshot
 import com.elitec.spatial_core.render.SpatialRenderLoopContract
 import com.elitec.spatial_core.render.buildOrbitFrameSnapshot
+import com.elitec.spatial_core.scene.LightData
 import com.elitec.spatial_core.scene.RenderableNode
 import com.elitec.spatial_gesture.OrbitGestureDelta
 import com.elitec.spatial_gesture.PinchZoomDelta
@@ -49,6 +50,7 @@ class SpatialRuntime(
     fun onFrame(
         snapshot: FrameSnapshot,
         nodes: List<RenderableNode>,
+        lights: List<LightData> = emptyList(),
         cameraSnapshot: CameraSnapshot,
     ) {
         if (!initialized) return
@@ -58,6 +60,7 @@ class SpatialRuntime(
             RenderFrame(
                 frameTimeNanos = snapshot.frameTimeNanos,
                 nodes = nodes,
+                lights = lights,
                 cameraState = cameraRuntime.snapshot(),
                 clearColor = snapshot.clearColor,
             )
@@ -67,6 +70,7 @@ class SpatialRuntime(
     fun renderFrame(
         frameTimeNanos: Long,
         nodes: List<RenderableNode>,
+        lights: List<LightData> = emptyList(),
         cameraSnapshot: CameraSnapshot,
         clearColor: Color4 = Color4.TRANSPARENT,
     ) {
@@ -78,12 +82,14 @@ class SpatialRuntime(
                 clearColor = clearColor,
             ),
             nodes = nodes,
+            lights = lights,
             cameraSnapshot = cameraSnapshot,
         )
     }
 
     fun requestFrame(
         nodes: List<RenderableNode>,
+        lights: List<LightData> = emptyList(),
         cameraSnapshot: CameraSnapshot,
         clearColor: Color4 = Color4.TRANSPARENT,
     ) {
@@ -91,6 +97,7 @@ class SpatialRuntime(
             renderFrame(
                 frameTimeNanos = scheduledFrame.frameTimeNanos,
                 nodes = nodes,
+                lights = lights,
                 cameraSnapshot = cameraSnapshot,
                 clearColor = clearColor,
             )
